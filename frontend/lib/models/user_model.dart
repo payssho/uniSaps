@@ -1,0 +1,149 @@
+class TutorialState {
+  final bool dressing;
+  final bool creations;
+  final bool outfits;
+  final bool profile;
+  final bool inspiration;
+
+  const TutorialState({
+    this.dressing = false,
+    this.creations = false,
+    this.outfits = false,
+    this.profile = false,
+    this.inspiration = false,
+  });
+
+  factory TutorialState.fromMap(Map<String, dynamic> map) {
+    return TutorialState(
+      dressing: map['dressing'] ?? false,
+      creations: map['creations'] ?? false,
+      outfits: map['outfits'] ?? false,
+      profile: map['profile'] ?? false,
+      inspiration: map['inspiration'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'dressing': dressing,
+        'creations': creations,
+        'outfits': outfits,
+        'profile': profile,
+        'inspiration': inspiration,
+      };
+
+  TutorialState copyWith({
+    bool? dressing,
+    bool? creations,
+    bool? outfits,
+    bool? profile,
+    bool? inspiration,
+  }) {
+    return TutorialState(
+      dressing: dressing ?? this.dressing,
+      creations: creations ?? this.creations,
+      outfits: outfits ?? this.outfits,
+      profile: profile ?? this.profile,
+      inspiration: inspiration ?? this.inspiration,
+    );
+  }
+}
+
+class UserModel {
+  final String uid;
+  final String email;
+  final String username;
+  final String displayName;
+  final String profilePhotoUrl;
+  final String createdAt;
+  final TutorialState tutorialSeen;
+  final int currentStreak;
+  final int bestStreak;
+  final String dailyOutfitId;
+  final String dailyOutfitDate;
+  final String dailyPhotoUrl;
+  final bool isNewUser;
+
+  const UserModel({
+    this.uid = '',
+    this.email = '',
+    this.username = '',
+    this.displayName = '',
+    this.profilePhotoUrl = '',
+    this.createdAt = '',
+    this.tutorialSeen = const TutorialState(),
+    this.currentStreak = 0,
+    this.bestStreak = 0,
+    this.dailyOutfitId = '',
+    this.dailyOutfitDate = '',
+    this.dailyPhotoUrl = '',
+    this.isNewUser = true,
+  });
+
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      uid: map['uid'] ?? '',
+      email: map['email'] ?? '',
+      username: map['username'] ?? '',
+      displayName: map['display_name'] ?? '',
+      profilePhotoUrl: map['profile_photo_url'] ?? '',
+      createdAt: map['created_at'] ?? '',
+      tutorialSeen: map['tutorial_seen'] != null
+          ? TutorialState.fromMap(Map<String, dynamic>.from(map['tutorial_seen']))
+          : const TutorialState(),
+      currentStreak: map['current_streak'] ?? 0,
+      bestStreak: map['best_streak'] ?? 0,
+      dailyOutfitId: map['daily_outfit_id'] ?? '',
+      dailyOutfitDate: map['daily_outfit_date'] ?? '',
+      dailyPhotoUrl: map['daily_photo_url'] ?? '',
+      isNewUser: map['is_new_user'] ?? true,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'uid': uid,
+        'email': email,
+        'username': username,
+        'display_name': displayName,
+        'profile_photo_url': profilePhotoUrl,
+        'created_at': createdAt,
+        'tutorial_seen': tutorialSeen.toMap(),
+        'current_streak': currentStreak,
+        'best_streak': bestStreak,
+        'daily_outfit_id': dailyOutfitId,
+        'daily_outfit_date': dailyOutfitDate,
+        'daily_photo_url': dailyPhotoUrl,
+        'is_new_user': isNewUser,
+      };
+
+  UserModel copyWith({
+    String? uid,
+    String? email,
+    String? username,
+    String? displayName,
+    String? profilePhotoUrl,
+    String? createdAt,
+    TutorialState? tutorialSeen,
+    int? currentStreak,
+    int? bestStreak,
+    String? dailyOutfitId,
+    String? dailyOutfitDate,
+    String? dailyPhotoUrl,
+    bool? isNewUser,
+  }) {
+    return UserModel(
+      uid: uid ?? this.uid,
+      email: email ?? this.email,
+      username: username ?? this.username,
+      displayName: displayName ?? this.displayName,
+      profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
+      createdAt: createdAt ?? this.createdAt,
+      tutorialSeen: tutorialSeen ?? this.tutorialSeen,
+      currentStreak: currentStreak ?? this.currentStreak,
+      bestStreak: bestStreak ?? this.bestStreak,
+      dailyOutfitId: dailyOutfitId ?? this.dailyOutfitId,
+      dailyOutfitDate: dailyOutfitDate ?? this.dailyOutfitDate,
+      dailyPhotoUrl: dailyPhotoUrl ?? this.dailyPhotoUrl,
+      isNewUser: isNewUser ?? this.isNewUser,
+    );
+  }
+}
