@@ -1,0 +1,49 @@
+name: unisaps
+description: "uniSaps - Outfit Manager"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase
+  firebase_core: ^3.8.0
+  firebase_auth: ^5.3.0
+  cloud_firestore: ^5.5.0
+  firebase_storage: ^12.3.0
+
+  # State management
+  flutter_riverpod: ^2.6.0
+  riverpod_annotation: ^2.6.0
+
+  # Routing
+  go_router: ^14.6.0
+
+  # UI
+  cached_network_image: ^3.4.0
+  flutter_card_swiper: ^7.0.0
+  shimmer: ^3.0.0
+  flutter_animate: ^4.5.0
+  google_fonts: ^6.2.0
+
+  # Utilities
+  image_picker: ^1.1.0
+  uuid: ^4.5.0
+  intl: ^0.19.0
+  http: ^1.2.0
+  flutter_dotenv: ^5.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
