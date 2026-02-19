@@ -78,8 +78,70 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
+  Future<bool> updateGarment({
+    required String uid,
+    required String garmentId,
+    required String name,
+    required String brand,
+    required String color,
+    required String category,
+    Uint8List? imageBytes,
+    String? imageName,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      // Récupérer le vêtement existant
+      final existingGarment = await _db.getGarment(uid, garmentId);
+      if (existingGarment == null) {
+        state = AsyncValue.error('Vêtement introuvable', StackTrace.current);
+        return false;
+      }
+
+      String imageUrl = existingGarment.imageUrl;
+      
+      // Si une nouvelle image est fournie, uploader et supprimer l'ancienne
+      if (imageBytes != null && imageName != null) {
+        final newImageUrl = await _apiService.uploadImage(
+          imageBytes: imageBytes,
+          filename: imageName,
+          folder: 'garments',
+        );
+        // Supprimer l'ancienne image si elle existe
+        if (imageUrl.isNotEmpty) {
+          await _storage.deleteImage(imageUrl);
+        }
+        imageUrl = newImageUrl;
+      }
+
+      final garment = GarmentModel(
+        id: garmentId,
+        userId: uid,
+        name: name,
+        brand: brand,
+        color: color,
+        category: category,
+        imageUrl: imageUrl,
+        createdAt: existingGarment.createdAt,
+        timesWorn: existingGarment.timesWorn,
+      );
+      
+      await _db.updateGarment(uid, garmentId, garment.toMap());
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e) {
+      state = AsyncValue.error(e.toString(), StackTrace.current);
+      return false;
+    }
+  }
+
   Future<bool> deleteGarment(String uid, String garmentId) async {
     try {
+      // Récupérer le vêtement pour supprimer son image
+      final garment = await _db.getGarment(uid, garmentId);
+      if (garment != null && garment.imageUrl.isNotEmpty) {
+        await _storage.deleteImage(garment.imageUrl);
+      }
+      // Supprimer le document Firestore
       await _db.deleteGarment(uid, garmentId);
       return true;
     } catch (_) {

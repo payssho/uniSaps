@@ -4,23 +4,27 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
 
-class GarmentCard extends StatelessWidget {
+class GarmentCard extends StatefulWidget {
   final GarmentModel garment;
   final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
+  final VoidCallback? onDelete;
 
   const GarmentCard({
     super.key,
     required this.garment,
     this.onTap,
-    this.onLongPress,
+    this.onDelete,
   });
 
   @override
+  State<GarmentCard> createState() => _GarmentCardState();
+}
+
+class _GarmentCardState extends State<GarmentCard> {
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
+      onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -34,67 +38,72 @@ class GarmentCard extends StatelessWidget {
           ],
         ),
         clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Stack(
           children: [
-            Expanded(
-              child: garment.imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: garment.imageUrl,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(
-                        color: AppColors.surfaceVariant,
-                        child: const Center(
-                          child: SizedBox(
-                            width: 24, height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: widget.garment.imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: widget.garment.imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(
+                            color: AppColors.surfaceVariant,
+                            child: const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => Container(
+                            color: AppColors.surfaceVariant,
+                            child: Icon(
+                              categoryIcon(widget.garment.category),
+                              size: 40,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: AppColors.surfaceVariant,
+                          child: Icon(
+                            categoryIcon(widget.garment.category),
+                            size: 40,
+                            color: AppColors.textHint,
                           ),
                         ),
-                      ),
-                      errorWidget: (_, __, ___) => Container(
-                        color: AppColors.surfaceVariant,
-                        child: Icon(
-                          categoryIcon(garment.category),
-                          size: 40,
-                          color: AppColors.textHint,
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.garment.name,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    )
-                  : Container(
-                      color: AppColors.surfaceVariant,
-                      child: Icon(
-                        categoryIcon(garment.category),
-                        size: 40,
-                        color: AppColors.textHint,
-                      ),
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    garment.name,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                      if (widget.garment.brand.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.garment.brand,
+                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
                   ),
-                  if (garment.brand.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      garment.brand,
-                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),

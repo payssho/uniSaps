@@ -8,7 +8,8 @@ import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../widgets/garment_card.dart';
 import '../../widgets/category_chip.dart';
-import 'add_garment_screen.dart';
+import '../../widgets/garment_detail_sheet.dart';
+import '../../widgets/add_garment_sheet.dart';
 
 class DressingScreen extends ConsumerStatefulWidget {
   const DressingScreen({super.key});
@@ -92,10 +93,13 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                         mainAxisSpacing: 14,
                       ),
                       itemCount: filtered.length,
-                      itemBuilder: (_, i) => GarmentCard(
-                        garment: filtered[i],
-                        onLongPress: () => _confirmDelete(filtered[i]),
-                      ),
+                      itemBuilder: (_, i) {
+                        final garment = filtered[i];
+                        return GarmentCard(
+                          garment: garment,
+                          onTap: () => _showGarmentDetails(garment),
+                        );
+                      },
                     );
                   },
                   loading: () => const Center(child: CircularProgressIndicator()),
@@ -112,12 +116,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
           heroTag: 'dressing_fab',
           backgroundColor: AppColors.accent,
           elevation: 6,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AddGarmentScreen()),
-            );
-          },
+          onPressed: () => _showAddGarmentSheet(),
           icon: const Icon(Icons.add, color: Colors.white, size: 24),
           label: const Text('Ajouter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         ),
@@ -125,43 +124,152 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
     );
   }
 
-  void _confirmDelete(GarmentModel garment) {
+  void _showGarmentDetails(GarmentModel garment) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => GarmentDetailSheet(
+        garment: garment,
+        onEdit: () {
+          Navigator.pop(context);
+          _showEditGarmentSheet(garment);
+        },
+        onDelete: () {
+          Navigator.pop(context);
+          _confirmDelete(garment).then((confirmed) {
+            if (confirmed == true) {
+              final uid = ref.read(authServiceProvider).uid;
+              ref.read(garmentNotifierProvider.notifier).deleteGarment(uid, garment.id);
+            }
+          });
+        },
       ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Supprimer "${garment.name}" ?', style: AppTextStyles.heading3),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Annuler'),
-                    ),
+    );
+  }
+
+  void _showAddGarmentSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => const AddGarmentSheet(),
+    );
+  }
+
+  void _showEditGarmentSheet(GarmentModel garment) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => AddGarmentSheet(garment: garment),
+    );
+  }
+
+  Future<bool?> _confirmDelete(GarmentModel garment) async {
+    return await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Indicateur de glissement
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.textHint.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-                      onPressed: () {
-                        final uid = ref.read(authServiceProvider).uid;
-                        ref.read(garmentNotifierProvider.notifier).deleteGarment(uid, garment.id);
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Supprimer'),
-                    ),
+                ),
+                // Icône de suppression
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                ],
-              ),
-            ],
+                  child: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.error,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Supprimer ce vêtement ?',
+                  style: AppTextStyles.heading3.copyWith(fontSize: 20),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '"${garment.name}"',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: BorderSide(color: AppColors.divider, width: 1.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Annuler',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.error,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text(
+                          'Supprimer',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         ),
       ),
