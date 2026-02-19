@@ -3,9 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/garment_model.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
+import '../services/api_service.dart';
 import 'auth_provider.dart';
 
 final storageServiceProvider = Provider<StorageService>((ref) => StorageService());
+
+final apiServiceProvider = Provider<ApiService>((ref) {
+  // URL de base pour l'API backend
+  // Pour émulateur Android: http://10.0.2.2:8000/api/v1
+  // Pour appareil physique: http://<IP_LOCAL>:8000/api/v1
+  // Pour production: https://votre-domaine.com/api/v1
+  const baseUrl = 'http://10.0.2.2:8000/api/v1';
+  return ApiService(
+    baseUrl: baseUrl,
+    authService: ref.watch(authServiceProvider),
+  );
+});
 
 final garmentsProvider = StreamProvider.family<List<GarmentModel>, String>((ref, uid) {
   return ref.watch(firestoreServiceProvider).garmentsStream(uid);
@@ -22,8 +35,9 @@ final garmentsByCategoryProvider =
 class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
   final FirestoreService _db;
   final StorageService _storage;
+  final ApiService _apiService;
 
-  GarmentNotifier(this._db, this._storage) : super(const AsyncValue.data(null));
+  GarmentNotifier(this._db, this._storage, this._apiService) : super(const AsyncValue.data(null));
 
   Future<bool> addGarment({
     required String userId,
@@ -38,7 +52,13 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       String imageUrl = '';
       if (imageBytes != null && imageName != null) {
-        imageUrl = await _storage.uploadGarmentImageBytes(imageBytes, userId, imageName);
+        // Utiliser l'API backend pour l'upload des images de vêtements
+        // Le backend supprimera automatiquement le background via rembg
+        imageUrl = await _apiService.uploadImage(
+          imageBytes: imageBytes,
+          filename: imageName,
+          folder: 'garments',
+        );
       }
       final garment = GarmentModel(
         userId: userId,
@@ -72,5 +92,6 @@ final garmentNotifierProvider = StateNotifierProvider<GarmentNotifier, AsyncValu
   return GarmentNotifier(
     ref.watch(firestoreServiceProvider),
     ref.watch(storageServiceProvider),
+    ref.watch(apiServiceProvider),
   );
 });

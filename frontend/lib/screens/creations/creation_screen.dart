@@ -6,7 +6,6 @@ import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
 import '../../models/garment_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
 
 class CreationScreen extends ConsumerStatefulWidget {

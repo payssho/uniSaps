@@ -43,10 +43,12 @@ uniSaps/
 | Base de donnees | Cloud Firestore |
 | Stockage images | Firebase Storage |
 | IA suggestions | Python rule-based (backend) |
+| Suppression background | rembg (IA) |
 
 ## Fonctionnalites
 
 - **Dressing** : Photographier et cataloguer ses vetements par categorie
+  - Suppression automatique du background des images via rembg (IA)
 - **Creations** : Composer des outfits en assignant des vetements a chaque zone corporelle
 - **Outfits** : Choisir son outfit du jour (bibliotheque, swipe Tinder, suggestions IA)
 - **Profil** : Statistiques, galerie photo, streak quotidien
@@ -112,6 +114,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 Le backend sera accessible sur `http://localhost:8000`.
 Documentation API Swagger : `http://localhost:8000/docs`
+
+**Note :** Lors de l'installation des dépendances, `rembg` téléchargera automatiquement un modèle d'IA pour la suppression du background. Ce processus peut prendre quelques minutes lors de la première utilisation.
 
 ### 4. Frontend Flutter
 

@@ -6,9 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../models/user_model.dart';
 import '../../models/garment_model.dart';
-import '../../models/outfit_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../widgets/stat_card.dart';
 

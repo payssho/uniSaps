@@ -171,7 +171,11 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> with SingleTicker
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 800, imageQuality: 85);
     if (picked == null) return;
-    final url = await ref.read(storageServiceProvider).uploadOutfitPhoto(File(picked.path), uid);
+    // Upload direct des bytes vers Firebase Storage via StorageService
+    final bytes = await picked.readAsBytes();
+    final url = await ref
+        .read(storageServiceProvider)
+        .uploadOutfitPhotoBytes(bytes, uid, picked.name);
     await ref.read(outfitNotifierProvider.notifier).setDailyPhoto(uid, url);
   }
 
