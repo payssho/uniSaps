@@ -11,7 +11,7 @@ final storageServiceProvider = Provider<StorageService>((ref) => StorageService(
 
 final apiServiceProvider = Provider<ApiService>((ref) {
   // URL de base pour l'API backend
-  // Local dev:
+  // Local dev :
   //   - Web (Chrome):     http://localhost:8000/api/v1
   //   - Émulateur Android: http://10.0.2.2:8000/api/v1
   // Production (Vercel):
