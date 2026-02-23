@@ -228,7 +228,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                         onPressed: () => Navigator.pop(context, false),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: BorderSide(color: AppColors.divider, width: 1.5),
+                          side: const BorderSide(color: AppColors.divider, width: 1.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

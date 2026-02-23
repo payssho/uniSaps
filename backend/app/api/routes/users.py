@@ -26,6 +26,8 @@ async def create_user(body: UserCreate, uid: str = Depends(get_current_uid)):
         "daily_outfit_date": "",
         "daily_photo_url": "",
         "is_new_user": False,
+        "is_private": False,
+        "friends": [],
     }
     doc_ref.set(data)
     return UserOut(**data)

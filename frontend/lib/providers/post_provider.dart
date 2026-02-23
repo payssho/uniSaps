@@ -1,6 +1,9 @@
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/post_model.dart';
+import '../models/user_model.dart';
+import '../models/outfit_model.dart';
+import '../models/garment_model.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 import 'auth_provider.dart';
@@ -36,6 +39,47 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
         imageUrl: imageUrl,
         outfitId: outfitId,
         garmentRefs: garmentRefs,
+        caption: caption,
+        createdAt: DateTime.now().toIso8601String(),
+      );
+      await _db.addPost(post);
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e) {
+      state = AsyncValue.error(e.toString(), StackTrace.current);
+      return false;
+    }
+  }
+
+  /// Crée un post à partir de la photo du jour + outfit du jour
+  Future<bool> createPostFromDaily({
+    required UserModel user,
+    required OutfitModel outfit,
+    required List<GarmentModel> garments,
+    String caption = '',
+  }) async {
+    if (user.dailyPhotoUrl.isEmpty) {
+      state = AsyncValue.error('Aucune photo du jour.', StackTrace.current);
+      return false;
+    }
+    state = const AsyncValue.loading();
+    try {
+      final refs = garments
+          .map(
+            (g) => GarmentRef(
+              name: g.name,
+              brand: g.brand,
+            ),
+          )
+          .toList();
+
+      final post = PostModel(
+        userId: user.uid,
+        username: user.username,
+        userPhotoUrl: user.profilePhotoUrl,
+        imageUrl: user.dailyPhotoUrl,
+        outfitId: outfit.id,
+        garmentRefs: refs,
         caption: caption,
         createdAt: DateTime.now().toIso8601String(),
       );

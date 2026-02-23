@@ -46,13 +46,19 @@ class ApiService {
     required Uint8List imageBytes,
     required String filename,
     required String folder,
+    bool removeBackground = false,
   }) async {
     final token = await _authService.getIdToken();
     if (token == null) {
       throw Exception('Utilisateur non authentifié');
     }
 
-    final uri = Uri.parse('$baseUrl/upload/image').replace(queryParameters: {'folder': folder});
+    final uri = Uri.parse('$baseUrl/upload/image').replace(
+      queryParameters: {
+        'folder': folder,
+        'remove_bg': removeBackground.toString(),
+      },
+    );
     final request = http.MultipartRequest('POST', uri);
     request.headers['Authorization'] = 'Bearer $token';
     request.files.add(
@@ -63,14 +69,50 @@ class ApiService {
       ),
     );
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+    try {
+      // Timeout de 60 secondes pour permettre à rembg de traiter l'image
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          throw Exception('Timeout: Le traitement de l\'image prend trop de temps. Vérifie que le backend est démarré et que rembg fonctionne correctement.');
+        },
+      );
+      
+      final response = await http.Response.fromStream(streamedResponse).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Timeout: Impossible de recevoir la réponse du serveur.');
+        },
+      );
 
-    if (response.statusCode != 200) {
-      throw Exception('Erreur upload: ${response.statusCode} - ${response.body}');
+      if (response.statusCode != 200) {
+        final errorBody = response.body;
+        String errorMessage = 'Erreur upload: ${response.statusCode}';
+        try {
+          final errorData = jsonDecode(errorBody);
+          if (errorData is Map && errorData.containsKey('detail')) {
+            errorMessage = errorData['detail'] as String;
+          } else {
+            errorMessage = errorBody;
+          }
+        } catch (_) {
+          errorMessage = errorBody.isNotEmpty ? errorBody : errorMessage;
+        }
+        throw Exception(errorMessage);
+      }
+
+      final data = jsonDecode(response.body);
+      if (data['url'] == null) {
+        throw Exception('Réponse invalide du serveur: URL manquante');
+      }
+      return data['url'] as String;
+    } on http.ClientException {
+      throw Exception('Erreur de connexion: Impossible de contacter le serveur. Vérifie que le backend est démarré sur $baseUrl');
+    } catch (e) {
+      if (e.toString().contains('Timeout')) {
+        rethrow;
+      }
+      throw Exception('Erreur lors de l\'upload: ${e.toString()}');
     }
-
-    final data = jsonDecode(response.body);
-    return data['url'] as String;
   }
 }

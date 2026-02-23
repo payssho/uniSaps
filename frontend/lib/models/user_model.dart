@@ -62,6 +62,8 @@ class UserModel {
   final String dailyOutfitDate;
   final String dailyPhotoUrl;
   final bool isNewUser;
+  final bool isPrivate;
+  final List<String> friends;
 
   const UserModel({
     this.uid = '',
@@ -77,7 +79,11 @@ class UserModel {
     this.dailyOutfitDate = '',
     this.dailyPhotoUrl = '',
     this.isNewUser = true,
+    this.isPrivate = false,
+    this.friends = const [],
   });
+
+  bool isFriendWith(String uid) => friends.contains(uid);
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
     return UserModel(
@@ -96,6 +102,8 @@ class UserModel {
       dailyOutfitDate: map['daily_outfit_date'] ?? '',
       dailyPhotoUrl: map['daily_photo_url'] ?? '',
       isNewUser: map['is_new_user'] ?? true,
+      isPrivate: map['is_private'] ?? false,
+      friends: List<String>.from(map['friends'] ?? []),
     );
   }
 
@@ -113,6 +121,8 @@ class UserModel {
         'daily_outfit_date': dailyOutfitDate,
         'daily_photo_url': dailyPhotoUrl,
         'is_new_user': isNewUser,
+        'is_private': isPrivate,
+        'friends': friends,
       };
 
   UserModel copyWith({
@@ -129,6 +139,8 @@ class UserModel {
     String? dailyOutfitDate,
     String? dailyPhotoUrl,
     bool? isNewUser,
+    bool? isPrivate,
+    List<String>? friends,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -144,6 +156,8 @@ class UserModel {
       dailyOutfitDate: dailyOutfitDate ?? this.dailyOutfitDate,
       dailyPhotoUrl: dailyPhotoUrl ?? this.dailyPhotoUrl,
       isNewUser: isNewUser ?? this.isNewUser,
+      isPrivate: isPrivate ?? this.isPrivate,
+      friends: friends ?? this.friends,
     );
   }
 }

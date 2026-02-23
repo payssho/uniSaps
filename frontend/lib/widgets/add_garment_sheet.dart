@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:http/http.dart' as http;
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
@@ -10,6 +11,8 @@ import '../models/garment_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/garment_provider.dart';
 import '../widgets/platform_image.dart';
+import '../widgets/brand_selector.dart';
+import '../widgets/multi_color_selector.dart';
 
 class AddGarmentSheet extends ConsumerStatefulWidget {
   final GarmentModel? garment;
@@ -23,18 +26,19 @@ class AddGarmentSheet extends ConsumerStatefulWidget {
 class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _brandController;
-  late final TextEditingController _colorController;
+  late List<String> _selectedColors;
   late String _selectedCategory;
   XFile? _imageFile;
   String? _error;
   bool _loading = false;
+  bool _removeBackground = true;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.garment?.name ?? '');
     _brandController = TextEditingController(text: widget.garment?.brand ?? '');
-    _colorController = TextEditingController(text: widget.garment?.color ?? '');
+    _selectedColors = widget.garment?.colors ?? [];
     _selectedCategory = widget.garment?.category ?? 'top';
   }
 
@@ -42,7 +46,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   void dispose() {
     _nameController.dispose();
     _brandController.dispose();
-    _colorController.dispose();
     super.dispose();
   }
 
@@ -79,7 +82,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       ),
     );
     if (source == null) return;
-    final picked = await picker.pickImage(source: source, maxWidth: 800, imageQuality: 85);
+    final picked = await picker.pickImage(source: source, maxWidth: 600, imageQuality: 78);
     if (picked != null) {
       setState(() => _imageFile = picked);
     }
@@ -104,33 +107,107 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       imageName = _imageFile!.name;
     }
 
-    final success = widget.garment == null
-        ? await ref.read(garmentNotifierProvider.notifier).addGarment(
-              userId: uid,
-              name: name,
-              brand: _brandController.text.trim(),
-              color: _colorController.text.trim(),
-              category: _selectedCategory,
-              imageBytes: imageBytes,
-              imageName: imageName,
-            )
-        : await ref.read(garmentNotifierProvider.notifier).updateGarment(
-              uid: uid,
-              garmentId: widget.garment!.id,
-              name: name,
-              brand: _brandController.text.trim(),
-              color: _colorController.text.trim(),
-              category: _selectedCategory,
-              imageBytes: imageBytes,
-              imageName: imageName,
-            );
+    try {
+      // Vérifier que le backend est accessible avant d'essayer l'upload
+      if (imageBytes != null && imageName != null) {
+        try {
+          // Test de connexion rapide (l'endpoint /health est à la racine, pas sous /api/v1)
+          final testResponse = await http.get(
+            Uri.parse('http://localhost:8000/health'),
+          ).timeout(const Duration(seconds: 3));
+          if (testResponse.statusCode != 200) {
+            throw Exception('Backend non disponible');
+          }
+        } catch (e) {
+          setState(() {
+            _loading = false;
+            _error = 'Le backend n\'est pas démarré. Lance-le avec: cd backend && .\\start.ps1';
+          });
+          return;
+        }
+      }
 
-    if (mounted) {
-      setState(() => _loading = false);
-      if (success) {
-        Navigator.pop(context);
-      } else {
-        setState(() => _error = 'Erreur lors de l\'enregistrement.');
+      final success = widget.garment == null
+          ? await ref.read(garmentNotifierProvider.notifier).addGarment(
+                userId: uid,
+                name: name,
+                brand: _brandController.text.trim(),
+                colors: _selectedColors,
+                category: _selectedCategory,
+                imageBytes: imageBytes,
+                imageName: imageName,
+                removeBackground: _removeBackground,
+              )
+          : await ref.read(garmentNotifierProvider.notifier).updateGarment(
+                uid: uid,
+                garmentId: widget.garment!.id,
+                name: name,
+                brand: _brandController.text.trim(),
+                colors: _selectedColors,
+                category: _selectedCategory,
+                imageBytes: imageBytes,
+                imageName: imageName,
+                removeBackground: _removeBackground,
+              );
+
+      if (mounted) {
+        setState(() => _loading = false);
+        if (success) {
+          // Attendre un peu pour que Firestore se synchronise avant de fermer
+          await Future.delayed(const Duration(milliseconds: 300));
+          if (mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                    const SizedBox(width: 8),
+                    Text(widget.garment == null ? 'Vêtement ajouté !' : 'Vêtement modifié !'),
+                  ],
+                ),
+                backgroundColor: AppColors.success,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                margin: const EdgeInsets.all(16),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        } else {
+          // Récupérer le message d'erreur depuis le state du provider
+          final errorState = ref.read(garmentNotifierProvider);
+          String errorMessage = 'Erreur lors de l\'enregistrement.';
+          if (errorState.hasError) {
+            final error = errorState.error.toString();
+            if (error.contains('Timeout')) {
+              errorMessage = 'Le traitement de l\'image prend trop de temps (rembg). Vérifie que le backend est démarré et patiente.';
+            } else if (error.contains('connexion') || error.contains('serveur') || error.contains('localhost')) {
+              errorMessage = 'Impossible de contacter le backend. Lance-le avec: cd backend && .\\start.ps1';
+            } else if (error.contains('FileNotFoundError') || error.contains('serviceAccountKey')) {
+              errorMessage = 'Configuration Firebase manquante. Vérifie le fichier serviceAccountKey.json dans backend/';
+            } else {
+              errorMessage = error
+                  .replaceAll('Exception: ', '')
+                  .replaceAll('Error: ', '')
+                  .replaceAll('FileNotFoundError: ', '')
+                  .replaceAll('[Errno 2] ', '');
+            }
+          }
+          setState(() => _error = errorMessage);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          final errorStr = e.toString();
+          if (errorStr.contains('localhost') || errorStr.contains('connection')) {
+            _error = 'Le backend n\'est pas démarré. Lance-le avec: cd backend && .\\start.ps1';
+          } else {
+            _error = errorStr.replaceAll('Exception: ', '').replaceAll('Error: ', '');
+          }
+        });
       }
     }
   }
@@ -238,6 +315,22 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                                   ),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    SwitchListTile.adaptive(
+                      value: _removeBackground,
+                      onChanged: (value) {
+                        setState(() => _removeBackground = value);
+                      },
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Supprimer l’arrière-plan',
+                        style: AppTextStyles.bodySecondary,
+                      ),
+                      subtitle: const Text(
+                        'Utilise l’IA pour isoler le vêtement. Décoche si tu veux garder le fond.',
+                        style: TextStyle(fontSize: 12, color: AppColors.textHint),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     TextField(
                       controller: _nameController,
@@ -249,24 +342,18 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    TextField(
+                    BrandSelector(
                       controller: _brandController,
-                      decoration: const InputDecoration(
-                        hintText: 'Marque',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                        ),
-                      ),
+                      initialValue: widget.garment?.brand,
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _colorController,
-                      decoration: const InputDecoration(
-                        hintText: 'Couleur',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                        ),
-                      ),
+                    const Text('Couleurs', style: AppTextStyles.heading3),
+                    const SizedBox(height: 8),
+                    MultiColorSelector(
+                      initialColors: _selectedColors,
+                      onColorsChanged: (colors) {
+                        setState(() => _selectedColors = colors);
+                      },
                     ),
                     const SizedBox(height: 24),
                     const Text('Catégorie', style: AppTextStyles.heading3),

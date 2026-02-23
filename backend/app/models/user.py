@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 
 class TutorialState(BaseModel):
@@ -25,6 +26,7 @@ class UserUpdate(BaseModel):
     daily_photo_url: str | None = None
     current_streak: int | None = None
     best_streak: int | None = None
+    is_private: bool | None = None
 
 
 class UserOut(BaseModel):
@@ -41,3 +43,14 @@ class UserOut(BaseModel):
     daily_outfit_date: str = ""
     daily_photo_url: str = ""
     is_new_user: bool = True
+    is_private: bool = False
+    friends: List[str] = []
+
+
+class UserPublicOut(BaseModel):
+    uid: str
+    username: str = ""
+    display_name: str = ""
+    profile_photo_url: str = ""
+    is_private: bool = False
+    friends: List[str] = []

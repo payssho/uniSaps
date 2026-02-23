@@ -169,7 +169,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> with SingleTicker
 
   Future<void> _takePhoto(String uid) async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 800, imageQuality: 85);
+    final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 600, imageQuality: 78);
     if (picked == null) return;
     // Upload direct des bytes vers Firebase Storage via StorageService
     final bytes = await picked.readAsBytes();

@@ -3,6 +3,7 @@ import '../models/user_model.dart';
 import '../models/garment_model.dart';
 import '../models/outfit_model.dart';
 import '../models/post_model.dart';
+import '../models/friend_request_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -64,6 +65,13 @@ class FirestoreService {
     final snap = await _garmentCol(uid).doc(garmentId).get();
     if (!snap.exists) return null;
     return GarmentModel.fromMap(snap.data()!, docId: snap.id);
+  }
+
+  Stream<GarmentModel?> garmentStream(String uid, String garmentId) {
+    return _garmentCol(uid)
+        .doc(garmentId)
+        .snapshots()
+        .map((snap) => snap.exists ? GarmentModel.fromMap(snap.data()!, docId: snap.id) : null);
   }
 
   Future<void> updateGarment(String uid, String garmentId, Map<String, dynamic> data) async {
@@ -164,6 +172,151 @@ class FirestoreService {
 
   Future<void> deletePost(String postId) async {
     await _postCol.doc(postId).delete();
+  }
+
+  // ── Friends ──────────────────────────────────────────────────────
+
+  final _friendRequestCol = FirebaseFirestore.instance.collection('friend_requests');
+
+  Future<void> sendFriendRequest(FriendRequestModel request) async {
+    await _friendRequestCol.add(request.toMap());
+  }
+
+  Stream<List<FriendRequestModel>> receivedRequestsStream(String uid) {
+    return _friendRequestCol
+        .where('to_uid', isEqualTo: uid)
+        .where('status', isEqualTo: 'pending')
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => FriendRequestModel.fromMap(d.data(), docId: d.id))
+            .toList());
+  }
+
+  Stream<List<FriendRequestModel>> sentRequestsStream(String uid) {
+    return _friendRequestCol
+        .where('from_uid', isEqualTo: uid)
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => FriendRequestModel.fromMap(d.data(), docId: d.id))
+            .toList());
+  }
+
+  Future<FriendRequestModel?> findPendingRequest(String fromUid, String toUid) async {
+    final snap = await _friendRequestCol
+        .where('from_uid', isEqualTo: fromUid)
+        .where('to_uid', isEqualTo: toUid)
+        .where('status', isEqualTo: 'pending')
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    return FriendRequestModel.fromMap(snap.docs.first.data(), docId: snap.docs.first.id);
+  }
+
+  Future<void> acceptFriendRequest(String requestId, String fromUid, String toUid) async {
+    final batch = _db.batch();
+    batch.update(_friendRequestCol.doc(requestId), {'status': 'accepted'});
+    batch.update(_db.collection('users').doc(fromUid), {
+      'friends': FieldValue.arrayUnion([toUid]),
+    });
+    batch.update(_db.collection('users').doc(toUid), {
+      'friends': FieldValue.arrayUnion([fromUid]),
+    });
+    await batch.commit();
+  }
+
+  Future<void> rejectFriendRequest(String requestId) async {
+    await _friendRequestCol.doc(requestId).update({'status': 'rejected'});
+  }
+
+  Future<void> removeFriend(String myUid, String friendUid) async {
+    final batch = _db.batch();
+    batch.update(_db.collection('users').doc(myUid), {
+      'friends': FieldValue.arrayRemove([friendUid]),
+    });
+    batch.update(_db.collection('users').doc(friendUid), {
+      'friends': FieldValue.arrayRemove([myUid]),
+    });
+    await batch.commit();
+  }
+
+  Future<void> cancelFriendRequest(String requestId) async {
+    await _friendRequestCol.doc(requestId).delete();
+  }
+
+  // ── Search ──────────────────────────────────────────────────────
+
+  Future<List<UserModel>> searchUsers(String query, {int limit = 20}) async {
+    if (query.isEmpty) return [];
+    final lower = query.toLowerCase();
+    final upper = '${lower}z';
+    final snap = await _db
+        .collection('users')
+        .where('username', isGreaterThanOrEqualTo: lower)
+        .where('username', isLessThan: upper)
+        .limit(limit)
+        .get();
+    return snap.docs.map((d) => UserModel.fromMap(d.data())).toList();
+  }
+
+  // ── User Profile (other) ────────────────────────────────────────
+
+  Future<List<PostModel>> getUserPosts(String uid, {int limit = 50}) async {
+    final snap = await _postCol
+        .where('user_id', isEqualTo: uid)
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .get();
+    return snap.docs
+        .map((d) => PostModel.fromMap(d.data(), docId: d.id))
+        .toList();
+  }
+
+  // ── Filtered Posts ──────────────────────────────────────────────
+
+  Stream<List<PostModel>> friendsPostsStream(List<String> friendUids, {int limit = 50}) {
+    if (friendUids.isEmpty) return Stream.value([]);
+    final batches = <List<String>>[];
+    for (var i = 0; i < friendUids.length; i += 30) {
+      batches.add(friendUids.sublist(i, i + 30 > friendUids.length ? friendUids.length : i + 30));
+    }
+    if (batches.length == 1) {
+      return _postCol
+          .where('user_id', whereIn: batches[0])
+          .orderBy('created_at', descending: true)
+          .limit(limit)
+          .snapshots()
+          .map((snap) => snap.docs.map((d) => PostModel.fromMap(d.data(), docId: d.id)).toList());
+    }
+    final streams = batches.map((batch) => _postCol
+        .where('user_id', whereIn: batch)
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => PostModel.fromMap(d.data(), docId: d.id)).toList()));
+    return streams.reduce((a, b) => a.asyncExpand((aList) => b.map((bList) {
+          final merged = [...aList, ...bList];
+          merged.sort((x, y) => y.createdAt.compareTo(x.createdAt));
+          return merged.take(limit).toList();
+        })));
+  }
+
+  Future<List<UserModel>> getUsersByIds(List<String> uids) async {
+    if (uids.isEmpty) return [];
+    final results = <UserModel>[];
+    final batches = <List<String>>[];
+    for (var i = 0; i < uids.length; i += 30) {
+      batches.add(uids.sublist(i, i + 30 > uids.length ? uids.length : i + 30));
+    }
+    for (final batch in batches) {
+      final snap = await _db
+          .collection('users')
+          .where(FieldPath.documentId, whereIn: batch)
+          .get();
+      results.addAll(snap.docs.map((d) => UserModel.fromMap(d.data())));
+    }
+    return results;
   }
 
   // ── Statistics ─────────────────────────────────────────────────────

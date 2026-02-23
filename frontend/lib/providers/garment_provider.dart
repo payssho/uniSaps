@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/garment_model.dart';
 import '../services/firestore_service.dart';
@@ -10,10 +11,13 @@ final storageServiceProvider = Provider<StorageService>((ref) => StorageService(
 
 final apiServiceProvider = Provider<ApiService>((ref) {
   // URL de base pour l'API backend
+  // Pour web (Chrome): http://localhost:8000/api/v1
   // Pour émulateur Android: http://10.0.2.2:8000/api/v1
   // Pour appareil physique: http://<IP_LOCAL>:8000/api/v1
   // Pour production: https://votre-domaine.com/api/v1
-  const baseUrl = 'http://10.0.2.2:8000/api/v1';
+  const baseUrl = kIsWeb 
+      ? 'http://localhost:8000/api/v1'
+      : 'http://10.0.2.2:8000/api/v1';
   return ApiService(
     baseUrl: baseUrl,
     authService: ref.watch(authServiceProvider),
@@ -43,28 +47,33 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
     required String userId,
     required String name,
     required String brand,
-    required String color,
+    required List<String> colors,
     required String category,
     Uint8List? imageBytes,
     String? imageName,
+    bool removeBackground = true,
   }) async {
     state = const AsyncValue.loading();
     try {
       String imageUrl = '';
       if (imageBytes != null && imageName != null) {
         // Utiliser l'API backend pour l'upload des images de vêtements
-        // Le backend supprimera automatiquement le background via rembg
         imageUrl = await _apiService.uploadImage(
           imageBytes: imageBytes,
           filename: imageName,
           folder: 'garments',
+          removeBackground: removeBackground,
         );
+        // Vérifier que l'imageUrl n'est pas vide
+        if (imageUrl.isEmpty) {
+          throw Exception('L\'URL de l\'image est vide après l\'upload');
+        }
       }
       final garment = GarmentModel(
         userId: userId,
         name: name,
         brand: brand,
-        color: color,
+        colors: colors,
         category: category,
         imageUrl: imageUrl,
         createdAt: DateTime.now().toIso8601String(),
@@ -83,10 +92,11 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
     required String garmentId,
     required String name,
     required String brand,
-    required String color,
+    required List<String> colors,
     required String category,
     Uint8List? imageBytes,
     String? imageName,
+    bool removeBackground = true,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -105,6 +115,7 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
           imageBytes: imageBytes,
           filename: imageName,
           folder: 'garments',
+          removeBackground: removeBackground,
         );
         // Supprimer l'ancienne image si elle existe
         if (imageUrl.isNotEmpty) {
@@ -118,7 +129,7 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
         userId: uid,
         name: name,
         brand: brand,
-        color: color,
+        colors: colors,
         category: category,
         imageUrl: imageUrl,
         createdAt: existingGarment.createdAt,
