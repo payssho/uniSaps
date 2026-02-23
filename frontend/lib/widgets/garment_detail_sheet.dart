@@ -6,7 +6,6 @@ import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
 import '../services/color_service.dart';
-import '../services/firestore_service.dart';
 import '../providers/auth_provider.dart';
 
 class GarmentDetailSheet extends ConsumerWidget {

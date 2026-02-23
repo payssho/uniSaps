@@ -298,7 +298,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            Expanded(
+                            const Expanded(
                               child: Text(
                                 'Photo de reference (optionnelle)',
                                 style: AppTextStyles.bodySecondary,

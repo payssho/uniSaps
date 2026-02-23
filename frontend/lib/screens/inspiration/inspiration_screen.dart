@@ -672,7 +672,7 @@ class _FriendRequestsSheet extends ConsumerWidget {
                                   req.fromUsername,
                                   style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
                                 ),
-                                Text(
+                                const Text(
                                   'Veut etre ton ami',
                                   style: AppTextStyles.caption,
                                 ),

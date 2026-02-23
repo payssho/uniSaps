@@ -202,7 +202,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                         Container(
                           width: 72,
                           height: 72,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: AppColors.surfaceVariant,
                             shape: BoxShape.circle,
                           ),
