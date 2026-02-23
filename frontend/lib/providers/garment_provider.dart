@@ -11,13 +11,14 @@ final storageServiceProvider = Provider<StorageService>((ref) => StorageService(
 
 final apiServiceProvider = Provider<ApiService>((ref) {
   // URL de base pour l'API backend
-  // Pour web (Chrome): http://localhost:8000/api/v1
-  // Pour émulateur Android: http://10.0.2.2:8000/api/v1
-  // Pour appareil physique: http://<IP_LOCAL>:8000/api/v1
-  // Pour production: https://votre-domaine.com/api/v1
-  const baseUrl = kIsWeb 
+  // Local dev:
+  //   - Web (Chrome):     http://localhost:8000/api/v1
+  //   - Émulateur Android: http://10.0.2.2:8000/api/v1
+  // Production (Vercel):
+  //   - https://unisaps.vercel.app/api/v1
+  const baseUrl = kIsWeb
       ? 'http://localhost:8000/api/v1'
-      : 'http://10.0.2.2:8000/api/v1';
+      : 'https://unisaps.vercel.app/api/v1';
   return ApiService(
     baseUrl: baseUrl,
     authService: ref.watch(authServiceProvider),
