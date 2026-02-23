@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../models/user_model.dart';
 import '../../models/garment_model.dart';
+import '../../models/outfit_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/friendship_provider.dart';
@@ -62,7 +63,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               tabs: [
                 const Tab(text: 'Stats'),
                 const Tab(text: 'Outfits'),
-                const Tab(text: 'Galerie'),
+                const Tab(text: 'Memories'),
                 Tab(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -315,54 +316,275 @@ class _OutfitsTab extends ConsumerWidget {
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (_, i) {
             final o = sorted[i];
-            return Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
+            return GestureDetector(
+              onTap: () => _showOutfitSummary(context, o),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.divider, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
                     ),
-                    child: Center(
-                      child: Text(
-                        '${o.timesWorn}x',
-                        style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${o.timesWorn}x',
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            o.name.isEmpty ? 'Outfit' : o.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (o.lastWorn.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text('Dernier port : ${o.lastWorn}', style: AppTextStyles.caption),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Erreur: $e')),
+    );
+  }
+}
+
+void _showOutfitSummary(BuildContext context, OutfitModel outfit) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _OutfitSummarySheet(outfit: outfit),
+  );
+}
+
+class _OutfitSummarySheet extends ConsumerWidget {
+  final OutfitModel outfit;
+
+  const _OutfitSummarySheet({required this.outfit});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uid = ref.watch(authServiceProvider).uid;
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.textHint.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                outfit.name.isEmpty ? 'Outfit' : outfit.name,
+                style: AppTextStyles.heading3,
+              ),
+              const SizedBox(height: 4),
+              if (outfit.lastWorn.isNotEmpty)
+                Text('Dernier port : ${outfit.lastWorn}', style: AppTextStyles.caption),
+              const SizedBox(height: 12),
+              if (outfit.referencePhotoUrl.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: CachedNetworkImage(
+                    imageUrl: outfit.referencePhotoUrl,
+                    fit: BoxFit.cover,
+                    height: 220,
+                    width: double.infinity,
+                    placeholder: (_, __) => Container(
+                      height: 220,
+                      color: AppColors.surfaceVariant,
+                      child: const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    errorWidget: (_, __, ___) => Container(
+                      height: 220,
+                      color: AppColors.surfaceVariant,
+                      child: const Icon(Icons.broken_image_outlined,
+                          color: AppColors.textHint, size: 40),
+                    ),
+                  ),
+                ),
+              if (outfit.referencePhotoUrl.isNotEmpty) const SizedBox(height: 16),
+              FutureBuilder<List<GarmentModel>>(
+                future: ref.read(firestoreServiceProvider).mostWornGarments(uid),
+                builder: (context, snapshot) {
+                  // For now, just show garment ids; deep garment summary could be added later.
+                  final garmentIds = outfit.garmentIds;
+                  if (garmentIds.isEmpty) {
+                    return const Text(
+                      'Aucun vetement associe.',
+                      style: AppTextStyles.bodySecondary,
+                    );
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Pieces', style: AppTextStyles.heading3),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: garmentIds
+                            .map(
+                              (id) => Chip(
+                                label: Text(
+                                  id,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GalleryTab extends ConsumerWidget {
+  final String uid;
+  const _GalleryTab({required this.uid});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final outfitsAsync = ref.watch(outfitsProvider(uid));
+    return outfitsAsync.when(
+      data: (outfits) {
+        // Construire une liste de memories (photo + meta outfit)
+        final memories = <({String url, OutfitModel outfit})>[];
+        for (final o in outfits) {
+          for (final url in o.photoUrls) {
+            memories.add((url: url, outfit: o));
+          }
+        }
+        if (memories.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.photo_library_outlined,
+                    size: 56, color: AppColors.textHint.withValues(alpha: 0.4)),
+                const SizedBox(height: 12),
+                const Text('Aucun souvenir pour l\'instant', style: AppTextStyles.bodySecondary),
+              ],
+            ),
+          );
+        }
+        memories.sort(
+          (a, b) => (b.outfit.lastWorn).compareTo(a.outfit.lastWorn),
+        );
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 6,
+            mainAxisSpacing: 6,
+          ),
+          itemCount: memories.length,
+          itemBuilder: (_, i) {
+            final memory = memories[i];
+            final rawDate = memory.outfit.lastWorn.isNotEmpty
+                ? memory.outfit.lastWorn
+                : memory.outfit.createdAt;
+            final date = rawDate.isNotEmpty && rawDate.length >= 10
+                ? rawDate.substring(0, 10)
+                : rawDate;
+            return GestureDetector(
+              onTap: () => _showMemoryDetail(context, memory.url, memory.outfit, date),
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedNetworkImage(
+                      imageUrl: memory.url,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) => Container(
+                        color: AppColors.surfaceVariant,
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) => Container(
+                        color: AppColors.surfaceVariant,
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          color: AppColors.textHint,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          o.name.isEmpty ? 'Outfit' : o.name,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  Positioned(
+                    left: 4,
+                    bottom: 4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.55),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        date.isNotEmpty ? date : '-',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
                         ),
-                        if (o.lastWorn.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text('Dernier port : ${o.lastWorn}', style: AppTextStyles.caption),
-                        ],
-                      ],
+                      ),
                     ),
                   ),
                 ],
@@ -377,56 +599,109 @@ class _OutfitsTab extends ConsumerWidget {
   }
 }
 
-class _GalleryTab extends ConsumerWidget {
-  final String uid;
-  const _GalleryTab({required this.uid});
+void _showMemoryDetail(
+  BuildContext context,
+  String url,
+  OutfitModel outfit,
+  String date,
+) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _MemoryDetailSheet(
+      url: url,
+      outfit: outfit,
+      date: date,
+    ),
+  );
+}
+
+class _MemoryDetailSheet extends StatelessWidget {
+  final String url;
+  final OutfitModel outfit;
+  final String date;
+
+  const _MemoryDetailSheet({
+    required this.url,
+    required this.outfit,
+    required this.date,
+  });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final outfitsAsync = ref.watch(outfitsProvider(uid));
-    return outfitsAsync.when(
-      data: (outfits) {
-        final photos = outfits.expand((o) => o.photoUrls).toList();
-        if (photos.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.photo_library_outlined,
-                    size: 56, color: AppColors.textHint.withValues(alpha: 0.4)),
-                const SizedBox(height: 12),
-                const Text('Aucune photo', style: AppTextStyles.bodySecondary),
-              ],
-            ),
-          );
-        }
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 6,
-            mainAxisSpacing: 6,
-          ),
-          itemCount: photos.length,
-          itemBuilder: (_, i) => ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: CachedNetworkImage(
-              imageUrl: photos[i],
-              fit: BoxFit.cover,
-              placeholder: (_, __) => Container(
-                color: AppColors.surfaceVariant,
-                child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.textHint.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
-              errorWidget: (_, __, ___) => Container(
-                color: AppColors.surfaceVariant,
-                child: const Icon(Icons.broken_image_outlined, color: AppColors.textHint),
+              Row(
+                children: [
+                  Text(
+                    date,
+                    style: AppTextStyles.bodySecondary,
+                  ),
+                  const Spacer(),
+                  if (outfit.name.isNotEmpty)
+                    Text(
+                      outfit.name,
+                      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                ],
               ),
-            ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: CachedNetworkImage(
+                  imageUrl: url,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  placeholder: (_, __) => Container(
+                    height: 320,
+                    color: AppColors.surfaceVariant,
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    height: 320,
+                    color: AppColors.surfaceVariant,
+                    child: const Icon(
+                      Icons.broken_image_outlined,
+                      color: AppColors.textHint,
+                      size: 40,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Photo prise lors du choix de l\'outfit du jour.',
+                style: AppTextStyles.caption,
+              ),
+            ],
           ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erreur: $e')),
+        ),
+      ),
     );
   }
 }

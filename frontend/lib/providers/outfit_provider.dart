@@ -17,6 +17,7 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
     required String userId,
     required String name,
     required Map<String, String> garments,
+    String referencePhotoUrl = '',
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -25,6 +26,7 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
         name: name,
         garments: garments,
         createdAt: DateTime.now().toIso8601String(),
+        referencePhotoUrl: referencePhotoUrl,
       );
       final id = await _db.addOutfit(outfit);
       state = const AsyncValue.data(null);
@@ -47,8 +49,35 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
     });
   }
 
-  Future<void> setDailyPhoto(String uid, String photoUrl) async {
+  Future<void> setDailyPhoto(String uid, String outfitId, String photoUrl) async {
+    // On remplace uniquement la photo du JOUR courant.
+    // Si une photo existe déjà pour aujourd'hui, on la retire de l'ancien outfit.
+    final user = await _db.getUser(uid);
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+
+    if (user != null) {
+      final lastDate = user.dailyOutfitDate;
+      final prevPhoto = user.dailyPhotoUrl;
+      final prevOutfitId = user.dailyOutfitId;
+
+      final isSameDay = lastDate == today;
+      final hasPrevPhoto = prevPhoto.isNotEmpty && prevOutfitId.isNotEmpty;
+
+      if (isSameDay && hasPrevPhoto) {
+        // On enlève l'ancienne photo de l'ancien outfit pour ce jour.
+        await _db.updateOutfit(uid, prevOutfitId, {
+          'photo_urls': FieldValue.arrayRemove([prevPhoto]),
+        });
+      }
+    }
+
+    // On met à jour la photo du jour de l'utilisateur.
     await _db.updateUser(uid, {'daily_photo_url': photoUrl});
+
+    // On ajoute la nouvelle photo à la liste des memories de l'outfit courant.
+    await _db.updateOutfit(uid, outfitId, {
+      'photo_urls': FieldValue.arrayUnion([photoUrl]),
+    });
   }
 
   Future<void> clearDailyOutfit(String uid) async {

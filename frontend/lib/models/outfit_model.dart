@@ -8,6 +8,7 @@ class OutfitModel {
   final String lastWorn;
   final List<String> wearHistory;
   final List<String> photoUrls;
+  final String referencePhotoUrl;
 
   const OutfitModel({
     this.id = '',
@@ -19,6 +20,7 @@ class OutfitModel {
     this.lastWorn = '',
     this.wearHistory = const [],
     this.photoUrls = const [],
+    this.referencePhotoUrl = '',
   });
 
   static const defaultGarments = {
@@ -48,6 +50,7 @@ class OutfitModel {
       lastWorn: map['last_worn'] ?? '',
       wearHistory: List<String>.from(map['wear_history'] ?? []),
       photoUrls: List<String>.from(map['photo_urls'] ?? []),
+      referencePhotoUrl: map['reference_photo_url'] ?? '',
     );
   }
 
@@ -60,6 +63,7 @@ class OutfitModel {
         'last_worn': lastWorn,
         'wear_history': wearHistory,
         'photo_urls': photoUrls,
+        'reference_photo_url': referencePhotoUrl,
       };
 
   List<String> get garmentIds =>
@@ -75,6 +79,7 @@ class OutfitModel {
     String? lastWorn,
     List<String>? wearHistory,
     List<String>? photoUrls,
+    String? referencePhotoUrl,
   }) {
     return OutfitModel(
       id: id ?? this.id,
@@ -86,6 +91,7 @@ class OutfitModel {
       lastWorn: lastWorn ?? this.lastWorn,
       wearHistory: wearHistory ?? this.wearHistory,
       photoUrls: photoUrls ?? this.photoUrls,
+      referencePhotoUrl: referencePhotoUrl ?? this.referencePhotoUrl,
     );
   }
 }

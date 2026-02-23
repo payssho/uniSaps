@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
 import '../../models/garment_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
+import '../../providers/garment_provider.dart';
 
 class CreationScreen extends ConsumerStatefulWidget {
   const CreationScreen({super.key});
@@ -22,11 +24,42 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   bool _saving = false;
   String? _message;
   bool _isError = false;
+  String? _referencePhotoUrl;
 
   @override
   void dispose() {
     _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickReferencePhoto() async {
+    final uid = ref.read(authServiceProvider).uid;
+    if (uid.isEmpty) return;
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 600,
+      imageQuality: 78,
+    );
+    if (picked == null) return;
+    final bytes = await picked.readAsBytes();
+    final storage = ref.read(storageServiceProvider);
+    try {
+      final url =
+          await storage.uploadOutfitPhotoBytes(bytes, uid, picked.name);
+      if (mounted) {
+        setState(() {
+          _referencePhotoUrl = url;
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Erreur lors de l'upload de la photo de reference"),
+        ),
+      );
+    }
   }
 
   Future<void> _pickGarment(String zoneKey, String categoryKey) async {
@@ -157,6 +190,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           userId: uid,
           name: name,
           garments: garments,
+          referencePhotoUrl: _referencePhotoUrl ?? '',
         );
 
     if (mounted) {
@@ -168,6 +202,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           _nameController.clear();
           _selected.clear();
           _selectedGarments.clear();
+          _referencePhotoUrl = null;
         });
       } else {
         setState(() {
@@ -203,7 +238,94 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 controller: _nameController,
                 decoration: const InputDecoration(hintText: 'Nom de l\'outfit'),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 24),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.divider, width: 1),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_referencePhotoUrl != null)
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(18),
+                        ),
+                        child: CachedNetworkImage(
+                          imageUrl: _referencePhotoUrl!,
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => Container(
+                            height: 200,
+                            color: AppColors.surfaceVariant,
+                            child: const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => Container(
+                            height: 200,
+                            color: AppColors.surfaceVariant,
+                            child: const Icon(
+                              Icons.broken_image_outlined,
+                              color: AppColors.textHint,
+                              size: 40,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.only(
+                            left: 16, right: 16, top: 16, bottom: 8),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_outlined,
+                                color: AppColors.textHint,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Photo de reference (optionnelle)',
+                                style: AppTextStyles.bodySecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _pickReferencePhoto,
+                          icon: const Icon(Icons.add_a_photo_outlined, size: 18),
+                          label: Text(
+                            _referencePhotoUrl == null
+                                ? 'Ajouter une photo'
+                                : 'Changer la photo',
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
               ...zones.map((z) {
                 final (zoneKey, label, icon, catKey) = z;
                 final garment = _selectedGarments[zoneKey];

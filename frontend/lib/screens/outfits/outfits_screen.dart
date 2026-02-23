@@ -58,7 +58,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> with SingleTicker
               data: (garments) {
                 final garmentCache = {for (var g in garments) g.id: g};
 
-                if (dailyOutfitId.isNotEmpty) {
+                    if (dailyOutfitId.isNotEmpty) {
                   final daily = outfits.where((o) => o.id == dailyOutfitId).firstOrNull;
                   if (daily != null) {
                     return _DailyOutfitView(
@@ -66,7 +66,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> with SingleTicker
                       garmentCache: garmentCache,
                       streak: streak,
                       dailyPhotoUrl: user?.dailyPhotoUrl ?? '',
-                      onTakePhoto: () => _takePhoto(uid),
+                      onTakePhoto: () => _takePhoto(uid, daily),
                       onChangeOutfit: () {
                         ref.read(outfitNotifierProvider.notifier).clearDailyOutfit(uid);
                       },
@@ -167,7 +167,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> with SingleTicker
     );
   }
 
-  Future<void> _takePhoto(String uid) async {
+  Future<void> _takePhoto(String uid, OutfitModel outfit) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 600, imageQuality: 78);
     if (picked == null) return;
@@ -176,7 +176,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> with SingleTicker
     final url = await ref
         .read(storageServiceProvider)
         .uploadOutfitPhotoBytes(bytes, uid, picked.name);
-    await ref.read(outfitNotifierProvider.notifier).setDailyPhoto(uid, url);
+    await ref.read(outfitNotifierProvider.notifier).setDailyPhoto(uid, outfit.id, url);
   }
 
   Future<void> _generateSuggestions(
