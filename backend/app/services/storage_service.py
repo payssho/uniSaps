@@ -2,7 +2,8 @@
 import uuid
 from io import BytesIO
 from PIL import Image
-from rembg import remove
+# rembg désactivé : dépassement de la limite 500 MB des Lambdas Vercel.
+# from rembg import remove
 from ..core.firebase import get_storage_bucket
 
 # Taille max pour limiter stockage et bande passante (coûts Firebase)
@@ -11,9 +12,9 @@ IMAGE_QUALITY = 78
 
 
 def _remove_background(data: bytes) -> bytes:
-    """Supprime le background d'une image en utilisant rembg."""
-    output = remove(data)
-    return output
+    """Supprime le background d'une image en utilisant rembg.
+    Désactivé sur Vercel (rembg dépasse 500 MB). En prod, on renvoie l'image telle quelle."""
+    return data
 
 
 def _resize(data: bytes, preserve_transparency: bool = False) -> bytes:
@@ -42,15 +43,13 @@ def upload_bytes(
     extension: str = "jpg",
     remove_background: bool = False,
 ) -> str:
-    # Pour les vêtements : on peut choisir de supprimer ou non le fond
+    # Pour les vêtements : on peut choisir de supprimer ou non le fond.
+    # rembg désactivé sur Vercel (dépasse 500 MB) → remove_background ignoré, on resize en JPEG.
     if folder == "garments" and remove_background:
-        data = _remove_background(data)
-        # Après suppression du background, on utilise PNG pour préserver la transparence
-        processed = _resize(data, preserve_transparency=True)
-        extension = "png"
-    else:
-        processed = _resize(data, preserve_transparency=False)
-    
+        data = _remove_background(data)  # no-op sans rembg
+    processed = _resize(data, preserve_transparency=False)
+    extension = "jpg"  # toujours JPEG sans rembg (PNG réservé au cas où rembg serait réactivé)
+
     filename = f"{folder}/{user_id}/{uuid.uuid4().hex}.{extension}"
     bucket = get_storage_bucket()
     blob = bucket.blob(filename)

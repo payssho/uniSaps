@@ -1,9 +1,12 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
 firebase-admin==6.5.0
+google-cloud-firestore
+google-cloud-storage
 python-dotenv==1.0.1
 python-multipart==0.0.9
 Pillow==10.4.0
 pydantic==2.9.0
 pydantic-settings==2.5.0
-rembg==2.0.50
+# rembg désactivé : dépassement de la limite 500 MB des Lambdas Vercel.
+# Pour réactiver en local, ajouter : rembg==2.0.50
