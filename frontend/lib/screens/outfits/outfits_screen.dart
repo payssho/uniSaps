@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
@@ -130,6 +131,9 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> with SingleTicker
                             onIndexChanged: (i) => setState(() => _currentIndex = i),
                             onChoose: (outfit) {
                               ref.read(outfitNotifierProvider.notifier).setDailyOutfit(uid, outfit.id);
+                              if (streak >= 0) {
+                                _showStreakCelebration(context, streak + 1);
+                              }
                             },
                           ),
                           _SwipeTab(
@@ -137,6 +141,9 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> with SingleTicker
                             garmentCache: garmentCache,
                             onAccept: (outfit) {
                               ref.read(outfitNotifierProvider.notifier).setDailyOutfit(uid, outfit.id);
+                              if (streak >= 0) {
+                                _showStreakCelebration(context, streak + 1);
+                              }
                             },
                           ),
                           _AITab(
@@ -212,6 +219,161 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> with SingleTicker
     if (id != null) {
       ref.read(outfitNotifierProvider.notifier).setDailyOutfit(uid, id);
     }
+  }
+}
+
+void _showStreakCelebration(BuildContext context, int newStreak) {
+  showGeneralDialog(
+    context: context,
+    barrierDismissible: false,
+    barrierLabel: 'streak',
+    barrierColor: Colors.black.withOpacity(0.5),
+    transitionDuration: const Duration(milliseconds: 350),
+    pageBuilder: (_, __, ___) {
+      return _StreakCelebrationOverlay(streak: newStreak);
+    },
+  );
+}
+
+class _StreakCelebrationOverlay extends StatefulWidget {
+  final int streak;
+
+  const _StreakCelebrationOverlay({required this.streak});
+
+  @override
+  State<_StreakCelebrationOverlay> createState() => _StreakCelebrationOverlayState();
+}
+
+class _StreakCelebrationOverlayState extends State<_StreakCelebrationOverlay> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 1700), () {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black.withOpacity(0.5),
+      body: Center(
+        child: Container(
+          width: 260,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 30,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 96,
+                    height: 96,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [
+                          AppColors.accentLight,
+                          AppColors.accent,
+                        ],
+                      ),
+                    ),
+                  )
+                      .animate()
+                      .scale(
+                        begin: const Offset(0.2, 0.2),
+                        end: const Offset(1.05, 1.05),
+                        curve: Curves.elasticOut,
+                        duration: 600.ms,
+                      )
+                      .then()
+                      .shake(
+                        hz: 3,
+                        duration: 300.ms,
+                      ),
+                  const Icon(
+                    Icons.local_fire_department,
+                    size: 52,
+                    color: Colors.white,
+                  )
+                      .animate()
+                      .scale(
+                        begin: const Offset(0.8, 0.8),
+                        end: const Offset(1.0, 1.0),
+                        curve: Curves.easeOutBack,
+                        duration: 450.ms,
+                      )
+                      .fadeIn(duration: 350.ms),
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Text(
+                        '+1',
+                        style: TextStyle(
+                          color: AppColors.accent,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                        .animate()
+                        .move(
+                          begin: const Offset(0, 12),
+                          end: const Offset(0, 0),
+                          curve: Curves.easeOut,
+                          duration: 350.ms,
+                        )
+                        .fadeIn(duration: 350.ms),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Streak de ${widget.streak} jours',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              )
+                  .animate()
+                  .fadeIn(duration: 300.ms, delay: 200.ms)
+                  .slide(begin: const Offset(0, 0.2), end: Offset.zero, duration: 300.ms),
+              const SizedBox(height: 6),
+              const Text(
+                'Tu gardes la flamme, continue !',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ).animate().fadeIn(duration: 280.ms, delay: 260.ms),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

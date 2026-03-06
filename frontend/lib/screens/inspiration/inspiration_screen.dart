@@ -415,7 +415,7 @@ class _ExploreTab extends ConsumerWidget {
           );
         }
 
-        return _PostsList(posts: visiblePosts, uid: uid);
+        return _ExploreGrid(posts: visiblePosts, uid: uid);
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Erreur: $e')),
@@ -459,6 +459,91 @@ class _PostsList extends ConsumerWidget {
   void _showUserProfile(BuildContext context, String userId) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => UserProfileScreen(userId: userId)),
+    );
+  }
+}
+
+class _ExploreGrid extends StatelessWidget {
+  final List<PostModel> posts;
+  final String uid;
+
+  const _ExploreGrid({required this.posts, required this.uid});
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 12,
+        childAspectRatio: 2 / 3,
+      ),
+      itemCount: posts.length,
+      itemBuilder: (_, i) {
+        final post = posts[i];
+        return GestureDetector(
+          onTap: () => _showPostDetails(context, post),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CachedNetworkImage(
+                  imageUrl: post.imageUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(
+                    color: AppColors.surfaceVariant,
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.75),
+                          Colors.black.withOpacity(0.0),
+                        ],
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            post.username,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showPostDetails(BuildContext context, PostModel post) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _PostDetailSheet(post: post),
     );
   }
 }
