@@ -57,14 +57,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 50),
-                Text('uniSaps', style: AppTextStyles.heading1.copyWith(fontSize: 40, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 10),
+                const SizedBox(height: 40),
+                SizedBox(
+                  height: 120,
+                  child: Image.asset(
+                    'assets/images/unisaps_logo.png',
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'uniSaps',
+                  style: AppTextStyles.heading1.copyWith(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 const Text(
                   'Ton dressing intelligent',
                   style: AppTextStyles.bodySecondary,
                 ),
-                const SizedBox(height: 52),
+                const SizedBox(height: 40),
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
