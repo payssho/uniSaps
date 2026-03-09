@@ -14,20 +14,28 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     redirect: (context, state) {
       final isAuth = authState.valueOrNull != null;
+      final authLoading = authState.isLoading;
       final isOnAuthPage = state.matchedLocation == '/login' ||
           state.matchedLocation == '/signup';
       final isOnboarding = state.matchedLocation == '/onboarding';
 
+      if (authLoading) return null;
+
       if (!isAuth && !isOnAuthPage) return '/login';
+
       if (isAuth && isOnAuthPage) {
         final user = currentUser.valueOrNull;
-        if (user == null || user.isNewUser) return '/onboarding';
+        if (user == null) return null;
+        if (user.isNewUser) return '/onboarding';
         return '/home';
       }
+
       if (isAuth && isOnboarding) {
         final user = currentUser.valueOrNull;
-        if (user != null && !user.isNewUser) return '/home';
+        if (user == null) return null;
+        if (!user.isNewUser) return '/home';
       }
+
       return null;
     },
     routes: [

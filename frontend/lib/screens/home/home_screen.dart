@@ -9,7 +9,6 @@ import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../inspiration/inspiration_screen.dart';
 import '../outfits/outfits_screen.dart';
-import '../creations/creation_screen.dart';
 import '../dressing/dressing_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -25,18 +24,33 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final _pageController = PageController();
   bool _tutorialStarted = false;
+  int _currentTab = 0;
 
   static const _lockMessages = [
     '',
     'Ajoute un vêtement à ton dressing pour débloquer cette section',
     'Crée ton premier outfit pour débloquer cette section',
-    'Crée ton premier outfit pour débloquer cette section',
   ];
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _goToTab(int index) {
+    if (index == _currentTab) return;
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final rawTab = ref.watch(selectedTabProvider);
     final user = ref.watch(currentUserProvider).valueOrNull;
     final uid = user?.uid ?? '';
     final tutorialStep = ref.watch(tutorialStepProvider);
@@ -47,6 +61,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         uid.isNotEmpty ? ref.watch(outfitsProvider(uid)) : null;
     final hasGarments = garmentsAsync?.valueOrNull?.isNotEmpty ?? false;
     final hasOutfits = outfitsAsync?.valueOrNull?.isNotEmpty ?? false;
+
+    // Listen to selectedTabProvider for programmatic tab changes (e.g. from InspirationScreen)
+    ref.listen(selectedTabProvider, (prev, next) {
+      if (next != _currentTab && next >= 0 && next < 3) {
+        _goToTab(next);
+      }
+    });
+
+    // Listen to tutorial changes
+    ref.listen(tutorialStepProvider, (prev, next) {
+      if (next != null) {
+        final target = next == 0 ? 0 : 1;
+        _goToTab(target);
+      }
+    });
 
     if (user != null && !_tutorialStarted) {
       final t = user.tutorialSeen;
@@ -60,28 +89,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
-    // Tabs: 0=Dressing, 1=Créer, 2=Outfits, 3=Inspo
-    final tab = tutorialStep != null
-        ? switch (tutorialStep) {
-            0 => 0,
-            1 => 1,
-            2 => 2,
-            _ => rawTab,
-          }
-        : rawTab;
-
-    final screens = [
-      const DressingScreen(),
-      const CreationScreen(),
-      const OutfitsScreen(),
-      const InspirationScreen(),
-    ];
-
-    final tabUnlocked = [true, hasGarments, hasOutfits, hasOutfits];
+    // Tabs: 0=Dressing, 1=Outfits, 2=Inspo
+    final tabUnlocked = [true, hasGarments, hasOutfits];
 
     void onTabTap(int index) {
       if (tabUnlocked[index]) {
-        ref.read(selectedTabProvider.notifier).state = index;
+        _goToTab(index);
       } else {
         ScaffoldMessenger.of(context)
           ..clearSnackBars()
@@ -89,21 +102,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.lock_outline, color: Colors.white, size: 18),
-                  const SizedBox(width: 10),
+                  const Icon(Icons.lock_outline, color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      _lockMessages[index],
-                      style: const TextStyle(fontSize: 13),
-                    ),
+                    child: Text(_lockMessages[index],
+                        style: const TextStyle(fontSize: 13)),
                   ),
                 ],
               ),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.primary.withOpacity(0.92),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
+                  borderRadius: BorderRadius.circular(14)),
               margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               duration: const Duration(seconds: 2),
             ),
@@ -111,28 +121,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
-    final scaffold = Scaffold(
-      body: Stack(
-        children: [
-          IndexedStack(index: tab, children: screens),
-          if (user != null)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 10,
-              right: 16,
-              child: _ProfileAvatarButton(user: user),
-            ),
-        ],
-      ),
-      bottomNavigationBar: _BottomNavBar(
-        currentIndex: tab,
-        unlocked: tabUnlocked,
-        onTap: onTabTap,
-      ),
-    );
-
     return Stack(
       children: [
-        scaffold,
+        Scaffold(
+          body: Stack(
+            children: [
+              PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                onPageChanged: (index) {
+                  setState(() => _currentTab = index);
+                  ref.read(selectedTabProvider.notifier).state = index;
+                },
+                children: [
+                  _KeepAlive(child: const DressingScreen()),
+                  _KeepAlive(child: const OutfitsScreen()),
+                  _KeepAlive(child: const InspirationScreen()),
+                ],
+              ),
+              if (user != null)
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 10,
+                  right: 16,
+                  child: _ProfileAvatarButton(user: user),
+                ),
+            ],
+          ),
+          bottomNavigationBar: _BottomNavBar(
+            currentIndex: _currentTab,
+            unlocked: tabUnlocked,
+            onTap: onTabTap,
+          ),
+        ),
         if (tutorialStep != null && user != null)
           _TutorialOverlay(
             step: tutorialStep,
@@ -147,7 +167,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _handleNextTutorialStep(UserModel user) async {
     final stepNotifier = ref.read(tutorialStepProvider.notifier);
     final current = stepNotifier.state ?? 0;
-    if (current >= 2) {
+    if (current >= 1) {
       await _finishTutorial(user);
     } else {
       stepNotifier.state = current + 1;
@@ -172,6 +192,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 // ---------------------------------------------------------------------------
+// Keep alive wrapper for PageView children
+// ---------------------------------------------------------------------------
+class _KeepAlive extends StatefulWidget {
+  final Widget child;
+  const _KeepAlive({required this.child});
+
+  @override
+  State<_KeepAlive> createState() => _KeepAliveState();
+}
+
+class _KeepAliveState extends State<_KeepAlive>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Profile avatar button (top-right)
 // ---------------------------------------------------------------------------
 class _ProfileAvatarButton extends StatelessWidget {
@@ -190,7 +233,8 @@ class _ProfileAvatarButton extends StatelessWidget {
                 position: Tween(
                   begin: const Offset(1, 0),
                   end: Offset.zero,
-                ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+                ).animate(CurvedAnimation(
+                    parent: anim, curve: Curves.easeOutCubic)),
                 child: child,
               );
             },
@@ -211,7 +255,7 @@ class _ProfileAvatarButton extends StatelessWidget {
           ],
         ),
         child: CircleAvatar(
-          radius: 19,
+          radius: 18,
           backgroundColor: AppColors.surfaceVariant,
           backgroundImage: user.profilePhotoUrl.isNotEmpty
               ? CachedNetworkImageProvider(user.profilePhotoUrl)
@@ -224,7 +268,7 @@ class _ProfileAvatarButton extends StatelessWidget {
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppColors.textHint,
-                    fontSize: 15,
+                    fontSize: 14,
                   ),
                 )
               : null,
@@ -235,7 +279,7 @@ class _ProfileAvatarButton extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Bottom nav bar (4 tabs, lock support)
+// Compact bottom nav bar (3 tabs, lock support)
 // ---------------------------------------------------------------------------
 class _BottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -250,7 +294,6 @@ class _BottomNavBar extends StatelessWidget {
 
   static const _tabs = [
     (Icons.checkroom_outlined, Icons.checkroom, 'Dressing'),
-    (Icons.add_circle_outline, Icons.add_circle, 'Créer'),
     (Icons.style_outlined, Icons.style, 'Outfits'),
     (Icons.explore_outlined, Icons.explore, 'Inspo'),
   ];
@@ -262,15 +305,15 @@ class _BottomNavBar extends StatelessWidget {
         color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 16,
+            offset: const Offset(0, -3),
           ),
         ],
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(_tabs.length, (i) {
@@ -320,7 +363,7 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 68,
+        width: 64,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -329,11 +372,11 @@ class _NavItem extends StatelessWidget {
               children: [
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: EdgeInsets.all(selected ? 8 : 0),
+                  padding: EdgeInsets.all(selected ? 6 : 0),
                   decoration: selected
                       ? BoxDecoration(
                           color: AppColors.accent.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                         )
                       : null,
                   child: AnimatedSwitcher(
@@ -342,14 +385,14 @@ class _NavItem extends StatelessWidget {
                       selected ? activeIcon : icon,
                       key: ValueKey('$selected$locked'),
                       color: color,
-                      size: selected ? 26 : 24,
+                      size: selected ? 22 : 20,
                     ),
                   ),
                 ),
                 if (locked)
                   Positioned(
-                    right: -4,
-                    top: -4,
+                    right: -3,
+                    top: -3,
                     child: Container(
                       padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
@@ -362,20 +405,17 @@ class _NavItem extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: Icon(
-                        Icons.lock,
-                        size: 10,
-                        color: AppColors.textHint.withOpacity(0.6),
-                      ),
+                      child: Icon(Icons.lock, size: 9,
+                          color: AppColors.textHint.withOpacity(0.6)),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: 5),
+            const SizedBox(height: 3),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: color,
               ),
@@ -388,7 +428,7 @@ class _NavItem extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Tutorial overlay (3 steps: Dressing → Créer → Outfits)
+// Tutorial overlay (2 steps: Dressing → Outfits)
 // ---------------------------------------------------------------------------
 class _TutorialOverlay extends StatelessWidget {
   final int step;
@@ -418,15 +458,10 @@ class _TutorialOverlay extends StatelessWidget {
         description = 'Ajoute un vêtement pour remplir ton dressing.';
         break;
       case 1:
-        icon = Icons.brush;
-        title = 'Crée ton outfit';
-        description = 'Assemble tes vêtements en un look complet.';
-        break;
-      case 2:
       default:
-        icon = Icons.local_fire_department;
-        title = 'Choisis l\'outfit du jour';
-        description = 'Sélectionne ton look du jour pour garder la flamme.';
+        icon = Icons.style;
+        title = 'Crée ton premier outfit';
+        description = 'Assemble tes vêtements en un look complet.';
         break;
     }
 
@@ -452,8 +487,8 @@ class _TutorialOverlay extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 72,
-                  height: 72,
+                  width: 68,
+                  height: 68,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -463,53 +498,43 @@ class _TutorialOverlay extends StatelessWidget {
                     ),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: AppColors.accent, size: 34),
+                  child: Icon(icon, color: AppColors.accent, size: 32),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  title,
-                  style: AppTextStyles.heading2.copyWith(fontSize: 20),
-                  textAlign: TextAlign.center,
+                const SizedBox(height: 18),
+                Text(title,
+                    style: AppTextStyles.heading2.copyWith(fontSize: 19),
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 6),
+                Text(description,
+                    style: AppTextStyles.bodySecondary,
+                    textAlign: TextAlign.center),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(2, (i) {
+                    return Container(
+                      width: i == step ? 18 : 8,
+                      height: 6,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      decoration: BoxDecoration(
+                        color: i == step
+                            ? AppColors.accent
+                            : AppColors.textHint.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  description,
-                  style: AppTextStyles.bodySecondary,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(3, (i) {
-                      return Container(
-                        width: i == step ? 20 : 8,
-                        height: 8,
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        decoration: BoxDecoration(
-                          color: i == step
-                              ? AppColors.accent
-                              : AppColors.textHint.withOpacity(0.25),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 18),
                 Row(
                   children: [
                     Expanded(
                       child: TextButton(
                         onPressed: onSkip,
-                        child: const Text(
-                          'Passer',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        child: const Text('Passer',
+                            style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w500)),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -518,17 +543,15 @@ class _TutorialOverlay extends StatelessWidget {
                         onPressed: onNext,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
+                              borderRadius: BorderRadius.circular(14)),
                         ),
                         child: Text(
-                          step == 2 ? 'C\'est parti !' : 'Suivant',
+                          step == 1 ? 'C\'est parti !' : 'Suivant',
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),

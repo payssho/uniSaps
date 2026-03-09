@@ -49,7 +49,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.only(left: 8, top: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 22),
+                  onPressed: () => Navigator.of(context).pop(),
+                  tooltip: 'Retour',
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
             _ProfileHeader(user: user),
             const SizedBox(height: 24),
             TabBar(

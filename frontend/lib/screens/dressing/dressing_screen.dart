@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
@@ -98,7 +99,19 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                         return GarmentCard(
                           garment: garment,
                           onTap: () => _showGarmentDetails(garment),
-                        );
+                        )
+                            .animate()
+                            .fadeIn(
+                              duration: 350.ms,
+                              delay: (50 * i).ms,
+                            )
+                            .slideY(
+                              begin: 0.08,
+                              end: 0,
+                              duration: 350.ms,
+                              delay: (50 * i).ms,
+                              curve: Curves.easeOut,
+                            );
                       },
                     );
                   },

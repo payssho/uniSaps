@@ -20,12 +20,26 @@ class GarmentCard extends StatefulWidget {
   State<GarmentCard> createState() => _GarmentCardState();
 }
 
-class _GarmentCardState extends State<GarmentCard> {
+class _GarmentCardState extends State<GarmentCard>
+    with SingleTickerProviderStateMixin {
+  double _scale = 1.0;
+
+  void _onTapDown(TapDownDetails _) => setState(() => _scale = 0.95);
+  void _onTapUp(TapUpDetails _) => setState(() => _scale = 1.0);
+  void _onTapCancel() => setState(() => _scale = 1.0);
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.onTap,
-      child: Container(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(18),
@@ -107,6 +121,7 @@ class _GarmentCardState extends State<GarmentCard> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
