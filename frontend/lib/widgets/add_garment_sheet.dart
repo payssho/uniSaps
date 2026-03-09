@@ -111,17 +111,18 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       // Vérifier que le backend est accessible avant d'essayer l'upload
       if (imageBytes != null && imageName != null) {
         try {
-          // Test de connexion rapide (l'endpoint /health est à la racine, pas sous /api/v1)
+          final api = ref.read(apiServiceProvider);
+          final healthUrl = api.baseUrl.replaceAll('/api/v1', '/health');
           final testResponse = await http.get(
-            Uri.parse('http://localhost:8000/health'),
-          ).timeout(const Duration(seconds: 3));
+            Uri.parse(healthUrl),
+          ).timeout(const Duration(seconds: 5));
           if (testResponse.statusCode != 200) {
             throw Exception('Backend non disponible');
           }
         } catch (e) {
           setState(() {
             _loading = false;
-            _error = 'Le backend n\'est pas démarré. Lance-le avec: cd backend && .\\start.ps1';
+            _error = 'Le serveur est inaccessible. Réessaie dans un instant.';
           });
           return;
         }
@@ -183,7 +184,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             if (error.contains('Timeout')) {
               errorMessage = 'Le traitement de l\'image prend trop de temps (rembg). Vérifie que le backend est démarré et patiente.';
             } else if (error.contains('connexion') || error.contains('serveur') || error.contains('localhost')) {
-              errorMessage = 'Impossible de contacter le backend. Lance-le avec: cd backend && .\\start.ps1';
+              errorMessage = 'Impossible de contacter le serveur. Réessaie dans un instant.';
             } else if (error.contains('FileNotFoundError') || error.contains('serviceAccountKey')) {
               errorMessage = 'Configuration Firebase manquante. Vérifie le fichier serviceAccountKey.json dans backend/';
             } else {
@@ -202,8 +203,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         setState(() {
           _loading = false;
           final errorStr = e.toString();
-          if (errorStr.contains('localhost') || errorStr.contains('connection')) {
-            _error = 'Le backend n\'est pas démarré. Lance-le avec: cd backend && .\\start.ps1';
+          if (errorStr.contains('localhost') || errorStr.contains('connection') || errorStr.contains('connexion')) {
+            _error = 'Le serveur est inaccessible. Réessaie dans un instant.';
           } else {
             _error = errorStr.replaceAll('Exception: ', '').replaceAll('Error: ', '');
           }

@@ -3,8 +3,11 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    firebase_project_id: str = ""
-    firebase_storage_bucket: str = ""
+    # Valeurs par défaut raisonnables pour éviter les buckets vides en prod.
+    # Elles peuvent être surchargées par les variables d'environnement
+    # FIREBASE_PROJECT_ID et FIREBASE_STORAGE_BUCKET (recommandé sur Vercel).
+    firebase_project_id: str = "unisaps-3ad84"
+    firebase_storage_bucket: str = "unisaps-3ad84.firebasestorage.app"
     firebase_service_account_key_path: str = "serviceAccountKey.json"
     cors_origins: list[str] = ["*"]
 

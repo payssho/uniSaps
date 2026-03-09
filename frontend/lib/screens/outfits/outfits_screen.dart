@@ -12,7 +12,6 @@ import '../../models/outfit_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
-import '../../services/api_service.dart';
 import '../../widgets/outfit_card.dart';
 
 class OutfitsScreen extends ConsumerStatefulWidget {
@@ -193,10 +192,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> with SingleTicker
   ) async {
     setState(() => _aiLoading = true);
     try {
-      final apiService = ApiService(
-        baseUrl: 'http://10.0.2.2:8000/api/v1',
-        authService: ref.read(authServiceProvider),
-      );
+      final apiService = ref.read(apiServiceProvider);
       final suggestions = await apiService.suggestOutfits(style: _selectedStyle, count: 3);
       setState(() => _aiSuggestions = suggestions);
     } catch (_) {
@@ -283,9 +279,9 @@ class _StreakCelebrationOverlayState extends State<_StreakCelebrationOverlay> {
                   Container(
                     width: 96,
                     height: 96,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         colors: [
                           AppColors.accentLight,
                           AppColors.accent,
