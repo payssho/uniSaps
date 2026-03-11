@@ -4,6 +4,9 @@ import '../models/outfit_model.dart';
 import '../services/firestore_service.dart';
 import 'auth_provider.dart';
 
+/// Indique si l'onglet Outfits est actuellement en mode "Swipe" (true) ou Biblio (false).
+final outfitsIsSwipeModeProvider = StateProvider<bool>((ref) => false);
+
 final outfitsProvider = StreamProvider.family<List<OutfitModel>, String>((ref, uid) {
   return ref.watch(firestoreServiceProvider).outfitsStream(uid);
 });

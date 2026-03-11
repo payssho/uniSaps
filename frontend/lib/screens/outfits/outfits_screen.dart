@@ -87,12 +87,17 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                   }
                 }
 
+                // Met à jour le provider global pour savoir si on est en mode swipe
+                ref.read(outfitsIsSwipeModeProvider.notifier).state =
+                    _mode == _Mode.swipe;
+
                 return Column(
                   children: [
                     _Header(
                       streak: streak,
                       onAdd: _openCreation,
-                      showAdd: _mode == _Mode.swipe,
+                      // Bouton centré uniquement en mode Biblio (pas en Swipe)
+                      showAdd: _mode == _Mode.biblio,
                     ),
                     const SizedBox(height: 12),
                     _ModeToggle(
@@ -1285,7 +1290,7 @@ class _DailyOutfitView extends StatelessWidget {
                   onPressed: onAddFit,
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text(
-                    'Ajouter un fit',
+                    'Ajouter un fit à la bibliothèque',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),

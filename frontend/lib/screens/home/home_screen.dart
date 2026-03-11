@@ -54,6 +54,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider).valueOrNull;
+    final isOutfitsSwipe =
+        ref.watch(outfitsIsSwipeModeProvider); // true si mode Swipe
     final uid = user?.uid ?? '';
     final tutorialStep = ref.watch(tutorialStepProvider);
 
@@ -130,9 +132,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               PageView(
                 controller: _pageController,
-                // Désactiver le swipe horizontal quand on est sur Outfits (onglet 1),
-                // pour éviter les changements d'onglet accidentels en mode swipe.
-                physics: _currentTab == 1
+                // Désactiver le swipe horizontal UNIQUEMENT quand on est
+                // sur l'onglet Outfits ET en mode Swipe. En mode Biblio,
+                // le swipe entre onglets reste actif.
+                physics: (_currentTab == 1 && isOutfitsSwipe)
                     ? const NeverScrollableScrollPhysics()
                     : const PageScrollPhysics(),
                 onPageChanged: (index) {
