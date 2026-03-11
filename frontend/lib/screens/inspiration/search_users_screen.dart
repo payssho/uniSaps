@@ -39,7 +39,8 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
 
   void _onSearchChanged(String query) {
     _debounce?.cancel();
-    if (query.trim().length < 2) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
       setState(() {
         _results = [];
         _loading = false;
@@ -48,9 +49,22 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
     }
     setState(() => _loading = true);
     _debounce = Timer(const Duration(milliseconds: 400), () async {
+      final currentUser = ref.read(currentUserProvider).valueOrNull;
+      final myFriends = currentUser?.friends ?? [];
+
       final results = await ref
           .read(friendshipNotifierProvider.notifier)
-          .searchUsers(query.trim());
+          .searchUsers(trimmed);
+
+      // Trier par nombre d'amis en commun (descendant)
+      results.sort((a, b) {
+        final mutualA =
+            a.friends.where((id) => myFriends.contains(id)).length;
+        final mutualB =
+            b.friends.where((id) => myFriends.contains(id)).length;
+        return mutualB.compareTo(mutualA);
+      });
+
       if (mounted) {
         setState(() {
           _results = results;
@@ -101,7 +115,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
   }
 
   Widget _buildBody(UserModel? currentUser) {
-    if (_controller.text.trim().length < 2) {
+    if (_controller.text.trim().isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -164,6 +178,9 @@ class _UserResultTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isFriend = currentUser?.friends.contains(user.uid) ?? false;
+    final myFriends = currentUser?.friends ?? [];
+    final mutualCount =
+        user.friends.where((id) => myFriends.contains(id)).length;
 
     return GestureDetector(
       onTap: onTap,
@@ -205,6 +222,14 @@ class _UserResultTile extends ConsumerWidget {
                   ),
                   if (user.displayName.isNotEmpty)
                     Text(user.displayName, style: AppTextStyles.caption),
+                  if (!isFriend && mutualCount > 0)
+                    Text(
+                      '$mutualCount ami${mutualCount > 1 ? 's' : ''} en commun',
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                 ],
               ),
             ),

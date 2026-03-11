@@ -7,7 +7,9 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
+import '../../providers/friendship_provider.dart';
 import '../inspiration/inspiration_screen.dart';
+import '../inspiration/search_users_screen.dart';
 import '../outfits/outfits_screen.dart';
 import '../dressing/dressing_screen.dart';
 import '../profile/profile_screen.dart';
@@ -143,7 +145,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 10,
                   right: 16,
-                  child: _ProfileAvatarButton(user: user),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_currentTab == 2) ...[
+                        _SearchFriendsButton(),
+                        const SizedBox(width: 10),
+                      ],
+                      _ProfileAvatarButton(user: user),
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -215,14 +226,59 @@ class _KeepAliveState extends State<_KeepAlive>
 }
 
 // ---------------------------------------------------------------------------
-// Profile avatar button (top-right)
+// Profile avatar button (top-right) + search friends (Inspo tab)
 // ---------------------------------------------------------------------------
-class _ProfileAvatarButton extends StatelessWidget {
+class _SearchFriendsButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const SearchUsersScreen(),
+            transitionsBuilder: (_, anim, __, child) {
+              return FadeTransition(
+                opacity: CurvedAnimation(
+                  parent: anim,
+                  curve: Curves.easeInOut,
+                ),
+                child: child,
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 220),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.search,
+          size: 18,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileAvatarButton extends ConsumerWidget {
   final UserModel user;
   const _ProfileAvatarButton({required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final requestCount = ref.watch(receivedRequestsCountProvider);
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -242,37 +298,71 @@ class _ProfileAvatarButton extends StatelessWidget {
           ),
         );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.accent, width: 2.5),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.accent.withOpacity(0.25),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.accent, width: 2.5),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.accent.withOpacity(0.25),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: CircleAvatar(
-          radius: 18,
-          backgroundColor: AppColors.surfaceVariant,
-          backgroundImage: user.profilePhotoUrl.isNotEmpty
-              ? CachedNetworkImageProvider(user.profilePhotoUrl)
-              : null,
-          child: user.profilePhotoUrl.isEmpty
-              ? Text(
-                  user.username.isNotEmpty
-                      ? user.username[0].toUpperCase()
-                      : '?',
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: AppColors.surfaceVariant,
+              backgroundImage: user.profilePhotoUrl.isNotEmpty
+                  ? CachedNetworkImageProvider(user.profilePhotoUrl)
+                  : null,
+              child: user.profilePhotoUrl.isEmpty
+                  ? Text(
+                      user.username.isNotEmpty
+                          ? user.username[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textHint,
+                        fontSize: 14,
+                      ),
+                    )
+                  : null,
+            ),
+          ),
+          if (requestCount > 0)
+            Positioned(
+              right: -4,
+              top: -4,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.surface, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  '$requestCount',
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textHint,
-                    fontSize: 14,
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
                   ),
-                )
-              : null,
-        ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

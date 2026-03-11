@@ -764,12 +764,74 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
   @override
   Widget build(BuildContext context) {
     final requestsAsync = ref.watch(receivedRequestsProvider);
+    final requestCount = ref.watch(receivedRequestsCountProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                // Scroll naturally: the requests section is directly below
+                // and will be visible when there are requests.
+                if (requestCount == 0) {
+                  ScaffoldMessenger.of(context)
+                    ..clearSnackBars()
+                    ..showSnackBar(
+                      SnackBar(
+                        content: const Text('Aucune demande d\'ami en attente'),
+                        behavior: SnackBarBehavior.floating,
+                        backgroundColor: AppColors.accent.withOpacity(0.92),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                side: BorderSide(color: AppColors.divider),
+              ),
+              icon: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  const Icon(Icons.people_alt_outlined, size: 20, color: AppColors.textSecondary),
+                  if (requestCount > 0)
+                    Positioned(
+                      right: -10,
+                      top: -8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$requestCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              label: Text(
+                requestCount > 0 ? 'Gérer les demandes ($requestCount)' : 'Gérer les demandes',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
