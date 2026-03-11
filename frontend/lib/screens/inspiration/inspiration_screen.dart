@@ -72,7 +72,6 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
   Widget build(BuildContext context) {
     final uid = ref.watch(authServiceProvider).uid;
     final user = ref.watch(currentUserProvider).valueOrNull;
-    final requestCount = ref.watch(receivedRequestsCountProvider);
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkScrollHint());
 
@@ -101,7 +100,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
             ],
           ),
 
-          // Top overlay: toggle + social button
+          // Top overlay: toggle
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             left: 16,
@@ -111,12 +110,6 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                 _FeedToggle(
                   showFriends: _showFriends,
                   onToggle: _toggleFeed,
-                ),
-                const Spacer(),
-                _TopActionButton(
-                  icon: Icons.group_add_outlined,
-                  badge: requestCount,
-                  onTap: () => _showSocialSheet(context),
                 ),
               ],
             ),
@@ -360,14 +353,6 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
     );
   }
 
-  void _showSocialSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const _SocialSheet(),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -431,64 +416,6 @@ class _ToggleChip extends StatelessWidget {
             fontWeight: FontWeight.w600,
             fontSize: 13,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Top action button (single social button with badge)
-// ---------------------------------------------------------------------------
-class _TopActionButton extends StatelessWidget {
-  final IconData icon;
-  final int badge;
-  final VoidCallback onTap;
-
-  const _TopActionButton({
-    required this.icon,
-    this.badge = 0,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.3),
-          shape: BoxShape.circle,
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 22),
-            if (badge > 0)
-              Positioned(
-                right: 4,
-                top: 4,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: const BoxDecoration(
-                    color: AppColors.accent,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$badge',
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-              ),
-          ],
         ),
       ),
     );
@@ -587,16 +514,26 @@ class _FriendsFeed extends ConsumerWidget {
           );
         }
 
-        if (posts.isEmpty) {
+        // Ne garder que les posts du jour courant
+        final now = DateTime.now();
+        final todayPosts = posts.where((p) {
+          final dt = DateTime.tryParse(p.createdAt);
+          if (dt == null) return false;
+          return dt.year == now.year &&
+              dt.month == now.month &&
+              dt.day == now.day;
+        }).toList();
+
+        if (todayPosts.isEmpty) {
           return const _EmptyFeedMessage(
             icon: Icons.article_outlined,
-            title: 'Aucun post de tes amis',
-            subtitle: 'Tes amis n\'ont pas encore publié.',
+            title: 'Aucun post de tes amis aujourd\'hui',
+            subtitle: 'Reviens demain ou invite tes amis à publier.',
           );
         }
 
         return _FullScreenFeed(
-          posts: posts,
+          posts: todayPosts,
           uid: uid,
           onDoubleTap: onDoubleTap,
           onScrollStart: onScrollStart,
@@ -633,15 +570,24 @@ class _ExploreFeed extends ConsumerWidget {
 
     return postsAsync.when(
       data: (posts) {
-        if (posts.isEmpty) {
+        final now = DateTime.now();
+        final todayPosts = posts.where((p) {
+          final dt = DateTime.tryParse(p.createdAt);
+          if (dt == null) return false;
+          return dt.year == now.year &&
+              dt.month == now.month &&
+              dt.day == now.day;
+        }).toList();
+
+        if (todayPosts.isEmpty) {
           return const _EmptyFeedMessage(
             icon: Icons.explore_outlined,
-            title: 'Aucun post',
-            subtitle: 'Sois le premier à partager !',
+            title: 'Aucun post aujourd\'hui',
+            subtitle: 'Sois le premier à partager ton outfit du jour !',
           );
         }
         return _FullScreenFeed(
-          posts: posts,
+          posts: todayPosts,
           uid: uid,
           onDoubleTap: onDoubleTap,
           onScrollStart: onScrollStart,
@@ -681,27 +627,86 @@ class _FullScreenFeed extends ConsumerWidget {
       },
       child: PageView.builder(
         scrollDirection: Axis.vertical,
-        itemCount: posts.length,
+        // +1 pour la slide de fin "reviens demain"
+        itemCount: posts.length + 1,
         itemBuilder: (context, index) {
+          if (index >= posts.length) {
+            return const _EndOfDayMessage();
+          }
+          final post = posts[index];
           return _FullScreenPost(
-            post: posts[index],
+            post: post,
             uid: uid,
             onLike: () {
               ref
                   .read(postNotifierProvider.notifier)
-                  .toggleLike(posts[index].id, uid);
+                  .toggleLike(post.id, uid);
             },
-            onDoubleTap: () => onDoubleTap(posts[index]),
+            onDoubleTap: () => onDoubleTap(post),
             onUserTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      UserProfileScreen(userId: posts[index].userId),
+                  builder: (_) => UserProfileScreen(userId: post.userId),
                 ),
               );
             },
           );
         },
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// End-of-day slide
+// ---------------------------------------------------------------------------
+class _EndOfDayMessage extends StatelessWidget {
+  const _EndOfDayMessage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black,
+            Colors.black87,
+            Colors.black,
+          ],
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.wb_twighlight, size: 56, color: Colors.white70),
+              SizedBox(height: 16),
+              Text(
+                'Tu as vu tous les looks du jour',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Reviens demain pour decouvrir de nouveaux outfits !',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -90,7 +90,6 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                   children: [
                     _Header(
                       streak: streak,
-                      onAdd: _openCreation,
                     ),
                     const SizedBox(height: 12),
                     _ModeToggle(
@@ -150,6 +149,25 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
           error: (e, _) => Center(child: Text('Erreur: $e')),
         ),
       ),
+      floatingActionButton: _mode == _Mode.biblio
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 16, right: 16),
+              child: FloatingActionButton.extended(
+                heroTag: 'outfits_fab',
+                backgroundColor: AppColors.accent,
+                elevation: 6,
+                onPressed: _openCreation,
+                icon: const Icon(Icons.add, color: Colors.white, size: 24),
+                label: const Text(
+                  'Ajouter un fit',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 
@@ -207,9 +225,8 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
 // ---------------------------------------------------------------------------
 class _Header extends StatelessWidget {
   final int streak;
-  final VoidCallback onAdd;
 
-  const _Header({required this.streak, required this.onAdd});
+  const _Header({required this.streak});
 
   @override
   Widget build(BuildContext context) {
@@ -243,18 +260,6 @@ class _Header extends StatelessWidget {
                 ],
               ),
             ),
-          Material(
-            color: AppColors.accent,
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: onAdd,
-              child: const Padding(
-                padding: EdgeInsets.all(8),
-                child: Icon(Icons.add_rounded, color: Colors.white, size: 22),
-              ),
-            ),
-          ),
         ],
       ),
     );
