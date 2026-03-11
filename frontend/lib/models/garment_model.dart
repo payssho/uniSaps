@@ -8,6 +8,12 @@ class GarmentModel {
   final String imageUrl;
   final String createdAt;
   final int timesWorn;
+  // Métadonnées enrichies par l'IA (optionnelles)
+  final List<String> styleTags;
+  final String formality;
+  final String season;
+  final String pattern;
+  final String material;
 
   const GarmentModel({
     this.id = '',
@@ -19,6 +25,11 @@ class GarmentModel {
     this.imageUrl = '',
     this.createdAt = '',
     this.timesWorn = 0,
+    this.styleTags = const [],
+    this.formality = '',
+    this.season = '',
+    this.pattern = '',
+    this.material = '',
   });
 
   // Propriété de compatibilité pour l'ancien format (une seule couleur)
@@ -46,6 +57,11 @@ class GarmentModel {
       imageUrl: map['image_url'] ?? '',
       createdAt: map['created_at'] ?? '',
       timesWorn: map['times_worn'] ?? 0,
+      styleTags: List<String>.from(map['style_tags'] ?? const []),
+      formality: map['formality'] ?? '',
+      season: map['season'] ?? '',
+      pattern: map['pattern'] ?? '',
+      material: map['material'] ?? '',
     );
   }
 
@@ -59,6 +75,11 @@ class GarmentModel {
         'image_url': imageUrl,
         'created_at': createdAt,
         'times_worn': timesWorn,
+        'style_tags': styleTags,
+        'formality': formality,
+        'season': season,
+        'pattern': pattern,
+        'material': material,
       };
 
   GarmentModel copyWith({
@@ -71,6 +92,11 @@ class GarmentModel {
     String? imageUrl,
     String? createdAt,
     int? timesWorn,
+    List<String>? styleTags,
+    String? formality,
+    String? season,
+    String? pattern,
+    String? material,
   }) {
     return GarmentModel(
       id: id ?? this.id,
@@ -82,6 +108,11 @@ class GarmentModel {
       imageUrl: imageUrl ?? this.imageUrl,
       createdAt: createdAt ?? this.createdAt,
       timesWorn: timesWorn ?? this.timesWorn,
+      styleTags: styleTags ?? this.styleTags,
+      formality: formality ?? this.formality,
+      season: season ?? this.season,
+      pattern: pattern ?? this.pattern,
+      material: material ?? this.material,
     );
   }
 }

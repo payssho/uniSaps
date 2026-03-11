@@ -576,6 +576,13 @@ class _AISection extends StatefulWidget {
 
 class _AISectionState extends State<_AISection> {
   bool _expanded = false;
+  final TextEditingController _promptController = TextEditingController();
+
+  @override
+  void dispose() {
+    _promptController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -656,10 +663,28 @@ class _AISectionState extends State<_AISection> {
                       }).toList(),
                     ),
                     const SizedBox(height: 10),
+                    TextField(
+                      controller: _promptController,
+                      maxLines: 2,
+                      minLines: 1,
+                      textInputAction: TextInputAction.done,
+                      decoration: const InputDecoration(
+                        hintText: 'Décris ton besoin (ex: tenue chic pour un dîner, streetwear pour un concert)...',
+                        prefixIcon: Icon(Icons.chat_bubble_outline, size: 18),
+                      ),
+                    ),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: widget.loading ? null : widget.onGenerate,
+                        onPressed: widget.loading
+                            ? null
+                            : () {
+                                final prompt = _promptController.text.trim();
+                                if (prompt.isNotEmpty) {
+                                  widget.onStyleChanged(prompt);
+                                }
+                                widget.onGenerate();
+                              },
                         icon: widget.loading
                             ? const SizedBox(
                                 width: 16,

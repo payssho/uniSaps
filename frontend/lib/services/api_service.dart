@@ -38,6 +38,34 @@ class ApiService {
     return suggestions;
   }
 
+  /// Analyse une image de vêtement avec le backend IA et renvoie
+  /// des attributs structurés (couleurs, catégorie, style, etc.).
+  Future<Map<String, dynamic>> analyzeGarmentImage(
+      Uint8List imageBytes, String filename) async {
+    final token = await _authService.getIdToken();
+    if (token == null) {
+      throw Exception('Utilisateur non authentifié');
+    }
+
+    final uri = Uri.parse('$baseUrl/ai/analyze-garment');
+    final request = http.MultipartRequest('POST', uri);
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(
+      http.MultipartFile.fromBytes(
+        'file',
+        imageBytes,
+        filename: filename,
+      ),
+    );
+
+    final streamed = await request.send();
+    final resp = await http.Response.fromStream(streamed);
+    if (resp.statusCode != 200) {
+      throw Exception('Erreur analyse IA: ${resp.statusCode} ${resp.body}');
+    }
+    return jsonDecode(resp.body) as Map<String, dynamic>;
+  }
+
   /// Upload une image via l'API backend
   /// [imageBytes] : les bytes de l'image
   /// [filename] : le nom du fichier original

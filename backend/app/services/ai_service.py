@@ -1,9 +1,16 @@
 """
 Rule-based outfit suggestion engine with color/style matching and wear-history awareness.
 Migrated from the original Flet app.
+
+Extended with optional image-analysis helpers powered by an external LLM
+for extracting richer attributes (couleur, style, matière...) from garment photos.
 """
+import os
 import random
 from datetime import datetime, timedelta
+from typing import Any, Dict, List
+
+import requests
 
 COLOR_FAMILIES: dict[str, list[str]] = {
     "neutral": [
@@ -50,6 +57,9 @@ PROMPT_MAP: dict[str, str] = {
 REQUIRED_CATS = ["top", "bottom", "shoes"]
 OPTIONAL_CATS = ["headwear", "outerwear", "accessory"]
 ALL_CATS = REQUIRED_CATS + OPTIONAL_CATS
+
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 def _color_family(color: str) -> str:
@@ -132,3 +142,127 @@ def suggest_multiple(
             results.append(s)
         attempts += 1
     return results
+
+
+def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> Dict[str, Any]:
+    """
+    Analyze a garment photo using an external vision-capable LLM (e.g. OpenAI GPT-4o).
+
+    Returns a dict with:
+      - colors: List[str]           # couleurs détectées (principale + éventuelles secondaires)
+      - category: str               # 'top', 'bottom', 'shoes', 'outerwear', 'headwear', 'accessory'
+      - style_tags: List[str]       # ex: ['chic', 'streetwear', 'minimaliste']
+      - formality: str              # 'casual', 'formel', 'soirée', ...
+      - season: str                 # 'été', 'hiver', 'mi-saison', ...
+      - pattern: str                # 'uni', 'rayures', 'carreaux', ...
+      - material: str               # 'coton', 'denim', 'cuir', ...
+
+    If no API key is configured, returns a safe, mostly empty structure
+    so that the frontend ne plante pas.
+    """
+    if not OPENAI_API_KEY:
+        return {
+            "colors": [],
+            "category": "",
+            "style_tags": [],
+            "formality": "",
+            "season": "",
+            "pattern": "",
+            "material": "",
+        }
+
+    # NOTE: This implementation assumes the OpenAI "chat completions" API with
+    # a vision-capable model (e.g. gpt-4o or gpt-4.1). Adapt if you use another provider.
+    api_url = "https://api.openai.com/v1/chat/completions"
+
+    # Encode image as base64 data URL
+    import base64
+
+    b64 = base64.b64encode(image_bytes).decode("ascii")
+    data_url = f"data:image/jpeg;base64,{b64}"
+
+    system_prompt = (
+        "Tu es un assistant de mode qui analyse UNE SEULE pièce vestimentaire sur une photo. "
+        "Réponds STRICTEMENT au format JSON suivant, sans texte autour :\n\n"
+        "{\n"
+        '  "colors": ["couleur_principale", "autre_couleur_eventuelle"],\n'
+        '  "category": "top|bottom|shoes|outerwear|headwear|accessory",\n'
+        '  "style_tags": ["streetwear", "chic", "minimaliste", ...],\n'
+        '  "formality": "casual|formel|soirée|sportif|business_casual",\n'
+        '  "season": "été|hiver|mi-saison|toute_saison",\n'
+        '  "pattern": "uni|rayures|carreaux|motif|fleuri|graphique",\n'
+        '  "material": "coton|denim|laine|cuir|synthétique|soie|lin|autre"\n'
+        "}\n\n"
+        "- IMPORTANT pour \"colors\" : utilise uniquement des noms de couleurs en français compatibles avec une palette de mode, "
+        "par exemple parmi : Noir, Blanc, Gris, Gris clair, Gris foncé, Beige, Camel, Marron, Marron clair, Marron foncé, "
+        "Bleu, Bleu clair, Bleu foncé, Bleu marine, Bleu ciel, Bleu turquoise, Rouge, Rouge foncé, Rouge bordeaux, "
+        "Rose, Rose poudré, Rose fuchsia, Vert, Vert clair, Vert foncé, Vert menthe, Vert kaki, Jaune, Jaune moutarde, "
+        "Orange, Orange corail, Violet, Violet foncé, Lavande, Bordeaux, Navy, Khaki, Olive, Sable, Crème, Ivoire, "
+        "Écru, Taupe, Charbon, Anthracite, Nude, Pêche, Corail, Saumon, Terracotta, Rouille, Brique, Caramel, Cognac, "
+        "Champagne, Doré, Cuivre, Bronze, Argent, Métallique, Multicolore. "
+        "Si tu hésites entre plusieurs variantes proches, choisis la plus basique (ex: 'Bleu', 'Rouge', 'Vert').\n\n"
+        "Si tu hésites sur d'autres valeurs, choisis la plus probable, mais garde le JSON valide."
+    )
+
+    payload: Dict[str, Any] = {
+        "model": "gpt-4o-mini",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Analyse ce vêtement."},
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": data_url},
+                    },
+                ],
+            },
+        ],
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"},
+    }
+
+    headers = {
+        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    try:
+        resp = requests.post(api_url, headers=headers, json=payload, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        content = data["choices"][0]["message"]["content"]
+        # content is already JSON thanks to response_format
+        import json
+
+        parsed: Dict[str, Any] = json.loads(content)
+
+        # Normaliser un minimum et fournir des valeurs par défaut
+        def _as_list(val: Any) -> List[str]:
+            if isinstance(val, list):
+                return [str(v) for v in val]
+            if isinstance(val, str) and val:
+                return [val]
+            return []
+
+        return {
+            "colors": _as_list(parsed.get("colors", [])),
+            "category": str(parsed.get("category", "")).strip(),
+            "style_tags": _as_list(parsed.get("style_tags", [])),
+            "formality": str(parsed.get("formality", "")).strip(),
+            "season": str(parsed.get("season", "")).strip(),
+            "pattern": str(parsed.get("pattern", "")).strip(),
+            "material": str(parsed.get("material", "")).strip(),
+        }
+    except Exception:
+        # En cas d'erreur réseau / parsing, renvoyer une structure vide pour ne pas bloquer le flux
+        return {
+            "colors": [],
+            "category": "",
+            "style_tags": [],
+            "formality": "",
+            "season": "",
+            "pattern": "",
+            "material": "",
+        }

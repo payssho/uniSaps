@@ -50,6 +50,11 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
     required String brand,
     required List<String> colors,
     required String category,
+    List<String> styleTags = const [],
+    String formality = '',
+    String season = '',
+    String pattern = '',
+    String material = '',
     Uint8List? imageBytes,
     String? imageName,
     bool removeBackground = true,
@@ -78,6 +83,11 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
         category: category,
         imageUrl: imageUrl,
         createdAt: DateTime.now().toIso8601String(),
+        styleTags: styleTags,
+        formality: formality,
+        season: season,
+        pattern: pattern,
+        material: material,
       );
       await _db.addGarment(garment);
       state = const AsyncValue.data(null);

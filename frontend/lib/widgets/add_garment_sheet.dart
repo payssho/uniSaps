@@ -32,6 +32,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   String? _error;
   bool _loading = false;
   bool _removeBackground = true;
+  Map<String, dynamic>? _aiAttributes;
 
   @override
   void initState() {
@@ -85,6 +86,31 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     final picked = await picker.pickImage(source: source, maxWidth: 600, imageQuality: 78);
     if (picked != null) {
       setState(() => _imageFile = picked);
+
+      // Analyse IA de l'image pour pré-remplir couleur / catégorie / tags
+      try {
+        final bytes = await picked.readAsBytes();
+        final api = ref.read(apiServiceProvider);
+        final result = await api.analyzeGarmentImage(bytes, picked.name);
+
+        if (!mounted) return;
+        setState(() {
+          _aiAttributes = result;
+
+          final detectedColors = (result['colors'] as List?)?.cast<String>() ?? const [];
+          if (detectedColors.isNotEmpty) {
+            _selectedColors = detectedColors;
+          }
+
+          final detectedCategory = (result['category'] as String?) ?? '';
+          const allowedCats = ['top', 'bottom', 'shoes', 'outerwear', 'headwear', 'accessory'];
+          if (allowedCats.contains(detectedCategory)) {
+            _selectedCategory = detectedCategory;
+          }
+        });
+      } catch (_) {
+        // En cas d'échec de l'IA, on ne bloque pas l'utilisateur
+      }
     }
   }
 
@@ -128,6 +154,13 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         }
       }
 
+      // Extra attributs IA à stocker sur le vêtement
+      final styleTags = (_aiAttributes?['style_tags'] as List?)?.cast<String>() ?? const [];
+      final formality = (_aiAttributes?['formality'] as String?) ?? '';
+      final season = (_aiAttributes?['season'] as String?) ?? '';
+      final pattern = (_aiAttributes?['pattern'] as String?) ?? '';
+      final material = (_aiAttributes?['material'] as String?) ?? '';
+
       final success = widget.garment == null
           ? await ref.read(garmentNotifierProvider.notifier).addGarment(
                 userId: uid,
@@ -135,6 +168,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                 brand: _brandController.text.trim(),
                 colors: _selectedColors,
                 category: _selectedCategory,
+                styleTags: styleTags,
+                formality: formality,
+                season: season,
+                pattern: pattern,
+                material: material,
                 imageBytes: imageBytes,
                 imageName: imageName,
                 removeBackground: _removeBackground,
