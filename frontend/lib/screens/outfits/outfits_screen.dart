@@ -1395,161 +1395,173 @@ class _OutfitDetailSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          if (outfit.referencePhotoUrl.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: AspectRatio(
-                  aspectRatio: 3 / 4,
-                  child: CachedNetworkImage(
-                    imageUrl: outfit.referencePhotoUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(
-                        color: AppColors.surfaceVariant,
-                        child: const Center(
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2))),
-                  ),
-                ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    outfit.name.isEmpty ? 'Outfit' : outfit.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-                if (outfit.timesWorn > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      'Porté ${outfit.timesWorn}x',
-                      style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.accent),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          if (items.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Pièces',
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary)),
-                  const SizedBox(height: 10),
-                  ...items.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final e = entry.value;
-                    final g = e.value;
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: g.imageUrl.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: g.imageUrl,
-                                    width: 40,
-                                    height: 40,
-                                    fit: BoxFit.cover,
-                                  )
-                                : Container(
-                                    width: 40,
-                                    height: 40,
-                                    color: AppColors.divider,
-                                    child: const Icon(Icons.checkroom,
-                                        size: 18,
-                                        color: AppColors.textHint),
-                                  ),
+                  if (outfit.referencePhotoUrl.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: AspectRatio(
+                          aspectRatio: 3 / 4,
+                          child: CachedNetworkImage(
+                            imageUrl: outfit.referencePhotoUrl,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => Container(
+                                color: AppColors.surfaceVariant,
+                                child: const Center(
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2))),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(g.name,
-                                    style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600)),
-                                if (g.brand.isNotEmpty)
-                                  Text(g.brand,
-                                      style: const TextStyle(
-                                          fontSize: 11,
-                                          color:
-                                              AppColors.textSecondary)),
-                              ],
+                        ),
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            outfit.name.isEmpty ? 'Outfit' : outfit.name,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
                             ),
                           ),
-                          Text(
-                            categoryLabel(e.key),
-                            style: const TextStyle(
-                                fontSize: 10,
-                                color: AppColors.textHint),
+                        ),
+                        if (outfit.timesWorn > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.accent.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              'Porté ${outfit.timesWorn}x',
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.accent),
+                            ),
                           ),
+                      ],
+                    ),
+                  ),
+                  if (items.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Pièces',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary)),
+                          const SizedBox(height: 10),
+                          ...items.asMap().entries.map((entry) {
+                            final i = entry.key;
+                            final e = entry.value;
+                            final g = e.value;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: g.imageUrl.isNotEmpty
+                                        ? CachedNetworkImage(
+                                            imageUrl: g.imageUrl,
+                                            width: 40,
+                                            height: 40,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Container(
+                                            width: 40,
+                                            height: 40,
+                                            color: AppColors.divider,
+                                            child: const Icon(Icons.checkroom,
+                                                size: 18,
+                                                color: AppColors.textHint),
+                                          ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(g.name,
+                                            style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600)),
+                                        if (g.brand.isNotEmpty)
+                                          Text(g.brand,
+                                              style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppColors
+                                                      .textSecondary)),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    categoryLabel(e.key),
+                                    style: const TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.textHint),
+                                  ),
+                                ],
+                              ),
+                            )
+                                .animate()
+                                .fadeIn(
+                                    duration: 250.ms, delay: (40 * i).ms)
+                                .slideX(
+                                    begin: 0.05,
+                                    end: 0,
+                                    duration: 250.ms,
+                                    delay: (40 * i).ms);
+                          }),
                         ],
                       ),
-                    )
-                        .animate()
-                        .fadeIn(
-                            duration: 250.ms, delay: (40 * i).ms)
-                        .slideX(
-                            begin: 0.05,
-                            end: 0,
-                            duration: 250.ms,
-                            delay: (40 * i).ms);
-                  }),
+                    ),
+                  ],
                 ],
               ),
             ),
-          ],
+          ),
           if (onChoose != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    onChoose!();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: SafeArea(
+                top: false,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onChoose!();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text('Choisir pour aujourd\'hui'),
                   ),
-                  child: const Text('Choisir pour aujourd\'hui'),
                 ),
               ),
             ),
-          const SizedBox(height: 16),
         ],
       ),
     );

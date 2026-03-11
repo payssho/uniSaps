@@ -130,7 +130,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               PageView(
                 controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
                 onPageChanged: (index) {
                   setState(() => _currentTab = index);
                   ref.read(selectedTabProvider.notifier).state = index;
@@ -460,8 +459,7 @@ class _NavItem extends StatelessWidget {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
+                Container(
                   padding: EdgeInsets.all(selected ? 6 : 0),
                   decoration: selected
                       ? BoxDecoration(
@@ -469,14 +467,10 @@ class _NavItem extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                         )
                       : null,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      selected ? activeIcon : icon,
-                      key: ValueKey('$selected$locked'),
-                      color: color,
-                      size: selected ? 22 : 20,
-                    ),
+                  child: Icon(
+                    selected ? activeIcon : icon,
+                    color: color,
+                    size: selected ? 22 : 20,
                   ),
                 ),
                 if (locked)

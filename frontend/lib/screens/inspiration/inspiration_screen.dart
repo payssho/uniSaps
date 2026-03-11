@@ -83,6 +83,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
           // Horizontal PageView: Amis / Explorer (swipeable)
           PageView(
             controller: _horizontalPageController,
+            physics: const NeverScrollableScrollPhysics(),
             onPageChanged: (i) => setState(() => _showFriends = i == 0),
             children: [
               _FriendsFeed(
@@ -737,8 +738,36 @@ class _FullScreenPost extends StatefulWidget {
 class _FullScreenPostState extends State<_FullScreenPost>
     with SingleTickerProviderStateMixin {
   bool _showHeart = false;
+  late bool _liked;
+  late int _likes;
+
+  @override
+  void initState() {
+    super.initState();
+    _liked = widget.post.isLikedBy(widget.uid);
+    _likes = widget.post.likes;
+  }
+
+  @override
+  void didUpdateWidget(covariant _FullScreenPost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.id != widget.post.id ||
+        oldWidget.post.likes != widget.post.likes ||
+        oldWidget.uid != widget.uid) {
+      _liked = widget.post.isLikedBy(widget.uid);
+      _likes = widget.post.likes;
+    }
+  }
 
   void _handleDoubleTap() {
+    // Optimistic UI: toggle like locally immediately
+    setState(() {
+      _liked = !_liked;
+      _likes += _liked ? 1 : -1;
+      if (_likes < 0) _likes = 0;
+      _showHeart = true;
+    });
+
     widget.onDoubleTap();
     setState(() => _showHeart = true);
     Future.delayed(const Duration(milliseconds: 900), () {
@@ -748,7 +777,6 @@ class _FullScreenPostState extends State<_FullScreenPost>
 
   @override
   Widget build(BuildContext context) {
-    final liked = widget.post.isLikedBy(widget.uid);
     final screenSize = MediaQuery.of(context).size;
 
     return GestureDetector(
@@ -855,21 +883,25 @@ class _FullScreenPostState extends State<_FullScreenPost>
                 ),
                 const SizedBox(height: 24),
                 GestureDetector(
-                  onTap: widget.onLike,
+                  onTap: () {
+                    // Optimistic UI: toggle like locally
+                    setState(() {
+                      _liked = !_liked;
+                      _likes += _liked ? 1 : -1;
+                      if (_likes < 0) _likes = 0;
+                    });
+                    widget.onLike();
+                  },
                   child: Column(
                     children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          liked ? Icons.favorite : Icons.favorite_border,
-                          key: ValueKey(liked),
-                          color: liked ? AppColors.accent : Colors.white,
-                          size: 32,
-                        ),
+                      Icon(
+                        _liked ? Icons.favorite : Icons.favorite_border,
+                        color: _liked ? AppColors.accent : Colors.white,
+                        size: 32,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${widget.post.likes}',
+                        '$_likes',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -1130,27 +1162,6 @@ class _PostDetailSheet extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: AspectRatio(
-                      aspectRatio: 3 / 4,
-                      child: CachedNetworkImage(
-                        imageUrl: post.imageUrl,
-                        fit: BoxFit.cover,
-                        placeholder: (_, __) => Container(
-                          color: AppColors.surfaceVariant,
-                          child: const Center(
-                            child: SizedBox(
-                                width: 32,
-                                height: 32,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2)),
-                          ),
-                        ),
-                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

@@ -23,8 +23,6 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   final Map<String, String> _selected = {};
   final Map<String, GarmentModel> _selectedGarments = {};
   bool _saving = false;
-  String? _message;
-  bool _isError = false;
   String? _referencePhotoUrl;
   bool _uploadingPhoto = false;
 
@@ -255,30 +253,59 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
 
   Future<void> _save() async {
     if (_referencePhotoUrl == null || _referencePhotoUrl!.isEmpty) {
-      setState(() {
-        _message = 'Ajoute une photo de ton outfit.';
-        _isError = true;
-      });
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('Ajoute la photo de ton outfit.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.error.withOpacity(0.96),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            duration: const Duration(seconds: 3),
+          ),
+        );
       return;
     }
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() {
-        _message = 'Donne un nom à ton outfit.';
-        _isError = true;
-      });
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('Donne un nom à ton outfit.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.error.withOpacity(0.96),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            duration: const Duration(seconds: 3),
+          ),
+        );
       return;
     }
     if (_selected.isEmpty) {
-      setState(() {
-        _message = 'Sélectionne au moins un vêtement.';
-        _isError = true;
-      });
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('Sélectionne au moins un vêtement.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.error.withOpacity(0.96),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            duration: const Duration(seconds: 3),
+          ),
+        );
       return;
     }
     setState(() {
       _saving = true;
-      _message = null;
     });
 
     final uid = ref.read(authServiceProvider).uid;
@@ -316,10 +343,20 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           ),
         );
       } else {
-        setState(() {
-          _message = 'Erreur lors de la création.';
-          _isError = true;
-        });
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: const Text('Erreur lors de la création.'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.error.withOpacity(0.96),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              duration: const Duration(seconds: 3),
+            ),
+          );
       }
     }
   }
@@ -686,53 +723,6 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                       duration: 300.ms,
                       delay: (50 * i).ms);
             }),
-
-            // --- Message ---
-            if (_message != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: (_isError ? AppColors.error : AppColors.success)
-                        .withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: _isError
-                          ? AppColors.error
-                          : AppColors.success,
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _isError
-                            ? Icons.error_outline
-                            : Icons.check_circle_outline,
-                        color: _isError
-                            ? AppColors.error
-                            : AppColors.success,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _message!,
-                          style: TextStyle(
-                            color: _isError
-                                ? AppColors.error
-                                : AppColors.success,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
 
             const SizedBox(height: 100),
           ],
