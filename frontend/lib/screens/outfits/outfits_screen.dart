@@ -82,6 +82,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                             .read(outfitNotifierProvider.notifier)
                             .clearDailyOutfit(uid);
                       },
+                      onAddFit: _openCreation,
                     );
                   }
                 }
@@ -90,6 +91,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                   children: [
                     _Header(
                       streak: streak,
+                      onAdd: _openCreation,
                     ),
                     const SizedBox(height: 12),
                     _ModeToggle(
@@ -225,8 +227,9 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
 // ---------------------------------------------------------------------------
 class _Header extends StatelessWidget {
   final int streak;
+  final VoidCallback onAdd;
 
-  const _Header({required this.streak});
+  const _Header({required this.streak, required this.onAdd});
 
   @override
   Widget build(BuildContext context) {
@@ -260,6 +263,14 @@ class _Header extends StatelessWidget {
                 ],
               ),
             ),
+          TextButton.icon(
+            onPressed: onAdd,
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text(
+              'Ajouter un fit',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
         ],
       ),
     );
@@ -1200,6 +1211,7 @@ class _DailyOutfitView extends StatelessWidget {
   final String dailyPhotoUrl;
   final VoidCallback onTakePhoto;
   final VoidCallback onChangeOutfit;
+  final VoidCallback onAddFit;
 
   const _DailyOutfitView({
     required this.outfit,
@@ -1208,6 +1220,7 @@ class _DailyOutfitView extends StatelessWidget {
     required this.dailyPhotoUrl,
     required this.onTakePhoto,
     required this.onChangeOutfit,
+    required this.onAddFit,
   });
 
   @override
@@ -1228,6 +1241,7 @@ class _DailyOutfitView extends StatelessWidget {
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     color: AppColors.warning.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -1244,6 +1258,14 @@ class _DailyOutfitView extends StatelessWidget {
                     ],
                   ),
                 ),
+              TextButton.icon(
+                onPressed: onAddFit,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text(
+                  'Ajouter un fit',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
             ],
           ),
         ),

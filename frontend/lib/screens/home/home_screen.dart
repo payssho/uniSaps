@@ -130,6 +130,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               PageView(
                 controller: _pageController,
+                // Désactiver le swipe horizontal quand on est sur Outfits (onglet 1),
+                // pour éviter les changements d'onglet accidentels en mode swipe.
+                physics: _currentTab == 1
+                    ? const NeverScrollableScrollPhysics()
+                    : const PageScrollPhysics(),
                 onPageChanged: (index) {
                   setState(() => _currentTab = index);
                   ref.read(selectedTabProvider.notifier).state = index;
