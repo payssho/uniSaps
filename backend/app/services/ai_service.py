@@ -43,15 +43,104 @@ STYLE_WEIGHTS: dict[str, dict[str, int]] = {
 }
 
 PROMPT_MAP: dict[str, str] = {
-    "classe": "Classe", "chic": "Classe", "elegant": "Classe",
-    "professionnel": "Professionnel", "pro": "Professionnel", "bureau": "Professionnel",
-    "casual": "Decontracte", "decontracte": "Decontracte", "relax": "Decontracte", "brunch": "Decontracte",
-    "simple": "Simple", "minimaliste": "Simple",
-    "colore": "Colore", "couleur": "Colore",
-    "streetwear": "Streetwear", "street": "Streetwear", "urban": "Streetwear",
-    "sport": "Sportif", "sportif": "Sportif",
-    "soiree": "Soiree", "fete": "Soiree",
+    # --- Classe / chic / élégant ---
+    "classe": "Classe",
+    "classy": "Classe",
+    "chic": "Classe",
+    "élégant": "Classe",
+    "elegant": "Classe",
+    "smart": "Classe",
+    "habillé": "Classe",
+    "habille": "Classe",
+    "raffiné": "Classe",
+    "raffine": "Classe",
+    "tailleur": "Classe",
+    "chemise": "Classe",
+
+    # --- Professionnel / bureau ---
+    "professionnel": "Professionnel",
+    "pro": "Professionnel",
+    "bureau": "Professionnel",
+    "office": "Professionnel",
+    "travail": "Professionnel",
+    "meeting": "Professionnel",
+    "réunion": "Professionnel",
+    "reunion": "Professionnel",
+    "entretien": "Professionnel",
+    "rdv client": "Professionnel",
+
+    # --- Décontracté / casual / everyday ---
+    "casual": "Decontracte",
+    "decontracte": "Decontracte",
+    "décontracté": "Decontracte",
+    "relax": "Decontracte",
+    "detente": "Decontracte",
+    "détente": "Decontracte",
+    "confort": "Decontracte",
+    "confortable": "Decontracte",
+    "tous les jours": "Decontracte",
+    "quotidien": "Decontracte",
+    "everyday": "Decontracte",
+    "weekend": "Decontracte",
+    "brunch": "Decontracte",
+
+    # --- Simple / minimal ---
+    "simple": "Simple",
+    "sobre": "Simple",
+    "minimal": "Simple",
+    "minimaliste": "Simple",
+    "basique": "Simple",
+    "clean": "Simple",
+    "epure": "Simple",
+    "épuré": "Simple",
+
+    # --- Coloré / fun ---
+    "colore": "Colore",
+    "coloré": "Colore",
+    "couleur": "Colore",
+    "couleurs": "Colore",
+    "flashy": "Colore",
+    "fun": "Colore",
+    "punchy": "Colore",
+    "vif": "Colore",
+    "vives": "Colore",
     "surprends": "Colore",
+
+    # --- Streetwear / urbain ---
+    "streetwear": "Streetwear",
+    "street": "Streetwear",
+    "urban": "Streetwear",
+    "urbain": "Streetwear",
+    "hoodie": "Streetwear",
+    "baggy": "Streetwear",
+    "oversize": "Streetwear",
+    "oversized": "Streetwear",
+    "cargo": "Streetwear",
+    "quartier": "Streetwear",
+
+    # --- Sportif ---
+    "sport": "Sportif",
+    "sportif": "Sportif",
+    "football": "Sportif",
+    "foot": "Sportif",
+    "basket": "Sportif",
+    "running": "Sportif",
+    "course": "Sportif",
+    "gym": "Sportif",
+    "entrainement": "Sportif",
+    "entraînement": "Sportif",
+
+    # --- Soirée / sortie / fête ---
+    "soiree": "Soiree",
+    "soirée": "Soiree",
+    "fete": "Soiree",
+    "fête": "Soiree",
+    "party": "Soiree",
+    "soir": "Soiree",
+    "club": "Soiree",
+    "boite": "Soiree",
+    "boîte": "Soiree",
+    "sortie": "Soiree",
 }
 
 REQUIRED_CATS = ["top", "bottom", "shoes"]
