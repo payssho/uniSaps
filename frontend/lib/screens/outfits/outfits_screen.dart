@@ -29,6 +29,17 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
   List<Map<String, String>> _aiSuggestions = [];
   bool _aiLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Par défaut : mode Biblio -> on autorise le swipe entre onglets
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(outfitsIsSwipeModeProvider.notifier).state = false;
+      }
+    });
+  }
+
   void _openCreation() {
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -87,22 +98,28 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                   }
                 }
 
-                // Met à jour le provider global pour savoir si on est en mode swipe
-                ref.read(outfitsIsSwipeModeProvider.notifier).state =
-                    _mode == _Mode.swipe;
-
                 return Column(
                   children: [
                     _Header(
                       streak: streak,
                       onAdd: _openCreation,
-                      // Bouton centré uniquement en mode Biblio (pas en Swipe)
-                      showAdd: _mode == _Mode.biblio,
+                      // Plus de bouton centré "Ajouter un fit" dans le header
+                      showAdd: false,
                     ),
                     const SizedBox(height: 12),
                     _ModeToggle(
                       mode: _mode,
-                      onChanged: (m) => setState(() => _mode = m),
+                      onChanged: (m) {
+                        setState(() => _mode = m);
+                        // Met à jour le provider global en réaction à l'interaction utilisateur
+                        Future.microtask(() {
+                          if (mounted) {
+                            ref
+                                .read(outfitsIsSwipeModeProvider.notifier)
+                                .state = m == _Mode.swipe;
+                          }
+                        });
+                      },
                     ),
                     const SizedBox(height: 8),
                     Expanded(
