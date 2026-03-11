@@ -12,6 +12,7 @@ import '../../providers/outfit_provider.dart';
 import '../../providers/friendship_provider.dart';
 import '../../widgets/stat_card.dart';
 import '../inspiration/user_profile_screen.dart';
+import '../inspiration/search_users_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -50,17 +51,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.only(left: 8, top: 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 22),
-                  onPressed: () => Navigator.of(context).pop(),
-                  tooltip: 'Retour',
-                ),
+              padding: const EdgeInsets.only(left: 4, right: 4, top: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 22),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Retour',
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.logout_rounded, size: 22, color: AppColors.textSecondary),
+                    tooltip: 'Se deconnecter',
+                    onPressed: () async {
+                      await ref.read(authNotifierProvider.notifier).signOut();
+                      if (context.mounted) context.go('/login');
+                    },
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             _ProfileHeader(user: user),
             const SizedBox(height: 24),
             TabBar(
@@ -764,74 +775,12 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
   @override
   Widget build(BuildContext context) {
     final requestsAsync = ref.watch(receivedRequestsProvider);
-    final requestCount = ref.watch(receivedRequestsCountProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                // Scroll naturally: the requests section is directly below
-                // and will be visible when there are requests.
-                if (requestCount == 0) {
-                  ScaffoldMessenger.of(context)
-                    ..clearSnackBars()
-                    ..showSnackBar(
-                      SnackBar(
-                        content: const Text('Aucune demande d\'ami en attente'),
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: AppColors.accent.withOpacity(0.92),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                }
-              },
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                side: BorderSide(color: AppColors.divider),
-              ),
-              icon: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  const Icon(Icons.people_alt_outlined, size: 20, color: AppColors.textSecondary),
-                  if (requestCount > 0)
-                    Positioned(
-                      right: -10,
-                      top: -8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.accent,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          '$requestCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              label: Text(
-                requestCount > 0 ? 'Gérer les demandes ($requestCount)' : 'Gérer les demandes',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
@@ -949,6 +898,25 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
               Text(
                 'Mes amis (${widget.user.friends.length})',
                 style: AppTextStyles.heading3,
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const SearchUsersScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.person_add_alt_1_outlined,
+                    size: 18, color: AppColors.accent),
+                label: const Text(
+                  'Ajouter un ami',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.accent,
+                  ),
+                ),
               ),
             ],
           ),

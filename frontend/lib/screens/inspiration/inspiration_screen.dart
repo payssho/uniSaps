@@ -77,7 +77,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkScrollHint());
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
