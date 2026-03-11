@@ -72,7 +72,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // Listen to tutorial changes
     ref.listen(tutorialStepProvider, (prev, next) {
       if (next != null) {
-        final target = next == 0 ? 0 : 1;
+        final target = next.clamp(0, 2);
         _goToTab(target);
       }
     });
@@ -80,7 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (user != null && !_tutorialStarted) {
       final t = user.tutorialSeen;
       final isNew = user.isNewUser ||
-          !(t.dressing || t.creations || t.outfits || t.inspiration);
+          !(t.dressing || t.outfits || t.inspiration);
       if (isNew) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ref.read(tutorialStepProvider.notifier).state = 0;
@@ -167,7 +167,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _handleNextTutorialStep(UserModel user) async {
     final stepNotifier = ref.read(tutorialStepProvider.notifier);
     final current = stepNotifier.state ?? 0;
-    if (current >= 1) {
+    if (current >= 2) {
       await _finishTutorial(user);
     } else {
       stepNotifier.state = current + 1;
@@ -428,7 +428,7 @@ class _NavItem extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Tutorial overlay (2 steps: Dressing → Outfits)
+// Tutorial overlay (3 steps: Dressing → Outfits → Inspo)
 // ---------------------------------------------------------------------------
 class _TutorialOverlay extends StatelessWidget {
   final int step;
@@ -458,10 +458,15 @@ class _TutorialOverlay extends StatelessWidget {
         description = 'Ajoute un vêtement pour remplir ton dressing.';
         break;
       case 1:
-      default:
         icon = Icons.style;
         title = 'Crée ton premier outfit';
         description = 'Assemble tes vêtements en un look complet.';
+        break;
+      case 2:
+      default:
+        icon = Icons.explore;
+        title = 'Inspire-toi et publie';
+        description = 'Découvre les looks des autres et partage le tien.';
         break;
     }
 
@@ -511,7 +516,7 @@ class _TutorialOverlay extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(2, (i) {
+                  children: List.generate(3, (i) {
                     return Container(
                       width: i == step ? 18 : 8,
                       height: 6,
@@ -548,7 +553,7 @@ class _TutorialOverlay extends StatelessWidget {
                               borderRadius: BorderRadius.circular(14)),
                         ),
                         child: Text(
-                          step == 1 ? 'C\'est parti !' : 'Suivant',
+                          step == 2 ? 'C\'est parti !' : 'Suivant',
                           style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w600),
