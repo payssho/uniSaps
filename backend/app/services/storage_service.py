@@ -1,7 +1,7 @@
 """Firebase Storage helpers for image upload / delete."""
 import uuid
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageOps
 # rembg désactivé : dépassement de la limite 500 MB des Lambdas Vercel.
 # from rembg import remove
 from ..core.firebase import get_storage_bucket
@@ -19,6 +19,12 @@ def _remove_background(data: bytes) -> bytes:
 
 def _resize(data: bytes, preserve_transparency: bool = False) -> bytes:
     img = Image.open(BytesIO(data))
+    # Corriger l'orientation selon les métadonnées EXIF (photos prises en portrait/paysage)
+    try:
+        img = ImageOps.exif_transpose(img)
+    except Exception:
+        # Si pas d'EXIF ou erreur, on continue avec l'image telle quelle
+        pass
     img.thumbnail(MAX_SIZE, Image.LANCZOS)
     
     # Si on préserve la transparence (pour les vêtements sans background)
