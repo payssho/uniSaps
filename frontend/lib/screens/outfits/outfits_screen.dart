@@ -92,6 +92,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                     _Header(
                       streak: streak,
                       onAdd: _openCreation,
+                      showAdd: _mode == _Mode.swipe,
                     ),
                     const SizedBox(height: 12),
                     _ModeToggle(
@@ -151,7 +152,9 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
           error: (e, _) => Center(child: Text('Erreur: $e')),
         ),
       ),
-      floatingActionButton: _mode == _Mode.biblio
+      // On ne montre le bouton flottant "Ajouter un fit" que
+      // lorsqu'aucun outfit du jour n'est sélectionné ET qu'on est en mode biblio.
+      floatingActionButton: dailyOutfitId.isEmpty && _mode == _Mode.biblio
           ? Padding(
               padding: const EdgeInsets.only(bottom: 16, right: 16),
               child: FloatingActionButton.extended(
@@ -228,49 +231,63 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
 class _Header extends StatelessWidget {
   final int streak;
   final VoidCallback onAdd;
+  final bool showAdd;
 
-  const _Header({required this.streak, required this.onAdd});
+  const _Header({
+    required this.streak,
+    required this.onAdd,
+    required this.showAdd,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Expanded(
-            child: Text('Mes Outfits', style: AppTextStyles.heading2),
-          ),
-          if (streak > 0)
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: AppColors.warning.withOpacity(0.3), width: 1),
+          Row(
+            children: [
+              const Expanded(
+                child: Text('Mes Outfits', style: AppTextStyles.heading2),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.local_fire_department,
-                      size: 16, color: AppColors.warning),
-                  const SizedBox(width: 4),
-                  Text('$streak',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 14)),
-                ],
+              if (streak > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                        color: AppColors.warning.withOpacity(0.3), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.local_fire_department,
+                          size: 16, color: AppColors.warning),
+                      const SizedBox(width: 4),
+                      Text('$streak',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w800, fontSize: 14)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          if (showAdd) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text(
+                  'Ajouter un fit',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
-          TextButton.icon(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text(
-              'Ajouter un fit',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -1233,37 +1250,44 @@ class _DailyOutfitView extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Outfit du jour', style: AppTextStyles.heading2),
-              const Spacer(),
-              if (streak > 0)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
+              Row(
+                children: [
+                  const Text('Outfit du jour', style: AppTextStyles.heading2),
+                  const Spacer(),
+                  if (streak > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.local_fire_department,
+                              size: 16, color: AppColors.warning),
+                          const SizedBox(width: 4),
+                          Text('$streak',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton.icon(
+                  onPressed: onAddFit,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text(
+                    'Ajouter un fit',
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.local_fire_department,
-                          size: 16, color: AppColors.warning),
-                      const SizedBox(width: 4),
-                      Text('$streak',
-                          style:
-                              const TextStyle(fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
-              TextButton.icon(
-                onPressed: onAddFit,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text(
-                  'Ajouter un fit',
-                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
