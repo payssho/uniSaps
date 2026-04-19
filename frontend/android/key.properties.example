@@ -1,0 +1,6 @@
+# Copie ce fichier vers android/key.properties (ne le commit pas).
+# storeFile : chemin relatif au dossier android/app/ (ex. upload-keystore.jks placé dans android/app/).
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=CHANGE_ME
+storeFile=upload-keystore.jks
