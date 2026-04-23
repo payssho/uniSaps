@@ -28,14 +28,16 @@ service cloud.firestore {
       allow update: if isOwner(uid) || (isAuth() && onlyFriendsChanged());
       allow delete: if isOwner(uid);
 
-      // Sous-collection garments : visible uniquement par le propriétaire
+      // Sous-collection garments : lecture par tout user connecté, écriture propriétaire uniquement
       match /garments/{garmentId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isAuth();
+        allow write: if isOwner(uid);
       }
 
-      // Sous-collection outfits : visible uniquement par le propriétaire
+      // Sous-collection outfits : lecture par tout user connecté, écriture propriétaire uniquement
       match /outfits/{outfitId} {
-        allow read, write: if isOwner(uid);
+        allow read: if isAuth();
+        allow write: if isOwner(uid);
       }
     }
 

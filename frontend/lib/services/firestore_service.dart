@@ -181,18 +181,26 @@ class FirestoreService {
   }
 
   /// Retourne le post du jour de l'utilisateur s'il existe, null sinon.
+  /// Utilise un seul where pour éviter l'index composite Firestore, filtre par date côté client.
   Future<PostModel?> getUserTodayPost(String uid) async {
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
-    final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59).toUtc().toIso8601String();
     final snap = await _postCol
         .where('user_id', isEqualTo: uid)
-        .where('created_at', isGreaterThanOrEqualTo: todayStart)
-        .where('created_at', isLessThanOrEqualTo: todayEnd)
-        .limit(1)
+        .limit(20)
         .get();
     if (snap.docs.isEmpty) return null;
-    return PostModel.fromMap(snap.docs.first.data(), docId: snap.docs.first.id);
+
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
+
+    for (final doc in snap.docs) {
+      final post = PostModel.fromMap(doc.data(), docId: doc.id);
+      final dt = DateTime.tryParse(post.createdAt)?.toLocal();
+      if (dt != null && dt.isAfter(todayStart) && dt.isBefore(todayEnd)) {
+        return post;
+      }
+    }
+    return null;
   }
 
   // ── Friends ──────────────────────────────────────────────────────
