@@ -1,0 +1,42 @@
+name: Tests Flutter
+
+# Se déclenche à chaque push sur toutes les branches
+# et sur chaque Pull Request vers main
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: Tests unitaires
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupérer le code
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      # 2. Installer Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+          channel: stable
+          cache: true
+
+      # 3. Télécharger les dépendances
+      - name: Installer les dépendances
+        run: flutter pub get
+        working-directory: frontend
+
+      # 4. Vérifier la qualité du code (lint)
+      - name: Analyse statique (flutter analyze)
+        run: flutter analyze --no-fatal-infos
+        working-directory: frontend
+
+      # 5. Lancer les tests
+      - name: Run tests
+        run: flutter test --reporter github
+        working-directory: frontend
