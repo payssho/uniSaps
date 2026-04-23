@@ -440,7 +440,8 @@ class _SwipeMode extends StatefulWidget {
 }
 
 class _SwipeModeState extends State<_SwipeMode> {
-  final CardSwiperController _ctrl = CardSwiperController();
+  CardSwiperController _ctrl = CardSwiperController();
+  bool _isDone = false;
 
   @override
   void dispose() {
@@ -448,10 +449,78 @@ class _SwipeModeState extends State<_SwipeMode> {
     super.dispose();
   }
 
+  void _reset() {
+    _ctrl.dispose();
+    setState(() {
+      _ctrl = CardSwiperController();
+      _isDone = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.outfits.isEmpty) {
       return _EmptyState(onAdd: widget.onAdd);
+    }
+
+    if (_isDone) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withOpacity(0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.style_outlined,
+                    size: 44, color: AppColors.accent),
+              )
+                  .animate()
+                  .scale(
+                      begin: const Offset(0.8, 0.8),
+                      end: const Offset(1.0, 1.0),
+                      duration: 400.ms,
+                      curve: Curves.easeOutBack)
+                  .fadeIn(duration: 300.ms),
+              const SizedBox(height: 24),
+              const Text(
+                'Oups… Plus aucun choix d\'outfits,\nOn recommence ?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ).animate().fadeIn(duration: 300.ms, delay: 100.ms),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _reset,
+                icon: const Icon(Icons.refresh_rounded,
+                    size: 20, color: Colors.white),
+                label: const Text('Recommencer'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 28, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+              ).animate().fadeIn(duration: 300.ms, delay: 180.ms).slideY(
+                    begin: 0.15,
+                    end: 0,
+                    duration: 300.ms,
+                    delay: 180.ms,
+                  ),
+            ],
+          ),
+        ),
+      );
     }
 
     return Column(
@@ -468,6 +537,9 @@ class _SwipeModeState extends State<_SwipeMode> {
                   widget.onAccept(widget.outfits[prev]);
                 }
                 return true;
+              },
+              onEnd: () {
+                setState(() => _isDone = true);
               },
               cardBuilder: (context, index, hPercent, vPercent) {
                 final outfit = widget.outfits[index];
