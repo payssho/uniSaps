@@ -172,11 +172,27 @@ class FirestoreService {
   }
 
   Future<void> deletePost(String postId) async {
+    if (postId.isEmpty) throw Exception('ID du post invalide.');
     await _postCol.doc(postId).delete();
   }
 
   Future<void> updatePostCaption(String postId, String caption) async {
     await _postCol.doc(postId).update({'caption': caption});
+  }
+
+  /// Retourne le post du jour de l'utilisateur s'il existe, null sinon.
+  Future<PostModel?> getUserTodayPost(String uid) async {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
+    final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59).toUtc().toIso8601String();
+    final snap = await _postCol
+        .where('user_id', isEqualTo: uid)
+        .where('created_at', isGreaterThanOrEqualTo: todayStart)
+        .where('created_at', isLessThanOrEqualTo: todayEnd)
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    return PostModel.fromMap(snap.docs.first.data(), docId: snap.docs.first.id);
   }
 
   // ── Friends ──────────────────────────────────────────────────────
@@ -187,36 +203,45 @@ class FirestoreService {
     await _friendRequestCol.add(request.toMap());
   }
 
+  // Requête simple sur 1 seul champ (pas d'index composite requis),
+  // filtrages status + tri côté client.
   Stream<List<FriendRequestModel>> receivedRequestsStream(String uid) {
     return _friendRequestCol
         .where('to_uid', isEqualTo: uid)
-        .where('status', isEqualTo: 'pending')
-        .orderBy('created_at', descending: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => FriendRequestModel.fromMap(d.data(), docId: d.id))
-            .toList());
+        .map((snap) {
+      final docs = snap.docs
+          .map((d) => FriendRequestModel.fromMap(d.data(), docId: d.id))
+          .where((r) => r.status == FriendRequestStatus.pending)
+          .toList();
+      docs.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return docs;
+    });
   }
 
   Stream<List<FriendRequestModel>> sentRequestsStream(String uid) {
     return _friendRequestCol
         .where('from_uid', isEqualTo: uid)
-        .where('status', isEqualTo: 'pending')
         .snapshots()
         .map((snap) => snap.docs
             .map((d) => FriendRequestModel.fromMap(d.data(), docId: d.id))
+            .where((r) => r.status == FriendRequestStatus.pending)
             .toList());
   }
 
   Future<FriendRequestModel?> findPendingRequest(String fromUid, String toUid) async {
+    // Requête sur 1 seul champ pour éviter l'index composite Firestore.
     final snap = await _friendRequestCol
         .where('from_uid', isEqualTo: fromUid)
-        .where('to_uid', isEqualTo: toUid)
-        .where('status', isEqualTo: 'pending')
-        .limit(1)
+        .limit(50)
         .get();
-    if (snap.docs.isEmpty) return null;
-    return FriendRequestModel.fromMap(snap.docs.first.data(), docId: snap.docs.first.id);
+    for (final doc in snap.docs) {
+      final r = FriendRequestModel.fromMap(doc.data(), docId: doc.id);
+      if (r.toUid == toUid && r.status == FriendRequestStatus.pending) {
+        return r;
+      }
+    }
+    return null;
   }
 
   Future<void> acceptFriendRequest(String requestId, String fromUid, String toUid) async {

@@ -325,7 +325,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     Navigator.pop(ctx);
-                    final ok = await ref
+                    final result = await ref
                         .read(postNotifierProvider.notifier)
                         .createPostFromDaily(
                           user: user,
@@ -334,8 +334,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                           caption: captionController.text.trim(),
                         );
                     if (!mounted) return;
-                    if (ok) {
-                      // Basculer sur Explorer pour voir son post en premier
+                    if (result == 'ok') {
                       _toggleFeed(false);
                       ScaffoldMessenger.of(context)
                         ..clearSnackBars()
@@ -358,6 +357,33 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                             margin:
                                 const EdgeInsets.fromLTRB(16, 0, 16, 16),
                             duration: const Duration(seconds: 3),
+                          ),
+                        );
+                    } else if (result == 'already_posted') {
+                      ScaffoldMessenger.of(context)
+                        ..clearSnackBars()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: const Row(
+                              children: [
+                                Icon(Icons.info_outline,
+                                    color: Colors.white, size: 18),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Tu as déjà publié ton outfit aujourd\'hui !',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            backgroundColor: AppColors.warning,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                            margin:
+                                const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            duration: const Duration(seconds: 4),
                           ),
                         );
                     } else {
@@ -699,9 +725,27 @@ class _FullScreenFeed extends ConsumerWidget {
               );
             },
             onDelete: post.userId == uid
-                ? () => ref
-                    .read(postNotifierProvider.notifier)
-                    .deletePost(post.id)
+                ? () async {
+                    final ok = await ref
+                        .read(postNotifierProvider.notifier)
+                        .deletePost(post.id);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context)
+                      ..clearSnackBars()
+                      ..showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            ok ? 'Post supprimé.' : 'Impossible de supprimer le post.',
+                          ),
+                          backgroundColor: ok ? AppColors.success : AppColors.error,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                  }
                 : null,
             onEditCaption: post.userId == uid
                 ? (caption) => ref

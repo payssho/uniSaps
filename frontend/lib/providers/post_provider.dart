@@ -51,8 +51,9 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
     }
   }
 
-  /// Crée un post à partir de la photo du jour + outfit du jour
-  Future<bool> createPostFromDaily({
+  /// Crée un post à partir de la photo du jour + outfit du jour.
+  /// Retourne 'already_posted' si l'utilisateur a déjà posté aujourd'hui.
+  Future<String> createPostFromDaily({
     required UserModel user,
     required OutfitModel outfit,
     required List<GarmentModel> garments,
@@ -60,17 +61,19 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     if (user.dailyPhotoUrl.isEmpty) {
       state = AsyncValue.error('Aucune photo du jour.', StackTrace.current);
-      return false;
+      return 'no_photo';
     }
     state = const AsyncValue.loading();
     try {
+      // Vérifier si l'utilisateur a déjà posté aujourd'hui
+      final existing = await _db.getUserTodayPost(user.uid);
+      if (existing != null) {
+        state = const AsyncValue.data(null);
+        return 'already_posted';
+      }
+
       final refs = garments
-          .map(
-            (g) => GarmentRef(
-              name: g.name,
-              brand: g.brand,
-            ),
-          )
+          .map((g) => GarmentRef(name: g.name, brand: g.brand))
           .toList();
 
       final post = PostModel(
@@ -81,14 +84,14 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
         outfitId: outfit.id,
         garmentRefs: refs,
         caption: caption,
-        createdAt: DateTime.now().toIso8601String(),
+        createdAt: DateTime.now().toUtc().toIso8601String(),
       );
       await _db.addPost(post);
       state = const AsyncValue.data(null);
-      return true;
+      return 'ok';
     } catch (e) {
       state = AsyncValue.error(e.toString(), StackTrace.current);
-      return false;
+      return 'error';
     }
   }
 
@@ -96,8 +99,14 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
     await _db.toggleLike(postId, uid);
   }
 
-  Future<void> deletePost(String postId) async {
-    await _db.deletePost(postId);
+  /// Retourne true si supprimé, false sinon.
+  Future<bool> deletePost(String postId) async {
+    try {
+      await _db.deletePost(postId);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   Future<void> updateCaption(String postId, String caption) async {

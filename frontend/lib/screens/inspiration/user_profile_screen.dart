@@ -126,14 +126,47 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
     final myUser = ref.read(currentUserProvider).valueOrNull;
     if (myUser == null || _targetUser == null) return;
     setState(() => _actionLoading = true);
-    await ref.read(friendshipNotifierProvider.notifier).sendRequest(
-          from: myUser,
-          to: _targetUser!,
-        );
-    setState(() {
-      _relationship = RelationshipStatus.requestSent;
-      _actionLoading = false;
-    });
+    try {
+      final ok = await ref.read(friendshipNotifierProvider.notifier).sendRequest(
+            from: myUser,
+            to: _targetUser!,
+          );
+      if (!mounted) return;
+      setState(() {
+        _relationship = RelationshipStatus.requestSent;
+        _actionLoading = false;
+      });
+      if (ok) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                  const SizedBox(width: 10),
+                  Text('Demande envoyée à @${_targetUser!.username} !',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ],
+              ),
+              backgroundColor: AppColors.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _actionLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur : $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Future<void> _acceptRequest() async {
