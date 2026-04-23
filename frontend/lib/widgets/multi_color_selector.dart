@@ -20,6 +20,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
   List<ColorOption> _selectedColors = [];
   List<ColorOption> _suggestions = [];
   bool _showSuggestions = false;
+  bool _isSearchMode = false;
   final FocusNode _focusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
 
@@ -29,19 +30,25 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
     if (widget.initialColors.isNotEmpty) {
       _loadInitialColors();
     }
-    _focusNode.addListener(() {
-      if (!_focusNode.hasFocus) {
-        Future.delayed(const Duration(milliseconds: 150), () {
-          if (mounted && !_focusNode.hasFocus) {
-            setState(() => _showSuggestions = false);
-          }
-        });
-      }
-    });
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    if (!_focusNode.hasFocus) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted && !_focusNode.hasFocus) {
+          setState(() {
+            _showSuggestions = false;
+            _isSearchMode = false;
+          });
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChanged);
     _focusNode.dispose();
     _searchController.dispose();
     super.dispose();
@@ -115,7 +122,10 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
 
     widget.onColorsChanged(_selectedColors.map((c) => c.name).toList());
     _searchController.clear();
-    setState(() => _showSuggestions = false);
+    setState(() {
+      _showSuggestions = false;
+      _isSearchMode = false;
+    });
   }
 
   void _removeColor(ColorOption color) {
@@ -194,37 +204,77 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
         TextField(
           controller: _searchController,
           focusNode: _focusNode,
-          onChanged: _onSearchChanged,
+          readOnly: !_isSearchMode,
+          onChanged: _isSearchMode ? _onSearchChanged : null,
           onTap: () {
-            if (_searchController.text.isEmpty) {
+            if (!_showSuggestions) {
+              // 1er tap : ouvrir le dropdown sans clavier
               setState(() {
                 _suggestions = ColorService.getColors().take(20).toList();
                 _showSuggestions = true;
+                _isSearchMode = false;
+              });
+            } else if (!_isSearchMode) {
+              // 2ème tap : activer la recherche avec clavier
+              setState(() => _isSearchMode = true);
+              Future.microtask(() {
+                if (mounted) {
+                  _focusNode.unfocus();
+                  Future.delayed(const Duration(milliseconds: 50), () {
+                    if (mounted) _focusNode.requestFocus();
+                  });
+                }
               });
             }
           },
           decoration: InputDecoration(
             hintText: _selectedColors.length >= 3
                 ? 'Maximum 3 couleurs atteint'
-                : 'Ajouter une couleur (max 3)',
+                : _showSuggestions && !_isSearchMode
+                    ? 'Appuie à nouveau pour filtrer…'
+                    : 'Ajouter une couleur (max 3)',
+            prefixIcon: const Padding(
+              padding: EdgeInsets.all(12),
+              child: Icon(Icons.palette_outlined, size: 22, color: AppColors.textHint),
+            ),
             suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
                     icon: const Icon(Icons.clear, size: 20),
                     onPressed: () {
                       _searchController.clear();
                       setState(() {
-                        _suggestions = [];
-                        _showSuggestions = false;
+                        _suggestions = ColorService.getColors().take(20).toList();
+                        _isSearchMode = false;
                       });
                     },
                   )
-                : null,
+                : _showSuggestions && !_isSearchMode
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Icon(Icons.keyboard_outlined, size: 20, color: AppColors.textHint),
+                      )
+                    : null,
             border: const OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(12)),
             ),
           ),
           enabled: _selectedColors.length < 3 || _selectedColors.any((c) => c.name.toLowerCase() == 'multicolore'),
         ),
+        // Indication du 2ème tap
+        if (_showSuggestions && !_isSearchMode)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 4),
+            child: Row(
+              children: [
+                const Icon(Icons.touch_app_outlined, size: 13, color: AppColors.textHint),
+                const SizedBox(width: 4),
+                Text(
+                  'Appuie à nouveau sur le champ pour filtrer',
+                  style: TextStyle(fontSize: 11, color: AppColors.textHint.withOpacity(0.8)),
+                ),
+              ],
+            ),
+          ),
         // Suggestions
         if (_showSuggestions && _suggestions.isNotEmpty)
           Container(
