@@ -12,65 +12,99 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == uid;
     }
 
-    // Vérifie que seul le champ "friends" est modifié (pour l'acceptation d'ami)
+    // Seul le champ "friends" est modifié (acceptation / suppression d'ami)
     function onlyFriendsChanged() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends']);
+      return request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['friends']);
+    }
+
+    // Seuls liked_by et likes sont modifiés (like / unlike)
+    function onlyLikeChanged() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['liked_by', 'likes']);
     }
 
     // ── Users ────────────────────────────────────────────────────────────────
     match /users/{uid} {
-      // Tout utilisateur connecté peut lire n'importe quel profil
+      // Lecture de profil : tout user connecté (recherche, profil ami, etc.)
       allow read: if isAuth();
-      // Seul le propriétaire crée son profil
+
+      // Création : uniquement le propriétaire
       allow create: if isOwner(uid);
-      // Le propriétaire peut tout modifier ; n'importe quel user authentifié
-      // peut modifier uniquement le champ "friends" (acceptation/suppression d'ami)
-      allow update: if isOwner(uid) || (isAuth() && onlyFriendsChanged());
+
+      // Mise à jour :
+      //   - le propriétaire peut tout modifier (profil, tutoriel, daily outfit…)
+      //   - n'importe quel user connecté peut modifier uniquement "friends"
+      //     (acceptation / suppression d'ami en batch)
+      allow update: if isOwner(uid)
+                 || (isAuth() && onlyFriendsChanged());
+
+      // Suppression : propriétaire uniquement
       allow delete: if isOwner(uid);
 
-      // Sous-collection garments : lecture par tout user connecté, écriture propriétaire uniquement
+      // ── Sous-collection garments ─────────────────────────────────────────
+      // Lecture par tout user connecté (profil ami → voir le dressing)
+      // Écriture réservée au propriétaire
       match /garments/{garmentId} {
-        allow read: if isAuth();
+        allow read:  if isAuth();
         allow write: if isOwner(uid);
       }
 
-      // Sous-collection outfits : lecture par tout user connecté, écriture propriétaire uniquement
+      // ── Sous-collection outfits ──────────────────────────────────────────
+      // Lecture par tout user connecté (profil ami → voir les tenues)
+      // Écriture réservée au propriétaire
       match /outfits/{outfitId} {
-        allow read: if isAuth();
+        allow read:  if isAuth();
         allow write: if isOwner(uid);
       }
     }
 
     // ── Posts ────────────────────────────────────────────────────────────────
     match /posts/{postId} {
-      // Tout utilisateur connecté peut lire les posts
+      // Lecture : tout user connecté (feed explorer, feed amis)
       allow read: if isAuth();
-      // Seul le créateur peut créer son post
-      allow create: if isAuth() && request.resource.data.user_id == request.auth.uid;
-      // Seul le créateur peut modifier / supprimer son post
-      allow update: if isAuth() && resource.data.user_id == request.auth.uid;
-      allow delete: if isAuth() && resource.data.user_id == request.auth.uid;
+
+      // Création : le champ user_id doit correspondre à l'uid du créateur
+      allow create: if isAuth()
+                 && request.resource.data.user_id == request.auth.uid;
+
+      // Mise à jour :
+      //   - le créateur peut tout modifier (caption, etc.)
+      //   - n'importe quel user connecté peut modifier liked_by + likes (like/unlike)
+      allow update: if isAuth()
+                 && (resource.data.user_id == request.auth.uid
+                     || onlyLikeChanged());
+
+      // Suppression : créateur uniquement
+      allow delete: if isAuth()
+                 && resource.data.user_id == request.auth.uid;
     }
 
     // ── Friend Requests ──────────────────────────────────────────────────────
     match /friend_requests/{requestId} {
-      // Lecture d'un document unique : expéditeur ou destinataire
+      // Lecture d'un document précis : expéditeur ou destinataire
       allow get: if isAuth() && (
         resource.data.from_uid == request.auth.uid ||
-        resource.data.to_uid == request.auth.uid
+        resource.data.to_uid   == request.auth.uid
       );
-      // Lister (query where from_uid/to_uid) : tout user authentifié
-      // (le SDK Firestore filtre ensuite côté client)
+
+      // Lister (query where from_uid / to_uid) : tout user connecté
+      // Le filtrage complémentaire se fait côté client
       allow list: if isAuth();
-      // Créer : l'expéditeur doit être le user connecté
-      allow create: if isAuth() && request.resource.data.from_uid == request.auth.uid;
-      // Mettre à jour (accepter/rejeter) : expéditeur ou destinataire
+
+      // Création : l'expéditeur doit être le user connecté
+      allow create: if isAuth()
+                 && request.resource.data.from_uid == request.auth.uid;
+
+      // Mise à jour (accepter / rejeter) : expéditeur ou destinataire
       allow update: if isAuth() && (
         resource.data.from_uid == request.auth.uid ||
-        resource.data.to_uid == request.auth.uid
+        resource.data.to_uid   == request.auth.uid
       );
-      // Supprimer (annuler) : expéditeur uniquement
-      allow delete: if isAuth() && resource.data.from_uid == request.auth.uid;
+
+      // Suppression (annuler) : expéditeur uniquement
+      allow delete: if isAuth()
+                 && resource.data.from_uid == request.auth.uid;
     }
   }
 }
