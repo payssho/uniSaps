@@ -1,7 +1,6 @@
 name: Tests Flutter
 
-# Se déclenche à chaque push sur toutes les branches
-# et sur chaque Pull Request vers main
+# Se déclenche à chaque push sur toutes les branches et sur chaque Pull Request vers main
 on:
   push:
     branches: ["**"]
