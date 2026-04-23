@@ -1236,12 +1236,6 @@ class _EmptyState extends StatelessWidget {
                 color: AppColors.textSecondary,
               ),
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add, size: 20, color: Colors.white),
-              label: const Text('Créer un outfit'),
-            ),
           ],
         ),
       ),
