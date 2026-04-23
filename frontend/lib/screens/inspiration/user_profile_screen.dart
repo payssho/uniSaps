@@ -415,7 +415,7 @@ class _PostsTab extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.article_outlined, size: 56, color: AppColors.textHint.withValues(alpha: 0.3)),
+            Icon(Icons.article_outlined, size: 56, color: AppColors.textHint.withOpacity(0.3)),
             const SizedBox(height: 12),
             const Text('Aucun post', style: AppTextStyles.bodySecondary),
           ],
@@ -465,7 +465,7 @@ class _SimplePostDetail extends StatelessWidget {
             width: 40, height: 4,
             margin: const EdgeInsets.only(top: 12, bottom: 16),
             decoration: BoxDecoration(
-              color: AppColors.textHint.withValues(alpha: 0.3),
+              color: AppColors.textHint.withOpacity(0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -527,7 +527,7 @@ class _DressingTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.checkroom_outlined, size: 56, color: AppColors.textHint.withValues(alpha: 0.3)),
+            Icon(Icons.checkroom_outlined, size: 56, color: AppColors.textHint.withOpacity(0.3)),
             const SizedBox(height: 12),
             const Text('Dressing vide', style: AppTextStyles.bodySecondary),
           ],
@@ -601,7 +601,7 @@ class _OutfitsTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.style_outlined, size: 56, color: AppColors.textHint.withValues(alpha: 0.3)),
+            Icon(Icons.style_outlined, size: 56, color: AppColors.textHint.withOpacity(0.3)),
             const SizedBox(height: 12),
             const Text('Aucun outfit', style: AppTextStyles.bodySecondary),
           ],
@@ -628,7 +628,7 @@ class _OutfitsTab extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.12),
+                  color: AppColors.accent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(

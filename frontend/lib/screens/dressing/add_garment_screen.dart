@@ -90,7 +90,10 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
           userId: uid,
           name: name,
           brand: _brandController.text.trim(),
-          color: _colorController.text.trim(),
+          colors: [
+            if (_colorController.text.trim().isNotEmpty)
+              _colorController.text.trim(),
+          ],
           category: _selectedCategory,
           imageBytes: imageBytes,
           imageName: imageName,

@@ -120,7 +120,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search, size: 64, color: AppColors.textHint.withValues(alpha: 0.3)),
+            Icon(Icons.search, size: 64, color: AppColors.textHint.withOpacity(0.3)),
             const SizedBox(height: 16),
             const Text('Tape un pseudo pour chercher', style: AppTextStyles.bodySecondary),
           ],
@@ -137,7 +137,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.person_off_outlined, size: 64, color: AppColors.textHint.withValues(alpha: 0.3)),
+            Icon(Icons.person_off_outlined, size: 64, color: AppColors.textHint.withOpacity(0.3)),
             const SizedBox(height: 16),
             const Text('Aucun resultat', style: AppTextStyles.bodySecondary),
           ],
@@ -237,7 +237,7 @@ class _UserResultTile extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.12),
+                  color: AppColors.success.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Row(

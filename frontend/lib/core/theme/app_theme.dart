@@ -87,14 +87,6 @@ class AppTheme {
         ),
         hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 15),
       ),
-      cardTheme: CardThemeData(
-        elevation: 0,
-        color: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
-        margin: EdgeInsets.zero,
-      ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.surface,
         selectedItemColor: AppColors.accent,

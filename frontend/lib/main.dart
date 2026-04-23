@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 import 'app.dart';
 
 Future<void> main() async {
@@ -27,9 +26,7 @@ class _UniSapsBootstrapState extends State<_UniSapsBootstrap> {
   Future<void> _initialize() async {
     try {
       if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
+        await Firebase.initializeApp();
       }
     } on FirebaseException catch (e) {
       // Sur certains environnements (Android natif qui initialise Firebase avant Flutter),

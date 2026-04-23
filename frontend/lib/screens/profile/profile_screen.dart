@@ -348,7 +348,7 @@ class _OutfitsTab extends ConsumerWidget {
                   border: Border.all(color: AppColors.divider, width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
+                      color: Colors.black.withOpacity(0.02),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
                     ),
@@ -360,7 +360,7 @@ class _OutfitsTab extends ConsumerWidget {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: AppColors.accent.withValues(alpha: 0.12),
+                        color: AppColors.accent.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
@@ -439,7 +439,7 @@ class _OutfitSummarySheet extends ConsumerWidget {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.textHint.withValues(alpha: 0.3),
+                    color: AppColors.textHint.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -540,7 +540,7 @@ class _GalleryTab extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.photo_library_outlined,
-                    size: 56, color: AppColors.textHint.withValues(alpha: 0.4)),
+                    size: 56, color: AppColors.textHint.withOpacity(0.4)),
                 const SizedBox(height: 12),
                 const Text('Aucun souvenir pour l\'instant', style: AppTextStyles.bodySecondary),
               ],
@@ -671,7 +671,7 @@ class _MemoryDetailSheet extends StatelessWidget {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.textHint.withValues(alpha: 0.3),
+                    color: AppColors.textHint.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -928,7 +928,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  Icon(Icons.people_outline, size: 48, color: AppColors.textHint.withValues(alpha: 0.3)),
+                  Icon(Icons.people_outline, size: 48, color: AppColors.textHint.withOpacity(0.3)),
                   const SizedBox(height: 12),
                   const Text('Aucun ami pour le moment', style: AppTextStyles.bodySecondary),
                 ],
