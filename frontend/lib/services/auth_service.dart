@@ -34,4 +34,16 @@ class AuthService {
   Future<String?> getIdToken() async {
     return _auth.currentUser?.getIdToken();
   }
+
+  /// Ré-authentifie puis supprime le compte Firebase Auth.
+  Future<void> deleteAccount(String password) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Aucun utilisateur connecté.');
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: password,
+    );
+    await user.reauthenticateWithCredential(credential);
+    await user.delete();
+  }
 }

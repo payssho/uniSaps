@@ -1046,11 +1046,123 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
   }
 }
 
-class _InfosTab extends StatelessWidget {
+class _InfosTab extends ConsumerStatefulWidget {
   final UserModel user;
   final VoidCallback onLogout;
 
   const _InfosTab({required this.user, required this.onLogout});
+
+  @override
+  ConsumerState<_InfosTab> createState() => _InfosTabState();
+}
+
+class _InfosTabState extends ConsumerState<_InfosTab> {
+  bool _deletingAccount = false;
+
+  Future<void> _showDeleteAccountDialog() async {
+    final passwordController = TextEditingController();
+    bool obscure = true;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateDlg) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 24),
+              SizedBox(width: 10),
+              Text('Supprimer le compte'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Cette action est irréversible. Toutes tes données seront supprimées définitivement.',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Confirme avec ton mot de passe :',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: passwordController,
+                obscureText: obscure,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: 'Mot de passe',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscure ? Icons.visibility_off : Icons.visibility,
+                        size: 20, color: AppColors.textHint),
+                    onPressed: () => setStateDlg(() => obscure = !obscure),
+                  ),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.error,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('Supprimer définitivement'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final password = passwordController.text.trim();
+    if (password.isEmpty) return;
+
+    setState(() => _deletingAccount = true);
+    try {
+      await ref.read(authNotifierProvider.notifier).deleteAccount(
+            uid: widget.user.uid,
+            password: password,
+          );
+      if (!mounted) return;
+      context.go('/login');
+    } catch (e) {
+      if (!mounted) return;
+      String msg = 'Erreur lors de la suppression.';
+      if (e.toString().contains('wrong-password') ||
+          e.toString().contains('invalid-credential')) {
+        msg = 'Mot de passe incorrect.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _deletingAccount = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1058,23 +1170,71 @@ class _InfosTab extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          _InfoRow(label: 'Email', value: user.email),
-          _InfoRow(label: 'Pseudo', value: user.username),
-          _InfoRow(label: 'Nom', value: user.displayName),
+          _InfoRow(label: 'Email', value: widget.user.email),
+          _InfoRow(label: 'Pseudo', value: widget.user.username),
+          _InfoRow(label: 'Nom', value: widget.user.displayName),
           _InfoRow(
               label: 'Membre depuis',
-              value: user.createdAt.isNotEmpty ? user.createdAt.substring(0, 10) : '-'),
-          _InfoRow(label: 'Meilleur streak', value: '${user.bestStreak} jours'),
-          _InfoRow(label: 'Amis', value: '${user.friends.length}'),
-          _InfoRow(label: 'Compte', value: user.isPrivate ? 'Prive' : 'Public'),
+              value: widget.user.createdAt.isNotEmpty
+                  ? widget.user.createdAt.substring(0, 10)
+                  : '-'),
+          _InfoRow(label: 'Meilleur streak', value: '${widget.user.bestStreak} jours'),
+          _InfoRow(label: 'Amis', value: '${widget.user.friends.length}'),
+          _InfoRow(label: 'Compte', value: widget.user.isPrivate ? 'Prive' : 'Public'),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-              onPressed: onLogout,
-              child: const Text('Se deconnecter'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.textSecondary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: widget.onLogout,
+              child: const Text('Se déconnecter',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
             ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.error,
+                side: const BorderSide(color: AppColors.error),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              onPressed: _deletingAccount ? null : _showDeleteAccountDialog,
+              child: _deletingAccount
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.error),
+                    )
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.delete_forever_outlined, size: 18),
+                        SizedBox(width: 8),
+                        Text('Supprimer le compte',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Cette action est irréversible.',
+            style: TextStyle(
+              fontSize: 11,
+              color: AppColors.textHint,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

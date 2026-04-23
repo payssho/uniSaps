@@ -283,6 +283,12 @@ class FirestoreService {
     await _friendRequestCol.doc(requestId).delete();
   }
 
+  /// Supprime le document utilisateur principal (les sous-collections restent,
+  /// une Cloud Function serait nécessaire pour un nettoyage complet).
+  Future<void> deleteUserData(String uid) async {
+    await _db.collection('users').doc(uid).delete();
+  }
+
   // ── Search ──────────────────────────────────────────────────────
 
   Future<List<UserModel>> searchUsers(String query, {int limit = 20}) async {

@@ -85,6 +85,20 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
     await _authService.signOut();
     state = const AsyncValue.data(null);
   }
+
+  /// Supprime les données Firestore puis le compte Firebase Auth.
+  /// Lance une exception si le mot de passe est incorrect.
+  Future<void> deleteAccount({required String uid, required String password}) async {
+    state = const AsyncValue.loading();
+    try {
+      await _firestoreService.deleteUserData(uid);
+      await _authService.deleteAccount(password);
+      state = const AsyncValue.data(null);
+    } catch (e) {
+      state = AsyncValue.error(e.toString(), StackTrace.current);
+      rethrow;
+    }
+  }
 }
 
 final authNotifierProvider = StateNotifierProvider<AuthNotifier, AsyncValue<void>>((ref) {
