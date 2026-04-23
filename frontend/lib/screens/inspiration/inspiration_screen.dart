@@ -75,6 +75,8 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkScrollHint());
 
+    final hasPostedToday = ref.watch(hasPostedTodayProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
@@ -116,12 +118,13 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
             ),
           ),
 
-          // Publish FAB
-          Positioned(
-            bottom: 24,
-            right: 16,
-            child: _PublishButton(onTap: () => _handlePublish(context)),
-          ),
+          // Bouton Publier — masqué si déjà posté aujourd'hui
+          if (!hasPostedToday)
+            Positioned(
+              bottom: 24,
+              right: 16,
+              child: _PublishButton(onTap: () => _handlePublish(context)),
+            ),
 
           // Scroll hint overlay (first visit only)
           if (_showScrollHint)

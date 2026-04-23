@@ -23,8 +23,11 @@ final receivedRequestsCountProvider = Provider<int>((ref) {
 
 final friendsPostsProvider = StreamProvider<List<PostModel>>((ref) {
   final user = ref.watch(currentUserProvider).valueOrNull;
-  if (user == null || user.friends.isEmpty) return Stream.value([]);
-  return ref.watch(firestoreServiceProvider).friendsPostsStream(user.friends);
+  if (user == null) return Stream.value([]);
+  // Inclure mon propre UID pour que mes posts apparaissent dans le feed amis
+  final feedUids = {...user.friends, if (user.uid.isNotEmpty) user.uid}.toList();
+  if (feedUids.isEmpty) return Stream.value([]);
+  return ref.watch(firestoreServiceProvider).friendsPostsStream(feedUids);
 });
 
 final searchResultsProvider = StateProvider<List<UserModel>>((ref) => []);

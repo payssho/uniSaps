@@ -13,6 +13,22 @@ final postsProvider = StreamProvider<List<PostModel>>((ref) {
   return ref.watch(firestoreServiceProvider).postsStream();
 });
 
+/// True si l'utilisateur courant a déjà posté aujourd'hui.
+final hasPostedTodayProvider = Provider<bool>((ref) {
+  final uid = ref.watch(authServiceProvider).uid;
+  if (uid.isEmpty) return false;
+  final posts = ref.watch(postsProvider).valueOrNull ?? [];
+  final now = DateTime.now();
+  final todayStart = DateTime(now.year, now.month, now.day);
+  final todayEnd = todayStart.add(const Duration(days: 1));
+  return posts.any((p) {
+    if (p.userId != uid) return false;
+    final dt = DateTime.tryParse(p.createdAt)?.toLocal();
+    if (dt == null) return false;
+    return dt.isAfter(todayStart) && dt.isBefore(todayEnd);
+  });
+});
+
 class PostNotifier extends StateNotifier<AsyncValue<void>> {
   final FirestoreService _db;
   final StorageService _storage;

@@ -12,13 +12,20 @@ service cloud.firestore {
       return isAuth() && request.auth.uid == uid;
     }
 
+    // Vérifie que seul le champ "friends" est modifié (pour l'acceptation d'ami)
+    function onlyFriendsChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends']);
+    }
+
     // ── Users ────────────────────────────────────────────────────────────────
     match /users/{uid} {
-      // Tout utilisateur connecté peut lire n'importe quel profil (pour la recherche)
+      // Tout utilisateur connecté peut lire n'importe quel profil
       allow read: if isAuth();
-      // Seul le propriétaire peut modifier son profil
+      // Seul le propriétaire crée son profil
       allow create: if isOwner(uid);
-      allow update: if isOwner(uid);
+      // Le propriétaire peut tout modifier ; n'importe quel user authentifié
+      // peut modifier uniquement le champ "friends" (acceptation/suppression d'ami)
+      allow update: if isOwner(uid) || (isAuth() && onlyFriendsChanged());
       allow delete: if isOwner(uid);
 
       // Sous-collection garments : visible uniquement par le propriétaire
@@ -34,32 +41,33 @@ service cloud.firestore {
 
     // ── Posts ────────────────────────────────────────────────────────────────
     match /posts/{postId} {
-      // Tout utilisateur connecté peut lire les posts (feed explorer/amis)
+      // Tout utilisateur connecté peut lire les posts
       allow read: if isAuth();
-      // Seul le créateur peut créer/modifier/supprimer son post
+      // Seul le créateur peut créer son post
       allow create: if isAuth() && request.resource.data.user_id == request.auth.uid;
+      // Seul le créateur peut modifier / supprimer son post
       allow update: if isAuth() && resource.data.user_id == request.auth.uid;
       allow delete: if isAuth() && resource.data.user_id == request.auth.uid;
     }
 
     // ── Friend Requests ──────────────────────────────────────────────────────
     match /friend_requests/{requestId} {
-      // Lecture autorisée si je suis l'expéditeur OU le destinataire
-      allow read: if isAuth() && (
+      // Lecture d'un document unique : expéditeur ou destinataire
+      allow get: if isAuth() && (
         resource.data.from_uid == request.auth.uid ||
         resource.data.to_uid == request.auth.uid
       );
-      // Lister (query) : autorisé pour tout utilisateur connecté
-      // (le filtrage from_uid/to_uid est géré côté client)
+      // Lister (query where from_uid/to_uid) : tout user authentifié
+      // (le SDK Firestore filtre ensuite côté client)
       allow list: if isAuth();
-      // Création : seul l'expéditeur peut créer une demande en son nom
+      // Créer : l'expéditeur doit être le user connecté
       allow create: if isAuth() && request.resource.data.from_uid == request.auth.uid;
-      // Mise à jour (accepter/rejeter) : expéditeur ou destinataire
+      // Mettre à jour (accepter/rejeter) : expéditeur ou destinataire
       allow update: if isAuth() && (
         resource.data.from_uid == request.auth.uid ||
         resource.data.to_uid == request.auth.uid
       );
-      // Suppression (annuler) : expéditeur uniquement
+      // Supprimer (annuler) : expéditeur uniquement
       allow delete: if isAuth() && resource.data.from_uid == request.auth.uid;
     }
   }
