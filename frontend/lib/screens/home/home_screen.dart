@@ -56,6 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final user = ref.watch(currentUserProvider).valueOrNull;
     final isOutfitsSwipe =
         ref.watch(outfitsIsSwipeModeProvider); // true si mode Swipe
+    final hasDailyOutfit = (user?.dailyOutfitId ?? '').isNotEmpty;
     final uid = user?.uid ?? '';
     final tutorialStep = ref.watch(tutorialStepProvider);
 
@@ -132,7 +133,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               PageView(
                 controller: _pageController,
-                physics: (_currentTab == 1 && isOutfitsSwipe)
+                physics: (_currentTab == 1 && isOutfitsSwipe && !hasDailyOutfit)
                     ? const NeverScrollableScrollPhysics()
                     : const PageScrollPhysics(),
                 onPageChanged: (index) {

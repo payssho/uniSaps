@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math';
 import '../models/user_model.dart';
 import '../models/garment_model.dart';
 import '../models/outfit_model.dart';
@@ -249,15 +250,53 @@ class FirestoreService {
 
   Future<List<UserModel>> searchUsers(String query, {int limit = 20}) async {
     if (query.isEmpty) return [];
-    final lower = query.toLowerCase();
-    final upper = '${lower}z';
+    final lower = query.trim().toLowerCase();
     final snap = await _db
         .collection('users')
-        .where('username', isGreaterThanOrEqualTo: lower)
-        .where('username', isLessThan: upper)
-        .limit(limit)
+        .limit(200)
         .get();
-    return snap.docs.map((d) => UserModel.fromMap(d.data())).toList();
+    final results = snap.docs
+        .map((d) => UserModel.fromMap(d.data()))
+        .where((u) {
+          final username = u.username.toLowerCase();
+          final displayName = u.displayName.toLowerCase();
+          return username.contains(lower) || displayName.contains(lower);
+        })
+        .toList();
+    results.sort((a, b) => a.username.toLowerCase().compareTo(b.username.toLowerCase()));
+    return results.take(limit).toList();
+  }
+
+  Future<List<UserModel>> suggestUsers({
+    required String currentUid,
+    List<String> currentFriends = const [],
+    int limit = 12,
+  }) async {
+    final snap = await _db.collection('users').limit(200).get();
+    final candidates = snap.docs
+        .map((d) => UserModel.fromMap(d.data()))
+        .where((u) =>
+            u.uid.isNotEmpty &&
+            u.uid != currentUid &&
+            !currentFriends.contains(u.uid))
+        .toList();
+
+    if (candidates.isEmpty) return [];
+
+    int mutualCount(UserModel u) =>
+        u.friends.where((id) => currentFriends.contains(id)).length;
+
+    final friendsOfFriends = candidates.where((u) => mutualCount(u) > 0).toList()
+      ..sort((a, b) => mutualCount(b).compareTo(mutualCount(a)));
+
+    final others = candidates.where((u) => mutualCount(u) == 0).toList()
+      ..shuffle(Random());
+
+    final merged = <UserModel>[
+      ...friendsOfFriends,
+      ...others,
+    ];
+    return merged.take(limit).toList();
   }
 
   // ── User Profile (other) ────────────────────────────────────────

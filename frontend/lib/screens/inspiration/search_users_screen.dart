@@ -21,12 +21,15 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
   final _focusNode = FocusNode();
   Timer? _debounce;
   List<UserModel> _results = [];
+  List<UserModel> _suggestions = [];
   bool _loading = false;
+  bool _loadingSuggestions = false;
 
   @override
   void initState() {
     super.initState();
     _focusNode.requestFocus();
+    Future.microtask(_loadSuggestions);
   }
 
   @override
@@ -45,6 +48,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
         _results = [];
         _loading = false;
       });
+      _loadSuggestions();
       return;
     }
     setState(() => _loading = true);
@@ -71,6 +75,22 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
           _loading = false;
         });
       }
+    });
+  }
+
+  Future<void> _loadSuggestions() async {
+    final currentUser = ref.read(currentUserProvider).valueOrNull;
+    if (currentUser == null) return;
+    setState(() => _loadingSuggestions = true);
+    final users = await ref.read(friendshipNotifierProvider.notifier).suggestUsers(
+          currentUid: currentUser.uid,
+          currentFriends: currentUser.friends,
+          limit: 12,
+        );
+    if (!mounted) return;
+    setState(() {
+      _suggestions = users;
+      _loadingSuggestions = false;
     });
   }
 
@@ -116,16 +136,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
 
   Widget _buildBody(UserModel? currentUser) {
     if (_controller.text.trim().isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.search, size: 64, color: AppColors.textHint.withOpacity(0.3)),
-            const SizedBox(height: 16),
-            const Text('Tape un pseudo pour chercher', style: AppTextStyles.bodySecondary),
-          ],
-        ),
-      );
+      return _buildSuggestions(currentUser);
     }
 
     if (_loading) {
@@ -133,15 +144,22 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
     }
 
     if (_results.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.person_off_outlined, size: 64, color: AppColors.textHint.withOpacity(0.3)),
-            const SizedBox(height: 16),
-            const Text('Aucun resultat', style: AppTextStyles.bodySecondary),
-          ],
-        ),
+      return Column(
+        children: [
+          const SizedBox(height: 24),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.person_off_outlined, size: 64, color: AppColors.textHint.withOpacity(0.3)),
+                const SizedBox(height: 12),
+                const Text('Aucun resultat', style: AppTextStyles.bodySecondary),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(child: _buildSuggestions(currentUser, compactHeader: true)),
+        ],
       );
     }
 
@@ -162,17 +180,79 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
       ),
     );
   }
+
+  Widget _buildSuggestions(UserModel? currentUser, {bool compactHeader = false}) {
+    if (_loadingSuggestions) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_suggestions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search, size: 64, color: AppColors.textHint.withOpacity(0.3)),
+            const SizedBox(height: 16),
+            const Text('Tape un pseudo pour chercher', style: AppTextStyles.bodySecondary),
+          ],
+        ),
+      );
+    }
+
+    final myFriends = currentUser?.friends ?? [];
+    return ListView.separated(
+      padding: EdgeInsets.fromLTRB(16, compactHeader ? 0 : 12, 16, 12),
+      itemCount: _suggestions.length + 1,
+      separatorBuilder: (_, i) => i == 0 ? const SizedBox(height: 10) : const SizedBox(height: 8),
+      itemBuilder: (_, i) {
+        if (i == 0) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                compactHeader ? 'Suggestions pour toi' : 'Suggestions d\'amis',
+                style: AppTextStyles.heading3.copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Amis d\'amis et profils similaires',
+                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+              ),
+            ],
+          );
+        }
+        final user = _suggestions[i - 1];
+        final mutualCount = user.friends.where((id) => myFriends.contains(id)).length;
+        return _UserResultTile(
+          user: user,
+          currentUser: currentUser,
+          subtitleOverride: mutualCount > 0
+              ? '$mutualCount ami${mutualCount > 1 ? 's' : ''} en commun'
+              : 'Suggestion aléatoire',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => UserProfileScreen(userId: user.uid),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 class _UserResultTile extends ConsumerWidget {
   final UserModel user;
   final UserModel? currentUser;
   final VoidCallback onTap;
+  final String? subtitleOverride;
 
   const _UserResultTile({
     required this.user,
     required this.currentUser,
     required this.onTap,
+    this.subtitleOverride,
   });
 
   @override
@@ -222,6 +302,15 @@ class _UserResultTile extends ConsumerWidget {
                   ),
                   if (user.displayName.isNotEmpty)
                     Text(user.displayName, style: AppTextStyles.caption),
+                  if (subtitleOverride != null)
+                    Text(
+                      subtitleOverride!,
+                      style: AppTextStyles.caption.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    )
+                  else
                   if (!isFriend && mutualCount > 0)
                     Text(
                       '$mutualCount ami${mutualCount > 1 ? 's' : ''} en commun',

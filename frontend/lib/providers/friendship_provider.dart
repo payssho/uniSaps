@@ -99,6 +99,18 @@ class FriendshipNotifier extends StateNotifier<AsyncValue<void>> {
     return _db.searchUsers(query);
   }
 
+  Future<List<UserModel>> suggestUsers({
+    required String currentUid,
+    List<String> currentFriends = const [],
+    int limit = 12,
+  }) async {
+    return _db.suggestUsers(
+      currentUid: currentUid,
+      currentFriends: currentFriends,
+      limit: limit,
+    );
+  }
+
   Future<void> togglePrivacy(bool isPrivate) async {
     await _db.updateUser(_uid, {'is_private': isPrivate});
   }
