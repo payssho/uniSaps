@@ -563,7 +563,9 @@ class _TutorialOverlay extends StatelessWidget {
     }
 
     return Positioned.fill(
-      child: Container(
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
         color: Colors.black.withOpacity(0.55),
         child: Center(
           child: Container(
@@ -658,6 +660,7 @@ class _TutorialOverlay extends StatelessWidget {
             ),
           ),
         ),
+      ),
       ),
     );
   }
