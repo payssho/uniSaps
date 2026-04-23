@@ -132,15 +132,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               PageView(
                 controller: _pageController,
-                // Désactiver le swipe horizontal UNIQUEMENT quand on est
-                // sur l'onglet Outfits ET en mode Swipe. En mode Biblio,
-                // le swipe entre onglets reste actif.
                 physics: (_currentTab == 1 && isOutfitsSwipe)
                     ? const NeverScrollableScrollPhysics()
                     : const PageScrollPhysics(),
                 onPageChanged: (index) {
-                  setState(() => _currentTab = index);
-                  ref.read(selectedTabProvider.notifier).state = index;
+                  if (index < tabUnlocked.length && !tabUnlocked[index]) {
+                    // Onglet verrouillé — on rebondit vers la page courante
+                    Future.microtask(() {
+                      if (_pageController.hasClients) {
+                        _pageController.animateToPage(
+                          _currentTab,
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOut,
+                        );
+                      }
+                    });
+                    // On affiche le message de verrouillage
+                    ScaffoldMessenger.of(context)
+                      ..clearSnackBars()
+                      ..showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.lock_outline,
+                                  color: Colors.white, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _lockMessages[index],
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: AppColors.primary.withOpacity(0.92),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                          margin:
+                              const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                  } else {
+                    setState(() => _currentTab = index);
+                    ref.read(selectedTabProvider.notifier).state = index;
+                  }
                 },
                 children: [
                   _KeepAlive(child: const DressingScreen()),
