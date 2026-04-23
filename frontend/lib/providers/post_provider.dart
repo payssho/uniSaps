@@ -99,6 +99,10 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
   Future<void> deletePost(String postId) async {
     await _db.deletePost(postId);
   }
+
+  Future<void> updateCaption(String postId, String caption) async {
+    await _db.updatePostCaption(postId, caption);
+  }
 }
 
 final postNotifierProvider = StateNotifierProvider<PostNotifier, AsyncValue<void>>((ref) {

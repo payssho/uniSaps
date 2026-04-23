@@ -175,6 +175,10 @@ class FirestoreService {
     await _postCol.doc(postId).delete();
   }
 
+  Future<void> updatePostCaption(String postId, String caption) async {
+    await _postCol.doc(postId).update({'caption': caption});
+  }
+
   // ── Friends ──────────────────────────────────────────────────────
 
   final _friendRequestCol = FirebaseFirestore.instance.collection('friend_requests');

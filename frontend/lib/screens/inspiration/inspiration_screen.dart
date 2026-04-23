@@ -325,7 +325,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                 child: ElevatedButton(
                   onPressed: () async {
                     Navigator.pop(ctx);
-                    await ref
+                    final ok = await ref
                         .read(postNotifierProvider.notifier)
                         .createPostFromDaily(
                           user: user,
@@ -333,6 +333,39 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                           garments: garments,
                           caption: captionController.text.trim(),
                         );
+                    if (!mounted) return;
+                    if (ok) {
+                      // Basculer sur Explorer pour voir son post en premier
+                      _toggleFeed(false);
+                      ScaffoldMessenger.of(context)
+                        ..clearSnackBars()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: const Row(
+                              children: [
+                                Icon(Icons.check_circle,
+                                    color: Colors.white, size: 18),
+                                SizedBox(width: 10),
+                                Text('Outfit publié !',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                            backgroundColor: AppColors.success,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                            margin:
+                                const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Erreur lors de la publication.')),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent,
@@ -580,6 +613,13 @@ class _ExploreFeed extends ConsumerWidget {
               dt.day == now.day;
         }).toList();
 
+        // Mon post en premier
+        todayPosts.sort((a, b) {
+          if (a.userId == uid && b.userId != uid) return -1;
+          if (b.userId == uid && a.userId != uid) return 1;
+          return 0;
+        });
+
         if (todayPosts.isEmpty) {
           return const _EmptyFeedMessage(
             icon: Icons.explore_outlined,
@@ -651,6 +691,16 @@ class _FullScreenFeed extends ConsumerWidget {
                 ),
               );
             },
+            onDelete: post.userId == uid
+                ? () => ref
+                    .read(postNotifierProvider.notifier)
+                    .deletePost(post.id)
+                : null,
+            onEditCaption: post.userId == uid
+                ? (caption) => ref
+                    .read(postNotifierProvider.notifier)
+                    .updateCaption(post.id, caption)
+                : null,
           );
         },
       ),
@@ -722,6 +772,8 @@ class _FullScreenPost extends StatefulWidget {
   final VoidCallback onLike;
   final VoidCallback onDoubleTap;
   final VoidCallback onUserTap;
+  final VoidCallback? onDelete;
+  final void Function(String)? onEditCaption;
 
   const _FullScreenPost({
     required this.post,
@@ -729,6 +781,8 @@ class _FullScreenPost extends StatefulWidget {
     required this.onLike,
     required this.onDoubleTap,
     required this.onUserTap,
+    this.onDelete,
+    this.onEditCaption,
   });
 
   @override
@@ -846,6 +900,25 @@ class _FullScreenPostState extends State<_FullScreenPost>
               ),
             ),
           ),
+
+          // Menu 3-points (mes posts seulement)
+          if (widget.post.userId == widget.uid)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              right: 12,
+              child: GestureDetector(
+                onTap: () => _showPostMenu(context),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.35),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.more_vert,
+                      color: Colors.white, size: 22),
+                ),
+              ),
+            ),
 
           // Right side actions
           Positioned(
@@ -1029,6 +1102,111 @@ class _FullScreenPostState extends State<_FullScreenPost>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _PostDetailSheet(post: post),
+    );
+  }
+
+  void _showPostMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: AppColors.textHint.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined, color: AppColors.accent),
+              title: const Text('Modifier la légende'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showEditCaptionDialog(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: AppColors.error),
+              title: const Text('Supprimer le post',
+                  style: TextStyle(color: AppColors.error)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (d) => AlertDialog(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                    title: const Text('Supprimer le post ?'),
+                    content: const Text('Cette action est irréversible.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(d, false),
+                        child: const Text('Annuler'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(d, true),
+                        style: TextButton.styleFrom(
+                            foregroundColor: AppColors.error),
+                        child: const Text('Supprimer'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) widget.onDelete?.call();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditCaptionDialog(BuildContext context) {
+    final controller = TextEditingController(text: widget.post.caption);
+    showDialog(
+      context: context,
+      builder: (d) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Modifier la légende'),
+        content: TextField(
+          controller: controller,
+          maxLines: 4,
+          minLines: 1,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'Légende...',
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12))),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(d),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(d);
+              widget.onEditCaption?.call(controller.text.trim());
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: Colors.white),
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
     );
   }
 }
