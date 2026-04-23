@@ -94,6 +94,9 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                             .clearDailyOutfit(uid);
                       },
                       onAddFit: _openCreation,
+                      onDelete: () => ref
+                          .read(outfitNotifierProvider.notifier)
+                          .deleteOutfit(uid, daily.id),
                     );
                   }
                 }
@@ -160,6 +163,9 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                                       context, streak + 1);
                                 }
                               },
+                              onDelete: (outfit) => ref
+                                  .read(outfitNotifierProvider.notifier)
+                                  .deleteOutfit(uid, outfit.id),
                               onAdd: _openCreation,
                             ),
                     ),
@@ -527,6 +533,7 @@ class _BiblioMode extends StatelessWidget {
   final VoidCallback onGenerate;
   final ValueChanged<Map<String, String>> onChooseSuggestion;
   final ValueChanged<OutfitModel> onChoose;
+  final ValueChanged<OutfitModel> onDelete;
   final VoidCallback onAdd;
 
   const _BiblioMode({
@@ -540,6 +547,7 @@ class _BiblioMode extends StatelessWidget {
     required this.onGenerate,
     required this.onChooseSuggestion,
     required this.onChoose,
+    required this.onDelete,
     required this.onAdd,
   });
 
@@ -586,6 +594,7 @@ class _BiblioMode extends StatelessWidget {
                     outfit,
                     garmentCache,
                     onChoose: () => onChoose(outfit),
+                    onDelete: () => onDelete(outfit),
                   ),
                 );
               },
@@ -1251,6 +1260,7 @@ class _DailyOutfitView extends StatelessWidget {
   final VoidCallback onTakePhoto;
   final VoidCallback onChangeOutfit;
   final VoidCallback onAddFit;
+  final VoidCallback onDelete;
 
   const _DailyOutfitView({
     required this.outfit,
@@ -1260,6 +1270,7 @@ class _DailyOutfitView extends StatelessWidget {
     required this.onTakePhoto,
     required this.onChangeOutfit,
     required this.onAddFit,
+    required this.onDelete,
   });
 
   @override
@@ -1318,8 +1329,12 @@ class _DailyOutfitView extends StatelessWidget {
         const SizedBox(height: 16),
         Expanded(
           child: GestureDetector(
-            onTap: () =>
-                _showOutfitDetail(context, outfit, garmentCache),
+            onTap: () => _showOutfitDetail(
+              context,
+              outfit,
+              garmentCache,
+              onDelete: onDelete,
+            ),
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
@@ -1437,6 +1452,7 @@ void _showOutfitDetail(
   OutfitModel outfit,
   Map<String, GarmentModel> garmentCache, {
   VoidCallback? onChoose,
+  VoidCallback? onDelete,
 }) {
   showModalBottomSheet(
     context: context,
@@ -1446,6 +1462,7 @@ void _showOutfitDetail(
       outfit: outfit,
       garmentCache: garmentCache,
       onChoose: onChoose,
+      onDelete: onDelete,
     ),
   );
 }
@@ -1454,11 +1471,13 @@ class _OutfitDetailSheet extends StatelessWidget {
   final OutfitModel outfit;
   final Map<String, GarmentModel> garmentCache;
   final VoidCallback? onChoose;
+  final VoidCallback? onDelete;
 
   const _OutfitDetailSheet({
     required this.outfit,
     required this.garmentCache,
     this.onChoose,
+    this.onDelete,
   });
 
   @override
@@ -1635,26 +1654,82 @@ class _OutfitDetailSheet extends StatelessWidget {
               ),
             ),
           ),
-          if (onChoose != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-              child: SafeArea(
-                top: false,
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onChoose!();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+            child: SafeArea(
+              top: false,
+              child: Row(
+                children: [
+                  // Bouton supprimer
+                  if (onDelete != null)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                            color: AppColors.error.withOpacity(0.25), width: 1),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.delete_outline,
+                            color: AppColors.error, size: 22),
+                        tooltip: 'Supprimer cet outfit',
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20)),
+                              title: const Text('Supprimer l\'outfit ?'),
+                              content: const Text(
+                                  'Cette action est irréversible.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(ctx, false),
+                                  child: const Text('Annuler'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  style: TextButton.styleFrom(
+                                      foregroundColor: AppColors.error),
+                                  child: const Text('Supprimer'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true && context.mounted) {
+                            Navigator.pop(context);
+                            onDelete!();
+                          }
+                        },
+                      ),
                     ),
-                    child: const Text('Choisir pour aujourd\'hui'),
-                  ),
-                ),
+                  if (onDelete != null && onChoose != null)
+                    const SizedBox(width: 12),
+                  // Bouton choisir pour aujourd'hui
+                  if (onChoose != null)
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          onChoose!();
+                        },
+                        icon: const Icon(Icons.check_circle_outline,
+                            size: 20, color: Colors.white),
+                        label: const Text('Choisir pour aujourd\'hui'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
+          ),
         ],
       ),
     );
