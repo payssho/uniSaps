@@ -83,7 +83,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       ),
     );
     if (source == null) return;
-    final picked = await picker.pickImage(source: source, maxWidth: 600, imageQuality: 78);
+    final picked = await picker.pickImage(source: source, maxWidth: 1200, imageQuality: 95);
     if (picked != null) {
       setState(() => _imageFile = picked);
 
