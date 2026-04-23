@@ -548,15 +548,22 @@ class _FriendsFeed extends ConsumerWidget {
           );
         }
 
-        // Ne garder que les posts du jour courant
+        // Ne garder que les posts du jour courant (même fuseau horaire local)
         final now = DateTime.now();
+        final todayStart = DateTime(now.year, now.month, now.day);
+        final todayEnd = todayStart.add(const Duration(days: 1));
         final todayPosts = posts.where((p) {
-          final dt = DateTime.tryParse(p.createdAt);
+          final dt = DateTime.tryParse(p.createdAt)?.toLocal();
           if (dt == null) return false;
-          return dt.year == now.year &&
-              dt.month == now.month &&
-              dt.day == now.day;
+          return dt.isAfter(todayStart) && dt.isBefore(todayEnd);
         }).toList();
+
+        // Mon post en premier
+        todayPosts.sort((a, b) {
+          if (a.userId == uid && b.userId != uid) return -1;
+          if (b.userId == uid && a.userId != uid) return 1;
+          return 0;
+        });
 
         if (todayPosts.isEmpty) {
           return const _EmptyFeedMessage(
@@ -605,12 +612,12 @@ class _ExploreFeed extends ConsumerWidget {
     return postsAsync.when(
       data: (posts) {
         final now = DateTime.now();
+        final todayStart = DateTime(now.year, now.month, now.day);
+        final todayEnd = todayStart.add(const Duration(days: 1));
         final todayPosts = posts.where((p) {
-          final dt = DateTime.tryParse(p.createdAt);
+          final dt = DateTime.tryParse(p.createdAt)?.toLocal();
           if (dt == null) return false;
-          return dt.year == now.year &&
-              dt.month == now.month &&
-              dt.day == now.day;
+          return dt.isAfter(todayStart) && dt.isBefore(todayEnd);
         }).toList();
 
         // Mon post en premier
@@ -901,25 +908,6 @@ class _FullScreenPostState extends State<_FullScreenPost>
             ),
           ),
 
-          // Menu 3-points (mes posts seulement)
-          if (widget.post.userId == widget.uid)
-            Positioned(
-              top: MediaQuery.of(context).padding.top + 8,
-              right: 12,
-              child: GestureDetector(
-                onTap: () => _showPostMenu(context),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.35),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.more_vert,
-                      color: Colors.white, size: 22),
-                ),
-              ),
-            ),
-
           // Right side actions
           Positioned(
             right: 14,
@@ -957,7 +945,6 @@ class _FullScreenPostState extends State<_FullScreenPost>
                 const SizedBox(height: 24),
                 GestureDetector(
                   onTap: () {
-                    // Optimistic UI: toggle like locally
                     setState(() {
                       _liked = !_liked;
                       _likes += _liked ? 1 : -1;
@@ -1003,6 +990,35 @@ class _FullScreenPostState extends State<_FullScreenPost>
                       ],
                     ),
                   ),
+                // Menu 3-points (mes posts seulement) — sous Détails
+                if (widget.post.userId == widget.uid) ...[
+                  const SizedBox(height: 24),
+                  GestureDetector(
+                    onTap: () => _showPostMenu(context),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.35),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.more_horiz,
+                              color: Colors.white, size: 26),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Options',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

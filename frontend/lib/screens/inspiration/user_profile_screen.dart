@@ -48,52 +48,77 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
   }
 
   Future<void> _loadProfile() async {
-    final db = ref.read(firestoreServiceProvider);
-    final myUser = ref.read(currentUserProvider).valueOrNull;
+    if (!mounted) return;
+    setState(() => _loading = true);
 
-    final user = await db.getUser(widget.userId);
-    if (user == null) {
-      setState(() => _loading = false);
-      return;
-    }
+    try {
+      final db = ref.read(firestoreServiceProvider);
 
-    RelationshipStatus rel = RelationshipStatus.none;
-    if (myUser != null) {
-      if (myUser.friends.contains(user.uid)) {
-        rel = RelationshipStatus.friends;
-      } else {
-        final sent = await db.findPendingRequest(myUser.uid, user.uid);
-        if (sent != null) {
-          rel = RelationshipStatus.requestSent;
+      // Attendre que le currentUser soit disponible (max 5s)
+      UserModel? myUser = ref.read(currentUserProvider).valueOrNull;
+      if (myUser == null) {
+        for (var i = 0; i < 10; i++) {
+          await Future.delayed(const Duration(milliseconds: 500));
+          myUser = ref.read(currentUserProvider).valueOrNull;
+          if (myUser != null) break;
+        }
+      }
+
+      final user = await db.getUser(widget.userId);
+      if (user == null) {
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
+
+      RelationshipStatus rel = RelationshipStatus.none;
+      if (myUser != null) {
+        if (myUser.friends.contains(user.uid)) {
+          rel = RelationshipStatus.friends;
         } else {
-          final received = await db.findPendingRequest(user.uid, myUser.uid);
-          if (received != null) {
-            rel = RelationshipStatus.requestReceived;
+          try {
+            final sent = await db.findPendingRequest(myUser.uid, user.uid);
+            if (sent != null) {
+              rel = RelationshipStatus.requestSent;
+            } else {
+              final received = await db.findPendingRequest(user.uid, myUser.uid);
+              if (received != null) {
+                rel = RelationshipStatus.requestReceived;
+              }
+            }
+          } catch (_) {
+            // Index Firestore potentiellement manquant — on reste à RelationshipStatus.none
           }
         }
       }
-    }
 
-    final canSeeContent = !user.isPrivate || rel == RelationshipStatus.friends;
-    var posts = <PostModel>[];
-    var garments = <GarmentModel>[];
-    var outfits = <OutfitModel>[];
+      final canSeeContent = !user.isPrivate || rel == RelationshipStatus.friends;
+      var posts = <PostModel>[];
+      var garments = <GarmentModel>[];
+      var outfits = <OutfitModel>[];
 
-    if (canSeeContent) {
-      posts = await db.getUserPosts(user.uid);
-      garments = await db.getGarments(user.uid);
-      outfits = await db.getOutfits(user.uid);
-    }
+      if (canSeeContent) {
+        try {
+          posts = await db.getUserPosts(user.uid);
+          garments = await db.getGarments(user.uid);
+          outfits = await db.getOutfits(user.uid);
+        } catch (_) {
+          // Contenu inaccessible — on affiche le profil vide
+        }
+      }
 
-    if (mounted) {
-      setState(() {
-        _targetUser = user;
-        _relationship = rel;
-        _posts = posts;
-        _garments = garments;
-        _outfits = outfits;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _targetUser = user;
+          _relationship = rel;
+          _posts = posts;
+          _garments = garments;
+          _outfits = outfits;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      // Erreur générale : on sort du loading pour ne pas bloquer l'UI
+      if (mounted) setState(() => _loading = false);
     }
   }
 

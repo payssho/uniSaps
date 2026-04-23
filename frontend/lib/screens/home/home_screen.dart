@@ -602,7 +602,7 @@ class _TutorialOverlay extends StatelessWidget {
 
     return Positioned.fill(
       child: Material(
-        color: Colors.transparent,
+        type: MaterialType.transparency,
         child: Container(
         color: Colors.black.withOpacity(0.55),
         child: Center(
