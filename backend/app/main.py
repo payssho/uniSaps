@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from .core.config import get_settings
 from .core.firebase import init_firebase
 from .api.routes import api_router
@@ -31,3 +34,20 @@ async def startup():
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+_PRIVACY_HTML = Path(__file__).resolve().parent / "static" / "privacy_fr.html"
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_policy_fr():
+    """Page publique pour la Play Console (politique de confidentialité)."""
+    if not _PRIVACY_HTML.is_file():
+        return HTMLResponse(
+            content="<p>Politique de confidentialité indisponible.</p>",
+            status_code=503,
+        )
+    return HTMLResponse(
+        content=_PRIVACY_HTML.read_text(encoding="utf-8"),
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
