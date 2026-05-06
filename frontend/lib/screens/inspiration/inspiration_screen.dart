@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -491,59 +492,108 @@ class _FeedToggle extends StatelessWidget {
 
   const _FeedToggle({required this.showFriends, required this.onToggle});
 
+  static const _w = 232.0;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: AppColors.graphite.withOpacity(0.35),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    const pad = 4.0;
+    const pillW = (_FeedToggle._w - pad * 3) / 2;
+    return SizedBox(
+      width: _FeedToggle._w,
+      height: 44,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          _ToggleChip(
-              label: 'Amis', active: showFriends, onTap: () => onToggle(true)),
-          _ToggleChip(
-              label: 'Explorer',
-              active: !showFriends,
-              onTap: () => onToggle(false)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ToggleChip extends StatelessWidget {
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  const _ToggleChip({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? AppColors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? AppColors.graphite : AppColors.white.withOpacity(0.7),
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.surface.withValues(alpha: 0.82),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppColors.scrimLight),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.scrimLight,
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            left: showFriends ? pad : pad + pillW + pad,
+            top: pad,
+            width: pillW,
+            bottom: pad,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.38),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => onToggle(true),
+                    child: Center(
+                      child: AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          letterSpacing: -0.2,
+                          color: showFriends
+                              ? AppColors.surface
+                              : AppColors.textSecondary,
+                        ),
+                        child: const Text('Amis'),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => onToggle(false),
+                    child: Center(
+                      child: AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          letterSpacing: -0.2,
+                          color: !showFriends
+                              ? AppColors.surface
+                              : AppColors.textSecondary,
+                        ),
+                        child: const Text('Explorer'),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -666,18 +716,24 @@ class _FriendsFeed extends ConsumerWidget {
           );
         }
 
-        return _FullScreenFeed(
+        return _ContinuousFeed(
           posts: todayPosts,
           uid: uid,
           onDoubleTap: onDoubleTap,
           onScrollStart: onScrollStart,
         );
       },
-      loading: () =>
-          const Center(child: CircularProgressIndicator(color: AppColors.white)),
+      loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.accent)),
       error: (e, _) => Center(
-          child: Text('Erreur: $e',
-              style: const TextStyle(color: AppColors.white))),
+          child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          'Erreur: $e',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+      )),
     );
   }
 }
@@ -727,32 +783,45 @@ class _ExploreFeed extends ConsumerWidget {
             subtitle: 'Sois le premier à partager ton outfit du jour !',
           );
         }
-        return _FullScreenFeed(
+        return _ContinuousFeed(
           posts: todayPosts,
           uid: uid,
           onDoubleTap: onDoubleTap,
           onScrollStart: onScrollStart,
         );
       },
-      loading: () =>
-          const Center(child: CircularProgressIndicator(color: AppColors.white)),
+      loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.accent)),
       error: (e, _) => Center(
-          child: Text('Erreur: $e',
-              style: const TextStyle(color: AppColors.white))),
+          child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          'Erreur: $e',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+      )),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Full-screen vertical PageView feed
+// Fil vertical continu (scroll progressif, sans paging plein écran)
 // ---------------------------------------------------------------------------
-class _FullScreenFeed extends ConsumerWidget {
+
+String _fmtPostClock(PostModel p) {
+  final dt = DateTime.tryParse(p.createdAt)?.toLocal();
+  if (dt == null) return '';
+  return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+}
+
+class _ContinuousFeed extends ConsumerWidget {
   final List<PostModel> posts;
   final String uid;
   final void Function(PostModel) onDoubleTap;
   final VoidCallback onScrollStart;
 
-  const _FullScreenFeed({
+  const _ContinuousFeed({
     required this.posts,
     required this.uid,
     required this.onDoubleTap,
@@ -761,21 +830,26 @@ class _FullScreenFeed extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final topInset = MediaQuery.paddingOf(context).top + 56;
+    final bottomInset = MediaQuery.paddingOf(context).bottom + 96;
+
     return NotificationListener<ScrollStartNotification>(
       onNotification: (_) {
         onScrollStart();
         return false;
       },
-      child: PageView.builder(
-        scrollDirection: Axis.vertical,
-        // +1 pour la slide de fin "reviens demain"
+      child: ListView.separated(
+        padding: EdgeInsets.fromLTRB(12, topInset, 12, bottomInset),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
         itemCount: posts.length + 1,
+        separatorBuilder: (_, __) => const SizedBox(height: 22),
         itemBuilder: (context, index) {
-          if (index >= posts.length) {
-            return const _EndOfDayMessage();
-          }
+          if (index == posts.length) return const _FeedEndFooter();
+
           final post = posts[index];
-          return _FullScreenPost(
+          return _InspoPostCard(
             post: post,
             uid: uid,
             onLike: () {
@@ -783,7 +857,7 @@ class _FullScreenFeed extends ConsumerWidget {
                   .read(postNotifierProvider.notifier)
                   .toggleLike(post.id, uid);
             },
-            onDoubleTap: () => onDoubleTap(post),
+            onDoubleTapLike: () => onDoubleTap(post),
             onUserTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -802,12 +876,16 @@ class _FullScreenFeed extends ConsumerWidget {
                       ..showSnackBar(
                         SnackBar(
                           content: Text(
-                            ok ? 'Post supprimé.' : 'Impossible de supprimer le post.',
+                            ok
+                                ? 'Post supprimé.'
+                                : 'Impossible de supprimer le post.',
                           ),
-                          backgroundColor: ok ? AppColors.success : AppColors.error,
+                          backgroundColor:
+                              ok ? AppColors.success : AppColors.error,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                           margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                           duration: const Duration(seconds: 3),
                         ),
@@ -827,52 +905,58 @@ class _FullScreenFeed extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// End-of-day slide
+// Pied de fil (remplace l'ancienne slide plein écran)
 // ---------------------------------------------------------------------------
-class _EndOfDayMessage extends StatelessWidget {
-  const _EndOfDayMessage();
+
+class _FeedEndFooter extends StatelessWidget {
+  const _FeedEndFooter();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            AppColors.graphite,
-            AppColors.graphite.withValues(alpha: 0.87),
-            AppColors.graphite,
-          ],
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      child: Material(
+        color: AppColors.surface,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: BorderSide(color: AppColors.scrimLight),
         ),
-      ),
-      child: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 26),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.wb_twighlight, size: 56, color: AppColors.white.withOpacity(0.7)),
-              SizedBox(height: 16),
+              Icon(
+                Icons.nights_stay_outlined,
+                size: 38,
+                color: AppColors.textHint.withValues(alpha: 0.8),
+              )
+                  .animate()
+                  .fadeIn(duration: 400.ms)
+                  .slideY(
+                    begin: 0.12,
+                    curve: Curves.easeOutCubic,
+                  ),
+              const SizedBox(height: 12),
               Text(
-                'Tu as vu tous les looks du jour',
+                'Fin des posts du jour',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                style: AppTextStyles.heading3.copyWith(
+                  letterSpacing: -0.35,
+                  color: AppColors.textPrimary,
                 ),
-              ),
-              SizedBox(height: 8),
+              ).animate(delay: 50.ms).fadeIn(duration: 420.ms),
+              const SizedBox(height: 8),
               Text(
-                'Reviens demain pour decouvrir de nouveaux outfits !',
+                'Reviens demain pour de nouveaux looks.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.white.withOpacity(0.7),
+                style: AppTextStyles.bodySecondary.copyWith(
+                  height: 1.35,
                   fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                  color: AppColors.textHint,
                 ),
-              ),
+              ).animate(delay: 90.ms).fadeIn(duration: 420.ms),
             ],
           ),
         ),
@@ -882,46 +966,77 @@ class _EndOfDayMessage extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Single full-screen post with double-tap like animation
+// Carte feed : mise en page éditoriale + micro-interactions
 // ---------------------------------------------------------------------------
-class _FullScreenPost extends StatefulWidget {
+
+class _InspoPostCard extends StatefulWidget {
   final PostModel post;
   final String uid;
   final VoidCallback onLike;
-  final VoidCallback onDoubleTap;
+  final VoidCallback onDoubleTapLike;
   final VoidCallback onUserTap;
   final VoidCallback? onDelete;
-  final void Function(String)? onEditCaption;
+  final void Function(String caption)? onEditCaption;
 
-  const _FullScreenPost({
+  const _InspoPostCard({
     required this.post,
     required this.uid,
     required this.onLike,
-    required this.onDoubleTap,
+    required this.onDoubleTapLike,
     required this.onUserTap,
     this.onDelete,
     this.onEditCaption,
   });
 
   @override
-  State<_FullScreenPost> createState() => _FullScreenPostState();
+  State<_InspoPostCard> createState() => _InspoPostCardState();
 }
 
-class _FullScreenPostState extends State<_FullScreenPost>
-    with SingleTickerProviderStateMixin {
-  bool _showHeart = false;
+class _InspoPostCardState extends State<_InspoPostCard>
+    with TickerProviderStateMixin {
   late bool _liked;
   late int _likes;
+
+  late final AnimationController _likePulseCtl;
+  late final Animation<double> _likePulseScale;
+  late final AnimationController _menuRotCtl;
+
+  bool _burst = false;
 
   @override
   void initState() {
     super.initState();
     _liked = widget.post.isLikedBy(widget.uid);
     _likes = widget.post.likes;
+
+    _likePulseCtl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 520),
+    );
+
+    _likePulseScale = TweenSequence<double>(
+      [
+        TweenSequenceItem(
+          tween: Tween(begin: 1.0, end: 1.16)
+              .chain(CurveTween(curve: Curves.easeOutCubic)),
+          weight: 40,
+        ),
+        TweenSequenceItem(
+          tween: Tween(begin: 1.16, end: 1.0)
+              .chain(CurveTween(curve: Curves.easeOut)),
+          weight: 60,
+        ),
+      ],
+    ).animate(_likePulseCtl);
+
+    _menuRotCtl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
   }
 
   @override
-  void didUpdateWidget(covariant _FullScreenPost oldWidget) {
+  void didUpdateWidget(covariant _InspoPostCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.post.id != widget.post.id ||
         oldWidget.post.likes != widget.post.likes ||
@@ -931,296 +1046,42 @@ class _FullScreenPostState extends State<_FullScreenPost>
     }
   }
 
-  void _handleDoubleTap() {
-    // Optimistic UI: toggle like locally immediately
+  @override
+  void dispose() {
+    _likePulseCtl.dispose();
+    _menuRotCtl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _playLikeBurst() async {
+    await _likePulseCtl.forward(from: 0);
+    if (!mounted) return;
+    await _likePulseCtl.reverse();
+  }
+
+  void _toggleLike() {
     setState(() {
       _liked = !_liked;
       _likes += _liked ? 1 : -1;
       if (_likes < 0) _likes = 0;
-      _showHeart = true;
     });
-
-    widget.onDoubleTap();
-    setState(() => _showHeart = true);
-    Future.delayed(const Duration(milliseconds: 900), () {
-      if (mounted) setState(() => _showHeart = false);
-    });
+    widget.onLike();
+    unawaited(_playLikeBurst());
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-
-    return GestureDetector(
-      onDoubleTap: _handleDoubleTap,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Background image
-          if (widget.post.imageUrl.isNotEmpty)
-            CachedNetworkImage(
-              imageUrl: widget.post.imageUrl,
-              fit: BoxFit.cover,
-              width: screenSize.width,
-              height: screenSize.height,
-              placeholder: (_, __) => Container(
-                color: AppColors.graphite,
-                child: const Center(
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.white),
-                ),
-              ),
-              errorWidget: (_, __, ___) => Container(
-                color: AppColors.graphite,
-                child: Icon(Icons.broken_image_outlined,
-                    color: AppColors.white.withOpacity(0.38), size: 48),
-              ),
-            )
-          else
-            Container(color: AppColors.graphite),
-
-          // Top gradient
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 160,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppColors.graphite.withOpacity(0.6),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Bottom gradient
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 320,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    AppColors.graphite.withOpacity(0.85),
-                    AppColors.graphite.withOpacity(0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Right side actions
-          Positioned(
-            right: 14,
-            bottom: 140,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: widget.onUserTap,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.accent, width: 2),
-                    ),
-                    child: CircleAvatar(
-                      radius: 22,
-                      backgroundColor: AppColors.yaleBlue,
-                      backgroundImage: widget.post.userPhotoUrl.isNotEmpty
-                          ? CachedNetworkImageProvider(
-                              widget.post.userPhotoUrl)
-                          : null,
-                      child: widget.post.userPhotoUrl.isEmpty
-                          ? Text(
-                              widget.post.username.isNotEmpty
-                                  ? widget.post.username[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                  color: AppColors.white,
-                                  fontWeight: FontWeight.w600),
-                            )
-                          : null,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _liked = !_liked;
-                      _likes += _liked ? 1 : -1;
-                      if (_likes < 0) _likes = 0;
-                    });
-                    widget.onLike();
-                  },
-                  child: Column(
-                    children: [
-                      Icon(
-                        _liked ? Icons.favorite : Icons.favorite_border,
-                        color: _liked ? AppColors.accent : AppColors.white,
-                        size: 32,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$_likes',
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (widget.post.garmentRefs.isNotEmpty)
-                  GestureDetector(
-                    onTap: () => _showPostDetails(context, widget.post),
-                    child: const Column(
-                      children: [
-                        Icon(Icons.checkroom, color: AppColors.white, size: 28),
-                        SizedBox(height: 4),
-                        Text(
-                          'Détails',
-                          style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                // Menu 3-points (mes posts seulement) — sous Détails
-                if (widget.post.userId == widget.uid) ...[
-                  const SizedBox(height: 24),
-                  GestureDetector(
-                    onTap: () => _showPostMenu(context),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: AppColors.graphite.withOpacity(0.35),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.more_horiz,
-                              color: AppColors.white, size: 26),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Options',
-                          style: TextStyle(
-                            color: AppColors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-          // Bottom info
-          Positioned(
-            bottom: 40,
-            left: 16,
-            right: 72,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: widget.onUserTap,
-                  child: Text(
-                    '@${widget.post.username}',
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                if (widget.post.caption.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.post.caption,
-                    style: TextStyle(
-                      color: AppColors.white.withOpacity(0.9),
-                      fontSize: 14,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                if (widget.post.garmentRefs.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: widget.post.garmentRefs.take(3).map((ref) {
-                      final text = [ref.brand, ref.name]
-                          .where((s) => s.isNotEmpty)
-                          .join(' - ');
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: AppColors.white.withOpacity(0.2)),
-                        ),
-                        child: Text(
-                          text,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.white.withOpacity(0.9),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-          // Double-tap heart animation
-          if (_showHeart)
-            Center(
-              child: Icon(
-                Icons.favorite,
-                color: AppColors.white.withOpacity(0.85),
-                size: 100,
-              )
-                  .animate()
-                  .scale(
-                    begin: const Offset(0.4, 0.4),
-                    end: const Offset(1.1, 1.1),
-                    duration: 250.ms,
-                    curve: Curves.easeOutBack,
-                  )
-                  .then(delay: 300.ms)
-                  .fadeOut(duration: 350.ms),
-            ),
-        ],
-      ),
-    );
+  void _onDoubleTapImage() {
+    if (!_liked) {
+      setState(() {
+        _liked = true;
+        _likes += 1;
+      });
+      widget.onDoubleTapLike();
+      unawaited(_playLikeBurst());
+    }
+    setState(() => _burst = true);
+    Future.delayed(const Duration(milliseconds: 820), () {
+      if (mounted) setState(() => _burst = false);
+    });
   }
 
   void _showPostDetails(BuildContext context, PostModel post) {
@@ -1232,80 +1093,170 @@ class _FullScreenPostState extends State<_FullScreenPost>
     );
   }
 
-  void _showPostMenu(BuildContext context) {
-    showModalBottomSheet(
+  Future<void> _showPostMenu() async {
+    if (!mounted) return;
+    await _menuRotCtl.forward(from: 0);
+    if (!mounted) return;
+    if (!context.mounted) return;
+
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      barrierColor: AppColors.graphite.withValues(alpha: 0.5),
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          left: 14,
+          right: 14,
+          bottom: MediaQuery.viewPaddingOf(ctx).bottom + 14,
         ),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: AppColors.textHint.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(26),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+            child: Material(
+              color: AppColors.surface.withValues(alpha: 0.92),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 14, 10, 10),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 5,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.textHint.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    )
+                        .animate()
+                        .scale(
+                          begin: const Offset(0.3, 1),
+                          duration: 340.ms,
+                          curve: Curves.easeOutCubic,
+                        ),
+                    ListTile(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      leading: const Icon(Icons.edit_outlined,
+                          color: AppColors.accent),
+                      title: Text(
+                        'Modifier la légende',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Texte visible sous la photo',
+                        style: AppTextStyles.caption,
+                      ),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        if (!mounted || !context.mounted) return;
+                        _showEditCaptionDialog(context);
+                      },
+                    )
+                        .animate(delay: 40.ms)
+                        .fadeIn(duration: 260.ms)
+                        .slideY(
+                          begin: 0.06,
+                          duration: 300.ms,
+                          curve: Curves.easeOutCubic,
+                        ),
+                    ListTile(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      leading: const Icon(Icons.delete_outline,
+                          color: AppColors.error),
+                      title: const Text(
+                        'Supprimer le post',
+                        style: TextStyle(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Irréversible',
+                        style: AppTextStyles.caption.copyWith(
+                          color:
+                              AppColors.error.withValues(alpha: 0.72),
+                        ),
+                      ),
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        if (!mounted || !context.mounted) return;
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (d) => AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            title: const Text(
+                              'Supprimer le post ?',
+                              style: TextStyle(fontWeight: FontWeight.w800),
+                            ),
+                            content: const Text(
+                              'Cette publication sera retirée du fil.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(d, false),
+                                child: const Text('Annuler'),
+                              ),
+                              FilledButton(
+                                onPressed: () =>
+                                    Navigator.pop(d, true),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.error,
+                                  foregroundColor: AppColors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text('Supprimer'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true && mounted) {
+                          widget.onDelete?.call();
+                        }
+                      },
+                    )
+                        .animate(delay: 90.ms)
+                        .fadeIn(duration: 280.ms)
+                        .slideY(
+                          begin: 0.06,
+                          duration: 320.ms,
+                          curve: Curves.easeOutCubic,
+                        ),
+                  ],
+                ),
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined, color: AppColors.accent),
-              title: const Text('Modifier la légende'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _showEditCaptionDialog(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: AppColors.error),
-              title: const Text('Supprimer le post',
-                  style: TextStyle(color: AppColors.error)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (d) => AlertDialog(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                    title: const Text('Supprimer le post ?'),
-                    content: const Text('Cette action est irréversible.'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(d, false),
-                        child: const Text('Annuler'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(d, true),
-                        style: TextButton.styleFrom(
-                            foregroundColor: AppColors.error),
-                        child: const Text('Supprimer'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirm == true) widget.onDelete?.call();
-              },
-            ),
-          ],
+          ),
         ),
       ),
     );
+    if (mounted) await _menuRotCtl.reverse(from: _menuRotCtl.upperBound);
   }
 
   void _showEditCaptionDialog(BuildContext context) {
     final controller = TextEditingController(text: widget.post.caption);
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (d) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Modifier la légende'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Text(
+          'Modifier la légende',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: TextField(
           controller: controller,
           maxLines: 4,
@@ -1313,28 +1264,424 @@ class _FullScreenPostState extends State<_FullScreenPost>
           autofocus: true,
           decoration: const InputDecoration(
             hintText: 'Légende...',
+            filled: true,
             border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12))),
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+            ),
           ),
         ),
+        actionsAlignment: MainAxisAlignment.end,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(d),
             child: const Text('Annuler'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () {
               Navigator.pop(d);
               widget.onEditCaption?.call(controller.text.trim());
             },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accent,
-                foregroundColor: AppColors.white),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
             child: const Text('Enregistrer'),
           ),
         ],
       ),
+    ).then((_) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    });
+  }
+
+  Widget _burstOverlay() {
+    if (!_burst) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: Center(
+          child: ShaderMask(
+            blendMode: BlendMode.srcATop,
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [
+                AppColors.accent,
+                AppColors.primary.withValues(alpha: 0.85),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ).createShader(bounds),
+            child: Icon(
+              Icons.favorite_rounded,
+              size: 98,
+              color: AppColors.white,
+            )
+                .animate()
+                .scale(
+                  begin: const Offset(0.12, 0.12),
+                  end: const Offset(1.02, 1.02),
+                  duration: 420.ms,
+                  curve: Curves.easeOutCubic,
+                )
+                .then(delay: 40.ms)
+                .fadeOut(
+                  duration: 320.ms,
+                  curve: Curves.easeOut,
+                ),
+          ),
+        ),
+      ),
     );
+  }
+
+  Widget _pulseLikeButton() {
+    return ScaleTransition(
+      scale: _likePulseScale,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _toggleLike,
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Ink(
+            width: 48,
+            height: 44,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: (_liked ? AppColors.accent : AppColors.surfaceVariant)
+                  .withValues(alpha: _liked ? 0.2 : 0.55),
+            ),
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                switchInCurve: Curves.elasticOut,
+                transitionBuilder: (child, animation) =>
+                    ScaleTransition(scale: animation, child: child),
+                child: Icon(
+                  key: ValueKey<bool>(_liked),
+                  _liked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: _liked ? AppColors.accent : AppColors.textSecondary,
+                  size: 24,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final clock = _fmtPostClock(widget.post);
+
+    return Material(
+      elevation: 0,
+      shadowColor: Colors.black26,
+      color: AppColors.surface,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: AppColors.scrimLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 6, 8),
+            child: Row(
+              children: [
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: widget.onUserTap,
+                    borderRadius: BorderRadius.circular(22),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: CircleAvatar(
+                        radius: 22,
+                        backgroundColor: AppColors.surfaceVariant
+                            .withValues(alpha: 0.95),
+                        backgroundImage: widget.post.userPhotoUrl.isNotEmpty
+                            ? CachedNetworkImageProvider(
+                                widget.post.userPhotoUrl,
+                              )
+                            : null,
+                        child: widget.post.userPhotoUrl.isEmpty
+                            ? Text(
+                                widget.post.username.isNotEmpty
+                                    ? widget.post.username[0].toUpperCase()
+                                    : '?',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textHint,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: widget.onUserTap,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 6,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '@${widget.post.username}',
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                                letterSpacing: -0.25,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            if (clock.isNotEmpty)
+                              Text(
+                                clock,
+                                style: AppTextStyles.caption.copyWith(
+                                  fontSize: 11.5,
+                                  color:
+                                      AppColors.textHint.withValues(alpha: 0.9),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (widget.post.userId == widget.uid)
+                  AnimatedBuilder(
+                    animation: _menuRotCtl,
+                    builder: (_, __) {
+                      final t = Curves.easeOutCubic.transform(_menuRotCtl.value);
+                      return Transform.rotate(
+                        angle: t * -0.16,
+                            child: IconButton(
+                          tooltip: 'Options',
+                          onPressed: () => unawaited(_showPostMenu()),
+                          icon: Icon(
+                            Icons.more_horiz_rounded,
+                            color: AppColors.textSecondary
+                                .withValues(alpha: 0.92),
+                          ),
+                          style: IconButton.styleFrom(
+                            backgroundColor:
+                                AppColors.surfaceVariant.withValues(alpha: 0.85),
+                          ),
+                          splashRadius: 22,
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onDoubleTap: _onDoubleTapImage,
+            child: AspectRatio(
+              aspectRatio: 4 / 5,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  widget.post.imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: widget.post.imageUrl,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.topCenter,
+                          placeholder: (_, __) => Container(
+                            color:
+                                AppColors.surfaceVariant.withValues(alpha: 0.72),
+                            child: Center(
+                              child: SizedBox(
+                                width: 28,
+                                height: 28,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color:
+                                      AppColors.accent.withValues(alpha: 0.7),
+                                ),
+                              ),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => Container(
+                            color: AppColors.surfaceVariant
+                                .withValues(alpha: 0.75),
+                            child: const Icon(
+                              Icons.photo_library_outlined,
+                              size: 40,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: AppColors.surfaceVariant.withValues(alpha: 0.75),
+                        ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.center,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            AppColors.graphite.withValues(alpha: 0),
+                            AppColors.graphite.withValues(alpha: 0.2),
+                          ],
+                          stops: const [0.0, 0.62, 1.0],
+                        ),
+                      ),
+                    ),
+                  ),
+                  _burstOverlay(),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _pulseLikeButton(),
+                const SizedBox(width: 12),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    letterSpacing: -0.25,
+                    color: _liked ? AppColors.accent : AppColors.textPrimary,
+                  ),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    switchInCurve: Curves.easeOutBack,
+                    transitionBuilder: (child, animation) =>
+                        ScaleTransition(scale: animation, child: child),
+                    child: Text(
+                      '$_likes',
+                      key: ValueKey<int>(_likes),
+                    ),
+                  ),
+                ),
+                if (widget.post.garmentRefs.isNotEmpty) ...[
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () =>
+                        _showPostDetails(context, widget.post),
+                    icon: const Icon(
+                      Icons.checkroom_rounded,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                    label: const Text(
+                      'Détails',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      backgroundColor:
+                          AppColors.surfaceVariant.withValues(alpha: 0.55),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (widget.post.caption.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 14,
+                right: 14,
+                bottom: 14,
+              ),
+              child: Text(
+                widget.post.caption,
+                style: AppTextStyles.body.copyWith(height: 1.35),
+              ),
+            ),
+          if (widget.post.garmentRefs.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 14,
+                right: 14,
+                bottom: 14,
+              ),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: widget.post.garmentRefs.take(4).map((refItem) {
+                  final text = [refItem.brand, refItem.name]
+                      .where((s) => s.isNotEmpty)
+                      .join(' · ');
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.surfaceVariant.withValues(alpha: 0.92),
+                          AppColors.surface,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      border: Border.all(color: AppColors.scrimLight),
+                    ),
+                    child: Text(
+                      text,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11.5,
+                        color:
+                            AppColors.textSecondary.withValues(alpha: 0.95),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
+    )
+        .animate()
+        .fadeIn(duration: 320.ms, curve: Curves.easeOutCubic)
+        .slideY(
+          begin: 0.035,
+          duration: 360.ms,
+          curve: Curves.easeOutCubic,
+        );
   }
 }
 
@@ -1362,17 +1709,26 @@ class _EmptyFeedMessage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 72, color: AppColors.white.withOpacity(0.2)),
+            Icon(
+              icon,
+              size: 72,
+              color: AppColors.textHint.withValues(alpha: 0.28),
+            ),
             const SizedBox(height: 20),
-            Text(title,
-                style: TextStyle(
-                    color: AppColors.white.withOpacity(0.7),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500)),
+            Text(
+              title,
+              style: TextStyle(
+                color: AppColors.textSecondary.withValues(alpha: 0.92),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: TextStyle(color: AppColors.white.withOpacity(0.4)),
+              style: TextStyle(
+                color: AppColors.textHint.withValues(alpha: 0.82),
+              ),
               textAlign: TextAlign.center,
             ),
             if (action != null) ...[
