@@ -97,6 +97,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                     return Column(
                       children: [
                         _Header(
+                          title: 'Outfit du jour',
                           streak: streak,
                           onAdd: _openCreation,
                           showAdd: false,
@@ -132,8 +133,6 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                       showAdd: false,
                     ),
                     const SizedBox(height: 4),
-                    const _BrowseOnlyWeatherCard(),
-                    const SizedBox(height: 12),
                     _ModeToggle(
                       mode: _mode,
                       onChanged: (m) {
@@ -296,14 +295,16 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Header with title, streak & add button
+// Header with title, streak, météo compacte & add button
 // ---------------------------------------------------------------------------
 class _Header extends StatelessWidget {
+  final String title;
   final int streak;
   final VoidCallback onAdd;
   final bool showAdd;
 
   const _Header({
+    this.title = 'Mes Outfits',
     required this.streak,
     required this.onAdd,
     required this.showAdd,
@@ -325,12 +326,14 @@ class _Header extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Mes Outfits',
+                    title,
                     style: AppTextStyles.heading2,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 8),
+                const _CompactHeaderWeather(),
                 if (streak > 0) ...[
                   const SizedBox(width: 10),
                   Container(
@@ -476,118 +479,6 @@ class _ModeChip extends StatelessWidget {
   }
 }
 
-/// Carte météo (Open‑Meteo) — uniquement tant qu’aucun outfit du jour n’est sélectionné.
-class _BrowseOnlyWeatherCard extends ConsumerWidget {
-  const _BrowseOnlyWeatherCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final weatherAsync = ref.watch(todayWeatherFetchProvider);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      child: weatherAsync.when(
-        loading: () => const _WeatherBrowseSkeleton(),
-        error: (_, __) => const _WeatherBrowseUnavailable(),
-        data: (fetch) {
-          final w = fetch.weather;
-          if (w == null) {
-            return _WeatherBrowseUnavailable(detail: fetch.message);
-          }
-          return _WeatherBrowseHero(fetch: fetch, weather: w);
-        },
-      ),
-    );
-  }
-}
-
-class _WeatherBrowseSkeleton extends StatelessWidget {
-  const _WeatherBrowseSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider.withOpacity(0.5)),
-        ),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.accent.withOpacity(0.9),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WeatherBrowseUnavailable extends StatelessWidget {
-  final String? detail;
-
-  const _WeatherBrowseUnavailable({this.detail});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.divider.withOpacity(0.85)),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 12),
-              Icon(Icons.wb_cloudy_outlined,
-                  size: 22, color: AppColors.textHint.withOpacity(0.85)),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Météo indisponible',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                        color: AppColors.textPrimary.withOpacity(0.92),
-                      ),
-                    ),
-                    if (detail != null && detail!.isNotEmpty)
-                      Text(
-                        detail!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary.withOpacity(0.95),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 List<Color> _browseHeroGradient(Set<String> tags, double avgC) {
   if (tags.contains(WeatherTagKeys.snow)) {
     return [const Color(0xFF64748B), const Color(0xFF475569)];
@@ -611,11 +502,99 @@ List<Color> _browseHeroGradient(Set<String> tags, double avgC) {
   return [const Color(0xFF4F46E5), const Color(0xFF7C3AED)];
 }
 
-class _WeatherBrowseHero extends StatelessWidget {
+/// Pastille météo sur la ligne du titre (Open‑Meteo).
+class _CompactHeaderWeather extends ConsumerWidget {
+  const _CompactHeaderWeather();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final weatherAsync = ref.watch(todayWeatherFetchProvider);
+    return weatherAsync.when(
+      loading: () => SizedBox(
+        height: 36,
+        child: AspectRatio(
+          aspectRatio: 2.4,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.divider.withOpacity(0.45)),
+            ),
+            child: Center(
+              child: SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.accent.withOpacity(0.85),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      error: (_, __) => const _CompactWeatherUnavailable(),
+      data: (fetch) {
+        final w = fetch.weather;
+        if (w == null) {
+          return _CompactWeatherUnavailable(detail: fetch.message);
+        }
+        return _CompactWeatherPill(fetch: fetch, weather: w);
+      },
+    );
+  }
+}
+
+class _CompactWeatherUnavailable extends StatelessWidget {
+  final String? detail;
+
+  const _CompactWeatherUnavailable({this.detail});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasDetail = detail != null && detail!.isNotEmpty;
+    return Container(
+      height: 36,
+      constraints: BoxConstraints(
+        minWidth: 72,
+        maxWidth: hasDetail ? 132 : 72,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.divider.withOpacity(0.72)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.wb_cloudy_outlined,
+              size: 18, color: AppColors.textHint.withOpacity(0.88)),
+          if (hasDetail) ...[
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                detail!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary.withOpacity(0.95),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactWeatherPill extends StatelessWidget {
   final WeatherFetchResult fetch;
   final DailyWeatherSummary weather;
 
-  const _WeatherBrowseHero({
+  const _CompactWeatherPill({
     required this.fetch,
     required this.weather,
   });
@@ -632,110 +611,53 @@ class _WeatherBrowseHero extends StatelessWidget {
     final avg = ((w.tempMin + w.tempMax) / 2).round();
     final avgC = (w.tempMin + w.tempMax) / 2.0;
     final colors = _browseHeroGradient(tags, avgC);
-    final range = formatTempRange(w.tempMin, w.tempMax);
-    final locHint =
-        fetch.usedFallbackLocation ? 'Paris (approx.)' : 'Ta position';
 
     return Container(
+      height: 36,
+      constraints: const BoxConstraints(minWidth: 88),
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
           colors: colors,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: colors.first.withOpacity(0.28),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
             spreadRadius: -2,
           ),
         ],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.22),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.4),
-                  width: 1,
-                ),
-              ),
-              child: Icon(visual.icon, color: Colors.white, size: 20),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(visual.icon, color: Colors.white, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            '$avg°',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              height: 1,
+              letterSpacing: -0.5,
             ),
-            const SizedBox(width: 12),
-            Text(
-              '$avg°',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                height: 1,
-                letterSpacing: -0.6,
-              ),
+          ),
+          const SizedBox(width: 4),
+          Tooltip(
+            message: fetch.usedFallbackLocation ? 'Paris (approx.)' : 'Ta position',
+            child: Icon(
+              Icons.place_outlined,
+              size: 12,
+              color: Colors.white.withOpacity(0.82),
             ),
-            const SizedBox(width: 6),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Text(
-                range,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.88),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    visual.shortLabel,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.96),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 1),
-                  Row(
-                    children: [
-                      Icon(Icons.place_outlined,
-                          size: 11, color: Colors.white.withOpacity(0.75)),
-                      const SizedBox(width: 3),
-                      Expanded(
-                        child: Text(
-                          locHint,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.74),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1744,34 +1666,16 @@ class _DailyOutfitView extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: const [
-                  Expanded(
-                    child: Text(
-                      'Outfit du jour',
-                      style: AppTextStyles.heading2,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+          child: Center(
+            child: TextButton.icon(
+              onPressed: onAddFit,
+              icon: Icon(Icons.add, size: 18),
+              label: const Text(
+                'Ajouter un fit à la bibliothèque',
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 8),
-              Center(
-                child: TextButton.icon(
-                  onPressed: onAddFit,
-                  icon: Icon(Icons.add, size: 18),
-                  label: const Text(
-                    'Ajouter un fit à la bibliothèque',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
         const SizedBox(height: 16),

@@ -15,7 +15,13 @@ import '../inspiration/user_profile_screen.dart';
 import '../inspiration/search_users_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
-  const ProfileScreen({super.key});
+  /// Quand true (onglet racine Home), pas de bouton retour qui ferait pop la mauvaise route.
+  final bool embeddedInMainNav;
+
+  const ProfileScreen({
+    super.key,
+    this.embeddedInMainNav = false,
+  });
 
   @override
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
@@ -54,14 +60,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               padding: const EdgeInsets.only(left: 4, right: 4, top: 8),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 22),
-                    onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Retour',
-                  ),
+                  if (!widget.embeddedInMainNav)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 22),
+                      onPressed: () => Navigator.of(context).pop(),
+                      tooltip: 'Retour',
+                    )
+                  else
+                    const SizedBox(width: 8),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.logout_rounded, size: 22, color: AppColors.textSecondary),
+                    icon: const Icon(Icons.logout_rounded,
+                        size: 22, color: AppColors.textSecondary),
                     tooltip: 'Se deconnecter',
                     onPressed: () async {
                       await ref.read(authNotifierProvider.notifier).signOut();
@@ -94,7 +105,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       if (requestCount > 0) ...[
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: AppColors.accent,
                             borderRadius: BorderRadius.circular(8),
@@ -152,12 +164,18 @@ class _ProfileHeader extends StatelessWidget {
         CircleAvatar(
           radius: 44,
           backgroundColor: AppColors.surfaceVariant,
-          backgroundImage:
-              user.profilePhotoUrl.isNotEmpty ? CachedNetworkImageProvider(user.profilePhotoUrl) : null,
+          backgroundImage: user.profilePhotoUrl.isNotEmpty
+              ? CachedNetworkImageProvider(user.profilePhotoUrl)
+              : null,
           child: user.profilePhotoUrl.isEmpty
               ? Text(
-                  user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppColors.textHint),
+                  user.username.isNotEmpty
+                      ? user.username[0].toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textHint),
                 )
               : null,
         ),
@@ -171,7 +189,8 @@ class _ProfileHeader extends StatelessWidget {
             ),
             if (user.isPrivate) ...[
               const SizedBox(width: 6),
-              const Icon(Icons.lock_outline, size: 16, color: AppColors.textHint),
+              const Icon(Icons.lock_outline,
+                  size: 16, color: AppColors.textHint),
             ],
           ],
         ),
@@ -216,7 +235,10 @@ class _StatsTab extends ConsumerWidget {
                     // éviter les overflows verticaux sur les petits écrans.
                     childAspectRatio: constraints.maxWidth > 400 ? 1.15 : 0.95,
                     children: [
-                      StatCard(label: 'Vetements', value: '${counts[0]}', icon: Icons.checkroom),
+                      StatCard(
+                          label: 'Vetements',
+                          value: '${counts[0]}',
+                          icon: Icons.checkroom),
                       StatCard(
                           label: 'Outfits',
                           value: '${counts[1]}',
@@ -268,7 +290,8 @@ class _MostWornChart extends ConsumerWidget {
         if (garments.isEmpty || garments.every((g) => g.timesWorn == 0)) {
           return const SizedBox.shrink();
         }
-        final maxWorn = garments.map((g) => g.timesWorn).reduce((a, b) => a > b ? a : b);
+        final maxWorn =
+            garments.map((g) => g.timesWorn).reduce((a, b) => a > b ? a : b);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -319,6 +342,15 @@ class _MostWornChart extends ConsumerWidget {
   }
 }
 
+Widget _outfitListThumbPlaceholder() {
+  return Container(
+    color: AppColors.surfaceVariant,
+    alignment: Alignment.center,
+    child: Icon(Icons.style_rounded,
+        size: 26, color: AppColors.textHint.withOpacity(0.45)),
+  );
+}
+
 class _OutfitsTab extends ConsumerWidget {
   final String uid;
   const _OutfitsTab({required this.uid});
@@ -328,9 +360,11 @@ class _OutfitsTab extends ConsumerWidget {
     final outfitsAsync = ref.watch(outfitsProvider(uid));
     return outfitsAsync.when(
       data: (outfits) {
-        final sorted = [...outfits]..sort((a, b) => b.timesWorn.compareTo(a.timesWorn));
+        final sorted = [...outfits]
+          ..sort((a, b) => b.timesWorn.compareTo(a.timesWorn));
         if (sorted.isEmpty) {
-          return const Center(child: Text('Aucun outfit', style: AppTextStyles.bodySecondary));
+          return const Center(
+              child: Text('Aucun outfit', style: AppTextStyles.bodySecondary));
         }
         return ListView.separated(
           padding: const EdgeInsets.all(18),
@@ -338,6 +372,9 @@ class _OutfitsTab extends ConsumerWidget {
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (_, i) {
             final o = sorted[i];
+            final thumbUrl = o.referencePhotoUrl.isNotEmpty
+                ? o.referencePhotoUrl
+                : (o.photoUrls.isNotEmpty ? o.photoUrls.first : '');
             return GestureDetector(
               onTap: () => _showOutfitSummary(context, o),
               child: Container(
@@ -355,23 +392,8 @@ class _OutfitsTab extends ConsumerWidget {
                   ],
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppColors.accent.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${o.timesWorn}x',
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.accent),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,16 +401,62 @@ class _OutfitsTab extends ConsumerWidget {
                         children: [
                           Text(
                             o.name.isEmpty ? 'Outfit' : o.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 15),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           if (o.lastWorn.isNotEmpty) ...[
                             const SizedBox(height: 2),
-                            Text('Dernier port : ${o.lastWorn}', style: AppTextStyles.caption),
+                            Text('Dernier port : ${o.lastWorn}',
+                                style: AppTextStyles.caption),
                           ],
                         ],
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: SizedBox(
+                            width: 56,
+                            height: 56,
+                            child: thumbUrl.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: thumbUrl,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                      color: AppColors.surfaceVariant,
+                                      child: const Center(
+                                        child: SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        ),
+                                      ),
+                                    ),
+                                    errorWidget: (_, __, ___) =>
+                                        _outfitListThumbPlaceholder(),
+                                  )
+                                : _outfitListThumbPlaceholder(),
+                          ),
+                        ),
+                        if (o.timesWorn > 0) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            'Porté ${o.timesWorn}×',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textHint.withOpacity(0.95),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
@@ -450,7 +518,8 @@ class _OutfitSummarySheet extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               if (outfit.lastWorn.isNotEmpty)
-                Text('Dernier port : ${outfit.lastWorn}', style: AppTextStyles.caption),
+                Text('Dernier port : ${outfit.lastWorn}',
+                    style: AppTextStyles.caption),
               const SizedBox(height: 12),
               if (outfit.referencePhotoUrl.isNotEmpty)
                 ClipRRect(
@@ -475,9 +544,11 @@ class _OutfitSummarySheet extends ConsumerWidget {
                     ),
                   ),
                 ),
-              if (outfit.referencePhotoUrl.isNotEmpty) const SizedBox(height: 16),
+              if (outfit.referencePhotoUrl.isNotEmpty)
+                const SizedBox(height: 16),
               FutureBuilder<List<GarmentModel>>(
-                future: ref.read(firestoreServiceProvider).mostWornGarments(uid),
+                future:
+                    ref.read(firestoreServiceProvider).mostWornGarments(uid),
                 builder: (context, snapshot) {
                   // For now, just show garment ids; deep garment summary could be added later.
                   final garmentIds = outfit.garmentIds;
@@ -542,7 +613,8 @@ class _GalleryTab extends ConsumerWidget {
                 Icon(Icons.photo_library_outlined,
                     size: 56, color: AppColors.textHint.withOpacity(0.4)),
                 const SizedBox(height: 12),
-                const Text('Aucun souvenir pour l\'instant', style: AppTextStyles.bodySecondary),
+                const Text('Aucun souvenir pour l\'instant',
+                    style: AppTextStyles.bodySecondary),
               ],
             ),
           );
@@ -567,7 +639,8 @@ class _GalleryTab extends ConsumerWidget {
                 ? rawDate.substring(0, 10)
                 : rawDate;
             return GestureDetector(
-              onTap: () => _showMemoryDetail(context, memory.url, memory.outfit, date),
+              onTap: () =>
+                  _showMemoryDetail(context, memory.url, memory.outfit, date),
               child: Stack(
                 children: [
                   ClipRRect(
@@ -594,7 +667,8 @@ class _GalleryTab extends ConsumerWidget {
                     left: 4,
                     bottom: 4,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.55),
                         borderRadius: BorderRadius.circular(8),
@@ -686,7 +760,8 @@ class _MemoryDetailSheet extends StatelessWidget {
                   if (outfit.name.isNotEmpty)
                     Text(
                       outfit.name,
-                      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
+                      style: AppTextStyles.body
+                          .copyWith(fontWeight: FontWeight.w600),
                     ),
                 ],
               ),
@@ -763,7 +838,9 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
       });
       return;
     }
-    final users = await ref.read(firestoreServiceProvider).getUsersByIds(widget.user.friends);
+    final users = await ref
+        .read(firestoreServiceProvider)
+        .getUsersByIds(widget.user.friends);
     if (mounted) {
       setState(() {
         _friendUsers = users;
@@ -800,13 +877,18 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
               ),
               secondary: Icon(
                 widget.user.isPrivate ? Icons.lock_outline : Icons.public,
-                color: widget.user.isPrivate ? AppColors.accent : AppColors.textHint,
+                color: widget.user.isPrivate
+                    ? AppColors.accent
+                    : AppColors.textHint,
               ),
               value: widget.user.isPrivate,
               activeColor: AppColors.accent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
               onChanged: (val) {
-                ref.read(friendshipNotifierProvider.notifier).togglePrivacy(val);
+                ref
+                    .read(friendshipNotifierProvider.notifier)
+                    .togglePrivacy(val);
               },
             ),
           ),
@@ -819,10 +901,12 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                 children: [
                   Row(
                     children: [
-                      const Text('Demandes recues', style: AppTextStyles.heading3),
+                      const Text('Demandes recues',
+                          style: AppTextStyles.heading3),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: AppColors.accent,
                           borderRadius: BorderRadius.circular(10),
@@ -830,7 +914,9 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                         child: Text(
                           '${requests.length}',
                           style: const TextStyle(
-                              color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -858,7 +944,8 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                                           ? req.fromUsername[0].toUpperCase()
                                           : '?',
                                       style: const TextStyle(
-                                          fontWeight: FontWeight.w600, color: AppColors.textHint),
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textHint),
                                     )
                                   : null,
                             ),
@@ -866,21 +953,28 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                             Expanded(
                               child: Text(
                                 req.fromUsername,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 14),
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.check_circle, color: AppColors.success),
+                              icon: const Icon(Icons.check_circle,
+                                  color: AppColors.success),
                               iconSize: 28,
                               onPressed: () {
-                                ref.read(friendshipNotifierProvider.notifier).acceptRequest(req);
+                                ref
+                                    .read(friendshipNotifierProvider.notifier)
+                                    .acceptRequest(req);
                               },
                             ),
                             IconButton(
-                              icon: const Icon(Icons.cancel_outlined, color: AppColors.textHint),
+                              icon: const Icon(Icons.cancel_outlined,
+                                  color: AppColors.textHint),
                               iconSize: 28,
                               onPressed: () {
-                                ref.read(friendshipNotifierProvider.notifier).rejectRequest(req);
+                                ref
+                                    .read(friendshipNotifierProvider.notifier)
+                                    .rejectRequest(req);
                               },
                             ),
                           ],
@@ -928,9 +1022,11 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
               child: Column(
                 children: [
                   const SizedBox(height: 20),
-                  Icon(Icons.people_outline, size: 48, color: AppColors.textHint.withOpacity(0.3)),
+                  Icon(Icons.people_outline,
+                      size: 48, color: AppColors.textHint.withOpacity(0.3)),
                   const SizedBox(height: 12),
-                  const Text('Aucun ami pour le moment', style: AppTextStyles.bodySecondary),
+                  const Text('Aucun ami pour le moment',
+                      style: AppTextStyles.bodySecondary),
                 ],
               ),
             )
@@ -943,7 +1039,8 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                     border: Border.all(color: AppColors.divider),
                   ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                     leading: CircleAvatar(
                       radius: 22,
                       backgroundColor: AppColors.surfaceVariant,
@@ -956,25 +1053,30 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                                   ? friend.username[0].toUpperCase()
                                   : '?',
                               style: const TextStyle(
-                                  fontWeight: FontWeight.w600, color: AppColors.textHint),
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textHint),
                             )
                           : null,
                     ),
                     title: Text(
                       friend.username,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                     subtitle: friend.displayName.isNotEmpty
                         ? Text(friend.displayName, style: AppTextStyles.caption)
                         : null,
                     trailing: PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, color: AppColors.textHint),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      icon: const Icon(Icons.more_vert,
+                          color: AppColors.textHint),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       onSelected: (value) {
                         if (value == 'view') {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => UserProfileScreen(userId: friend.uid),
+                              builder: (_) =>
+                                  UserProfileScreen(userId: friend.uid),
                             ),
                           );
                         } else if (value == 'remove') {
@@ -986,7 +1088,8 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                           value: 'view',
                           child: Row(
                             children: [
-                              Icon(Icons.person_outline, size: 18, color: AppColors.textSecondary),
+                              Icon(Icons.person_outline,
+                                  size: 18, color: AppColors.textSecondary),
                               SizedBox(width: 10),
                               Text('Voir le profil'),
                             ],
@@ -996,9 +1099,11 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                           value: 'remove',
                           child: Row(
                             children: [
-                              Icon(Icons.person_remove, size: 18, color: AppColors.error),
+                              Icon(Icons.person_remove,
+                                  size: 18, color: AppColors.error),
                               SizedBox(width: 10),
-                              Text('Retirer', style: TextStyle(color: AppColors.error)),
+                              Text('Retirer',
+                                  style: TextStyle(color: AppColors.error)),
                             ],
                           ),
                         ),
@@ -1033,12 +1138,15 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              ref.read(friendshipNotifierProvider.notifier).removeFriend(friend.uid);
+              ref
+                  .read(friendshipNotifierProvider.notifier)
+                  .removeFriend(friend.uid);
               setState(() {
                 _friendUsers.removeWhere((u) => u.uid == friend.uid);
               });
             },
-            child: const Text('Retirer', style: TextStyle(color: AppColors.error)),
+            child:
+                const Text('Retirer', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -1068,10 +1176,12 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setStateDlg) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 24),
+              Icon(Icons.warning_amber_rounded,
+                  color: AppColors.error, size: 24),
               SizedBox(width: 10),
               Text('Supprimer le compte'),
             ],
@@ -1100,8 +1210,10 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   suffixIcon: IconButton(
-                    icon: Icon(obscure ? Icons.visibility_off : Icons.visibility,
-                        size: 20, color: AppColors.textHint),
+                    icon: Icon(
+                        obscure ? Icons.visibility_off : Icons.visibility,
+                        size: 20,
+                        color: AppColors.textHint),
                     onPressed: () => setStateDlg(() => obscure = !obscure),
                   ),
                   contentPadding:
@@ -1155,7 +1267,8 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
           content: Text(msg),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         ),
       );
@@ -1178,9 +1291,13 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
               value: widget.user.createdAt.isNotEmpty
                   ? widget.user.createdAt.substring(0, 10)
                   : '-'),
-          _InfoRow(label: 'Meilleur streak', value: '${widget.user.bestStreak} jours'),
+          _InfoRow(
+              label: 'Meilleur streak',
+              value: '${widget.user.bestStreak} jours'),
           _InfoRow(label: 'Amis', value: '${widget.user.friends.length}'),
-          _InfoRow(label: 'Compte', value: widget.user.isPrivate ? 'Prive' : 'Public'),
+          _InfoRow(
+              label: 'Compte',
+              value: widget.user.isPrivate ? 'Prive' : 'Public'),
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,

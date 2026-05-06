@@ -97,13 +97,59 @@ void main() {
       final after = fakeDb.outfits['uid-1']!.first.timesWorn;
       expect(after, before + 1);
     });
+
+    test(
+        'changement du fit le même jour : -1 sur l’ancien, +1 sur le nouveau',
+        () async {
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      fakeDb.outfits['uid-1'] = [
+        fakeOutfit(id: 'outfit-1', userId: 'uid-1', timesWorn: 3),
+        fakeOutfit(id: 'outfit-2', userId: 'uid-1', name: 'B', timesWorn: 1),
+      ];
+      fakeDb.users['uid-1'] = {
+        ...fakeUser(uid: 'uid-1', dailyOutfitId: 'outfit-1').toMap(),
+        'daily_outfit_date': today,
+      };
+
+      await n().setDailyOutfit('uid-1', 'outfit-2');
+
+      final after1 =
+          fakeDb.outfits['uid-1']!.firstWhere((o) => o.id == 'outfit-1').timesWorn;
+      final after2 =
+          fakeDb.outfits['uid-1']!.firstWhere((o) => o.id == 'outfit-2').timesWorn;
+      expect(after1, 2);
+      expect(after2, 2);
+    });
+
+    test('re-sélection du même outfit le même jour → pas de nouveau +1',
+        () async {
+      final today = DateTime.now().toIso8601String().substring(0, 10);
+      fakeDb.outfits['uid-1'] = [
+        fakeOutfit(id: 'outfit-1', userId: 'uid-1', timesWorn: 1),
+      ];
+      fakeDb.users['uid-1'] = {
+        ...fakeUser(uid: 'uid-1', dailyOutfitId: 'outfit-1').toMap(),
+        'daily_outfit_date': today,
+      };
+
+      await n().setDailyOutfit('uid-1', 'outfit-1');
+      expect(fakeDb.outfits['uid-1']!.first.timesWorn, 1);
+    });
   });
 
   // ── clearDailyOutfit ───────────────────────────────────────────────────────
 
   group('clearDailyOutfit', () {
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+
     setUp(() {
-      fakeDb.users['uid-1'] = fakeUser(uid: 'uid-1', dailyOutfitId: 'outfit-1').toMap();
+      fakeDb.users['uid-1'] = {
+        ...fakeUser(uid: 'uid-1', dailyOutfitId: 'outfit-1').toMap(),
+        'daily_outfit_date': today,
+      };
+      fakeDb.outfits['uid-1'] = [
+        fakeOutfit(id: 'outfit-1', userId: 'uid-1', timesWorn: 5),
+      ];
     });
 
     test('vide daily_outfit_id sur l\'user', () async {
@@ -115,6 +161,14 @@ void main() {
       fakeDb.users['uid-1']!['daily_photo_url'] = 'https://photo.url';
       await n().clearDailyOutfit('uid-1');
       expect(fakeDb.users['uid-1']!['daily_photo_url'], '');
+    });
+
+    test('annule le +1 du jour sur l\'outfit quotidien', () async {
+      await n().clearDailyOutfit('uid-1');
+      expect(
+        fakeDb.outfits['uid-1']!.first.timesWorn,
+        4,
+      );
     });
   });
 

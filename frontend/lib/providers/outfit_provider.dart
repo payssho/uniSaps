@@ -46,6 +46,30 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
 
   Future<void> setDailyOutfit(String uid, String outfitId) async {
     final today = DateTime.now().toIso8601String().substring(0, 10);
+    final user = await _db.getUser(uid);
+    if (user == null) return;
+
+    final prevId = user.dailyOutfitId;
+    final prevDate = user.dailyOutfitDate;
+
+    // Déjà l’outfit du jour : ne pas recompter plusieurs « ports » dans la même journée.
+    if (prevId == outfitId && prevDate == today) {
+      return;
+    }
+
+    final sameDayPrevious =
+        prevDate == today && prevId.isNotEmpty && prevId != outfitId;
+
+    if (sameDayPrevious) {
+      final prevOutfit = await _db.getOutfit(uid, prevId);
+      if (prevOutfit != null) {
+        final next = (prevOutfit.timesWorn - 1).clamp(0, 0x7fffffff);
+        await _db.updateOutfit(uid, prevId, {
+          'times_worn': next,
+        });
+      }
+    }
+
     await _db.updateUser(uid, {
       'daily_outfit_id': outfitId,
       'daily_outfit_date': today,
@@ -88,6 +112,24 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<void> clearDailyOutfit(String uid) async {
+    final user = await _db.getUser(uid);
+    final today = DateTime.now().toIso8601String().substring(0, 10);
+
+    final hadToday = user != null &&
+        user.dailyOutfitDate == today &&
+        user.dailyOutfitId.isNotEmpty;
+    final clearedId = user?.dailyOutfitId ?? '';
+
+    if (hadToday) {
+      final cur = await _db.getOutfit(uid, clearedId);
+      if (cur != null) {
+        final next = (cur.timesWorn - 1).clamp(0, 0x7fffffff);
+        await _db.updateOutfit(uid, clearedId, {
+          'times_worn': next,
+        });
+      }
+    }
+
     await _db.updateUser(uid, {
       'daily_outfit_id': '',
       'daily_photo_url': '',

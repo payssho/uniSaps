@@ -34,6 +34,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     '',
     'Ajoute un vêtement à ton dressing pour débloquer cette section',
     'Crée ton premier outfit pour débloquer cette section',
+    '',
   ];
 
   @override
@@ -69,7 +70,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Listen to selectedTabProvider for programmatic tab changes (e.g. from InspirationScreen)
     ref.listen(selectedTabProvider, (prev, next) {
-      if (next != _currentTab && next >= 0 && next < 3) {
+      if (next != _currentTab && next >= 0 && next < 4) {
         _goToTab(next);
       }
     });
@@ -84,8 +85,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (user != null && !_tutorialStarted) {
       final t = user.tutorialSeen;
-      final isNew = user.isNewUser ||
-          !(t.dressing || t.outfits || t.inspiration);
+      final isNew =
+          user.isNewUser || !(t.dressing || t.outfits || t.inspiration);
       if (isNew) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           ref.read(tutorialStepProvider.notifier).state = 0;
@@ -94,8 +95,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
-    // Tabs: 0=Dressing, 1=Outfits, 2=Inspo
-    final tabUnlocked = [true, hasGarments, hasOutfits];
+    final requestCount = ref.watch(receivedRequestsCountProvider);
+
+    // Tabs: 0=Dressing, 1=Outfits, 2=Inspo, 3=Profil
+    final tabUnlocked = [true, hasGarments, hasOutfits, true];
 
     void onTabTap(int index) {
       if (tabUnlocked[index]) {
@@ -170,8 +173,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           backgroundColor: AppColors.primary.withOpacity(0.92),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14)),
-                          margin:
-                              const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                           duration: const Duration(seconds: 2),
                         ),
                       );
@@ -184,6 +186,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _KeepAlive(child: const DressingScreen()),
                   _KeepAlive(child: const OutfitsScreen()),
                   _KeepAlive(child: const InspirationScreen()),
+                  _KeepAlive(
+                      child: const ProfileScreen(embeddedInMainNav: true)),
                 ],
               ),
               if (user != null)
@@ -195,9 +199,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     children: [
                       if (_currentTab == 2) ...[
                         _SearchFriendsButton(),
-                        const SizedBox(width: 10),
                       ],
-                      _ProfileAvatarButton(user: user),
                     ],
                   ),
                 ),
@@ -206,6 +208,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           bottomNavigationBar: _BottomNavBar(
             currentIndex: _currentTab,
             unlocked: tabUnlocked,
+            profileBadgeCount: requestCount,
+            profilePhotoUrl: user?.profilePhotoUrl ?? '',
+            profileUsername: user?.username ?? '',
             onTap: onTabTap,
           ),
         ),
@@ -271,7 +276,7 @@ class _KeepAliveState extends State<_KeepAlive>
 }
 
 // ---------------------------------------------------------------------------
-// Profile avatar button (top-right) + search friends (Inspo tab)
+// Search friends (Inspo tab — top-right overlay)
 // ---------------------------------------------------------------------------
 class _SearchFriendsButton extends StatelessWidget {
   @override
@@ -317,113 +322,25 @@ class _SearchFriendsButton extends StatelessWidget {
   }
 }
 
-class _ProfileAvatarButton extends ConsumerWidget {
-  final UserModel user;
-  const _ProfileAvatarButton({required this.user});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final requestCount = ref.watch(receivedRequestsCountProvider);
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).push(
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const ProfileScreen(),
-            transitionsBuilder: (_, anim, __, child) {
-              return SlideTransition(
-                position: Tween(
-                  begin: const Offset(1, 0),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(
-                    parent: anim, curve: Curves.easeOutCubic)),
-                child: child,
-              );
-            },
-            transitionDuration: const Duration(milliseconds: 300),
-          ),
-        );
-      },
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.accent, width: 2.5),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.accent.withOpacity(0.25),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: AppColors.surfaceVariant,
-              backgroundImage: user.profilePhotoUrl.isNotEmpty
-                  ? CachedNetworkImageProvider(user.profilePhotoUrl)
-                  : null,
-              child: user.profilePhotoUrl.isEmpty
-                  ? Text(
-                      user.username.isNotEmpty
-                          ? user.username[0].toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textHint,
-                        fontSize: 14,
-                      ),
-                    )
-                  : null,
-            ),
-          ),
-          if (requestCount > 0)
-            Positioned(
-              right: -4,
-              top: -4,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.accent,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.surface, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  '$requestCount',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 // ---------------------------------------------------------------------------
-// Compact bottom nav bar (3 tabs, lock support)
+// Compact bottom nav bar (4 tabs, lock support)
 // ---------------------------------------------------------------------------
 class _BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final List<bool> unlocked;
+  final int profileBadgeCount;
+
+  /// Photo de profil pour la bulle du 4ᵉ onglet.
+  final String profilePhotoUrl;
+  final String profileUsername;
   final ValueChanged<int> onTap;
 
   const _BottomNavBar({
     required this.currentIndex,
     required this.unlocked,
+    required this.profileBadgeCount,
+    required this.profilePhotoUrl,
+    required this.profileUsername,
     required this.onTap,
   });
 
@@ -448,20 +365,193 @@ class _BottomNavBar extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(_tabs.length, (i) {
-              final (icon, activeIcon, label) = _tabs[i];
-              return _NavItem(
-                icon: icon,
-                activeIcon: activeIcon,
-                label: label,
-                selected: currentIndex == i,
-                locked: !unlocked[i],
-                onTap: () => onTap(i),
-              );
-            }),
+            children: [
+              ...List.generate(_tabs.length, (i) {
+                final (icon, activeIcon, label) = _tabs[i];
+                return Expanded(
+                  child: _NavItem(
+                    icon: icon,
+                    activeIcon: activeIcon,
+                    label: label,
+                    selected: currentIndex == i,
+                    locked: !unlocked[i],
+                    requestBadgeCount: 0,
+                    onTap: () => onTap(i),
+                  ),
+                );
+              }),
+              Expanded(
+                child: _NavProfileBubble(
+                  selected: currentIndex == 3,
+                  locked: !unlocked[3],
+                  badgeCount: unlocked[3] ? profileBadgeCount : 0,
+                  photoUrl: profilePhotoUrl,
+                  username: profileUsername,
+                  onTap: () => onTap(3),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 4ᵉ onglet : bulle photo de profil (même emplacement, sans libellé).
+class _NavProfileBubble extends StatelessWidget {
+  final bool selected;
+  final bool locked;
+  final int badgeCount;
+  final String photoUrl;
+  final String username;
+  final VoidCallback onTap;
+
+  const _NavProfileBubble({
+    required this.selected,
+    required this.locked,
+    required this.badgeCount,
+    required this.photoUrl,
+    required this.username,
+    required this.onTap,
+  });
+
+  static const double _radius = 15;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = locked
+        ? AppColors.textHint.withOpacity(0.35)
+        : selected
+            ? AppColors.accent
+            : AppColors.divider.withOpacity(0.9);
+    final borderWidth = selected ? 2.5 : 1.5;
+
+    return Semantics(
+      label: 'Profil',
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          // Décale la bulle vers le bas pour l’aligner visuellement avec les icônes voisines.
+          padding: const EdgeInsets.only(top: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    curve: Curves.easeOutCubic,
+                    padding: EdgeInsets.all(selected ? 4 : 0),
+                    decoration: selected
+                        ? BoxDecoration(
+                            color: AppColors.accent.withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          )
+                        : null,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: borderColor,
+                          width: borderWidth,
+                        ),
+                        boxShadow: selected
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.accent.withOpacity(0.22),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: CircleAvatar(
+                        radius: _radius,
+                        backgroundColor: AppColors.surfaceVariant,
+                        backgroundImage: photoUrl.isNotEmpty
+                            ? CachedNetworkImageProvider(photoUrl)
+                            : null,
+                        child: photoUrl.isEmpty
+                            ? Text(
+                                username.isNotEmpty
+                                    ? username[0].toUpperCase()
+                                    : '?',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  color: locked
+                                      ? AppColors.textHint.withOpacity(0.45)
+                                      : AppColors.textHint,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+                  if (locked)
+                    Positioned(
+                      right: 4,
+                      top: -2,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 3,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.lock,
+                          size: 9,
+                          color: AppColors.textHint.withOpacity(0.6),
+                        ),
+                      ),
+                    ),
+                  if (!locked && badgeCount > 0)
+                    Positioned(
+                      right: 0,
+                      top: -4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 1),
+                        constraints:
+                            const BoxConstraints(minWidth: 16, minHeight: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent,
+                          borderRadius: BorderRadius.circular(8),
+                          border:
+                              Border.all(color: AppColors.surface, width: 1.5),
+                        ),
+                        child: Text(
+                          badgeCount > 99 ? '99+' : '$badgeCount',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            height: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              // Espace équivalent au libellé 10px des autres onglets
+              const SizedBox(height: 13),
+            ],
           ),
         ),
       ),
@@ -475,6 +565,9 @@ class _NavItem extends StatelessWidget {
   final String label;
   final bool selected;
   final bool locked;
+
+  /// Pastille type demandes d’amis (profil uniquement).
+  final int requestBadgeCount;
   final VoidCallback onTap;
 
   const _NavItem({
@@ -484,6 +577,7 @@ class _NavItem extends StatelessWidget {
     required this.selected,
     required this.onTap,
     this.locked = false,
+    this.requestBadgeCount = 0,
   });
 
   @override
@@ -497,61 +591,87 @@ class _NavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        width: 64,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(selected ? 6 : 0),
-                  decoration: selected
-                      ? BoxDecoration(
-                          color: AppColors.accent.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        )
-                      : null,
-                  child: Icon(
-                    selected ? activeIcon : icon,
-                    color: color,
-                    size: selected ? 22 : 20,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(selected ? 6 : 0),
+                decoration: selected
+                    ? BoxDecoration(
+                        color: AppColors.accent.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      )
+                    : null,
+                child: Icon(
+                  selected ? activeIcon : icon,
+                  color: color,
+                  size: selected ? 22 : 20,
+                ),
+              ),
+              if (locked)
+                Positioned(
+                  right: 4,
+                  top: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 3,
+                        ),
+                      ],
+                    ),
+                    child: Icon(Icons.lock,
+                        size: 9, color: AppColors.textHint.withOpacity(0.6)),
                   ),
                 ),
-                if (locked)
-                  Positioned(
-                    right: -3,
-                    top: -3,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 3,
-                          ),
-                        ],
+              if (!locked && requestBadgeCount > 0)
+                Positioned(
+                  right: 2,
+                  top: -4,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                    constraints:
+                        const BoxConstraints(minWidth: 16, minHeight: 16),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.surface, width: 1.5),
+                    ),
+                    child: Text(
+                      requestBadgeCount > 99 ? '99+' : '$requestBadgeCount',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
                       ),
-                      child: Icon(Icons.lock, size: 9,
-                          color: AppColors.textHint.withOpacity(0.6)),
                     ),
                   ),
-              ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              color: color,
             ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: color,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -604,101 +724,101 @@ class _TutorialOverlay extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: Container(
-        color: Colors.black.withOpacity(0.55),
-        child: Center(
-          child: Container(
-            width: size.width * 0.82,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 68,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.accent.withOpacity(0.15),
-                        AppColors.accentLight.withOpacity(0.1),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
+          color: Colors.black.withOpacity(0.55),
+          child: Center(
+            child: Container(
+              width: size.width * 0.82,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.25),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
                   ),
-                  child: Icon(icon, color: AppColors.accent, size: 32),
-                ),
-                const SizedBox(height: 18),
-                Text(title,
-                    style: AppTextStyles.heading2.copyWith(fontSize: 19),
-                    textAlign: TextAlign.center),
-                const SizedBox(height: 6),
-                Text(description,
-                    style: AppTextStyles.bodySecondary,
-                    textAlign: TextAlign.center),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(3, (i) {
-                    return Container(
-                      width: i == step ? 18 : 8,
-                      height: 6,
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      decoration: BoxDecoration(
-                        color: i == step
-                            ? AppColors.accent
-                            : AppColors.textHint.withOpacity(0.25),
-                        borderRadius: BorderRadius.circular(3),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 68,
+                    height: 68,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.accent.withOpacity(0.15),
+                          AppColors.accentLight.withOpacity(0.1),
+                        ],
                       ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: onSkip,
-                        child: const Text('Passer',
-                            style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w500)),
-                      ),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: onNext,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
+                    child: Icon(icon, color: AppColors.accent, size: 32),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(title,
+                      style: AppTextStyles.heading2.copyWith(fontSize: 19),
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 6),
+                  Text(description,
+                      style: AppTextStyles.bodySecondary,
+                      textAlign: TextAlign.center),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(3, (i) {
+                      return Container(
+                        width: i == step ? 18 : 8,
+                        height: 6,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          color: i == step
+                              ? AppColors.accent
+                              : AppColors.textHint.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(3),
                         ),
-                        child: Text(
-                          step == 2 ? 'C\'est parti !' : 'Suivant',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: onSkip,
+                          child: const Text('Passer',
+                              style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500)),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: onNext,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: Text(
+                            step == 2 ? 'C\'est parti !' : 'Suivant',
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
       ),
     );
   }
