@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../core/constants/categories.dart';
 import '../../core/constants/weather_catalog.dart';
 import '../../models/garment_model.dart';
 import '../../providers/auth_provider.dart';
