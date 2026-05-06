@@ -60,14 +60,6 @@ flutter {
     source = "../.."
 }
 
-// Le NDK n'est pas disponible localement : on désactive le strip des symboles natifs.
-// Les bibliothèques release seront légèrement plus grosses mais l'AAB reste valide pour la Play Store.
-tasks.whenTaskAdded { task ->
-    if (task.name.startsWith("strip")) {
-        task.enabled = false
-    }
-}
-
 dependencies {
     implementation platform("com.google.firebase:firebase-bom:33.7.0")
     implementation "com.google.firebase:firebase-analytics"
