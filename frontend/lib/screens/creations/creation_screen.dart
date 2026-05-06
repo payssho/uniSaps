@@ -5,11 +5,41 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/constants/categories.dart';
+import '../../core/constants/weather_catalog.dart';
 import '../../models/garment_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/garment_provider.dart';
+
+IconData _creationWeatherIcon(String id) {
+  switch (id) {
+    case 'beau':
+      return Icons.wb_sunny_rounded;
+    case 'nuageux':
+      return Icons.cloud_rounded;
+    case 'pluie':
+      return Icons.umbrella_rounded;
+    case 'neige':
+      return Icons.ac_unit_rounded;
+    default:
+      return Icons.wb_cloudy_rounded;
+  }
+}
+
+IconData _creationSeasonIcon(String key) {
+  switch (key) {
+    case SeasonKeys.winter:
+      return Icons.ac_unit_rounded;
+    case SeasonKeys.spring:
+      return Icons.eco_rounded;
+    case SeasonKeys.summer:
+      return Icons.light_mode_rounded;
+    case SeasonKeys.autumn:
+      return Icons.park_rounded;
+    default:
+      return Icons.calendar_month_rounded;
+  }
+}
 
 class CreationScreen extends ConsumerStatefulWidget {
   const CreationScreen({super.key});
@@ -25,6 +55,15 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   bool _saving = false;
   String? _referencePhotoUrl;
   bool _uploadingPhoto = false;
+
+  /// Optionnel — vide = toutes saisons pour les suggestions météo.
+  final Set<String> _selectedSeasonKeys = {};
+
+  /// Presets temps simples (`WeatherTagKeys.creationSimpleWeatherIds`), optionnel.
+  final Set<String> _selectedSimpleWeatherIds = {};
+
+  bool _weatherDropdownOpen = false;
+  bool _seasonDropdownOpen = false;
 
   @override
   void dispose() {
@@ -327,6 +366,9 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           name: name,
           garments: garments,
           referencePhotoUrl: _referencePhotoUrl ?? '',
+          seasons: _selectedSeasonKeys.toList()..sort(),
+          weatherTags: WeatherTagKeys.expandCreationSimplePresets(
+              _selectedSimpleWeatherIds),
         );
 
     if (mounted) {
@@ -359,6 +401,22 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           );
       }
     }
+  }
+
+  String _weatherSummaryText() {
+    if (_selectedSimpleWeatherIds.isEmpty) return '';
+    return WeatherTagKeys.creationSimpleWeatherIds
+        .where(_selectedSimpleWeatherIds.contains)
+        .map(WeatherTagKeys.creationSimpleLabelFr)
+        .join(', ');
+  }
+
+  String _seasonSummaryText() {
+    if (_selectedSeasonKeys.isEmpty) return '';
+    return SeasonKeys.all
+        .where(_selectedSeasonKeys.contains)
+        .map(SeasonKeys.labelFr)
+        .join(', ');
   }
 
   @override
@@ -724,10 +782,212 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                       delay: (50 * i).ms);
             }),
 
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 28, 16, 0),
+              child: _MultiSelectDropdownTile(
+                label: 'Temps',
+                hintWhenEmpty: 'Toutes les conditions',
+                summary: _weatherSummaryText(),
+                expanded: _weatherDropdownOpen,
+                headerIcon: Icons.cloud_outlined,
+                optionIds: WeatherTagKeys.creationSimpleWeatherIds,
+                selected: _selectedSimpleWeatherIds,
+                labelForKey: WeatherTagKeys.creationSimpleLabelFr,
+                iconForKey: _creationWeatherIcon,
+                onHeaderTap: () => setState(() {
+                  _weatherDropdownOpen = !_weatherDropdownOpen;
+                  if (_weatherDropdownOpen) _seasonDropdownOpen = false;
+                }),
+                onToggleOption: (id) => setState(() {
+                  if (_selectedSimpleWeatherIds.contains(id)) {
+                    _selectedSimpleWeatherIds.remove(id);
+                  } else {
+                    _selectedSimpleWeatherIds.add(id);
+                  }
+                }),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: _MultiSelectDropdownTile(
+                label: 'Saisons',
+                hintWhenEmpty: 'Toutes les saisons',
+                summary: _seasonSummaryText(),
+                expanded: _seasonDropdownOpen,
+                headerIcon: Icons.calendar_today_outlined,
+                optionIds: SeasonKeys.all,
+                selected: _selectedSeasonKeys,
+                labelForKey: SeasonKeys.labelFr,
+                iconForKey: _creationSeasonIcon,
+                onHeaderTap: () => setState(() {
+                  _seasonDropdownOpen = !_seasonDropdownOpen;
+                  if (_seasonDropdownOpen) _weatherDropdownOpen = false;
+                }),
+                onToggleOption: (k) => setState(() {
+                  if (_selectedSeasonKeys.contains(k)) {
+                    _selectedSeasonKeys.remove(k);
+                  } else {
+                    _selectedSeasonKeys.add(k);
+                  }
+                }),
+              ),
+            ),
+
             const SizedBox(height: 100),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Liste déroulante type sélecteur de couleur : champ + panneau avec icônes (multi-sélection).
+class _MultiSelectDropdownTile extends StatelessWidget {
+  final String label;
+  final String hintWhenEmpty;
+  final String summary;
+  final bool expanded;
+  final IconData headerIcon;
+  final List<String> optionIds;
+  final Set<String> selected;
+  final String Function(String) labelForKey;
+  final IconData Function(String) iconForKey;
+  final VoidCallback onHeaderTap;
+  final void Function(String id) onToggleOption;
+
+  const _MultiSelectDropdownTile({
+    required this.label,
+    required this.hintWhenEmpty,
+    required this.summary,
+    required this.expanded,
+    required this.headerIcon,
+    required this.optionIds,
+    required this.selected,
+    required this.labelForKey,
+    required this.iconForKey,
+    required this.onHeaderTap,
+    required this.onToggleOption,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasSelection = summary.isNotEmpty;
+    final display = hasSelection ? summary : hintWhenEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onHeaderTap,
+            borderRadius: BorderRadius.circular(14),
+            child: InputDecorator(
+              decoration: InputDecoration(
+                labelText: label,
+                labelStyle: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+                filled: true,
+                fillColor: AppColors.surfaceVariant,
+                prefixIcon: Icon(headerIcon,
+                    size: 20, color: AppColors.textHint),
+                suffixIcon: Icon(
+                  expanded ? Icons.expand_less : Icons.expand_more,
+                  color: AppColors.textHint,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 4, vertical: 4),
+              ),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                child: Text(
+                  display,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: hasSelection
+                        ? AppColors.textPrimary
+                        : AppColors.textHint.withOpacity(0.95),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (expanded) ...[
+          const SizedBox(height: 6),
+          Material(
+            color: AppColors.surface,
+            elevation: 2,
+            shadowColor: Colors.black26,
+            borderRadius: BorderRadius.circular(14),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Column(
+                children: [
+                  for (var i = 0; i < optionIds.length; i++) ...[
+                    if (i > 0)
+                      Divider(
+                          height: 1,
+                          thickness: 1,
+                          color:
+                              AppColors.divider.withOpacity(0.5)),
+                    InkWell(
+                      onTap: () => onToggleOption(optionIds[i]),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 12),
+                        child: Row(
+                          children: [
+                            Icon(
+                              iconForKey(optionIds[i]),
+                              size: 22,
+                              color: AppColors.accent,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                labelForKey(optionIds[i]),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: selected
+                                          .contains(optionIds[i])
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              selected.contains(optionIds[i])
+                                  ? Icons.check_circle_rounded
+                                  : Icons.circle_outlined,
+                              size: 22,
+                              color: selected.contains(optionIds[i])
+                                  ? AppColors.accent
+                                  : AppColors.textHint.withOpacity(0.5),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

@@ -96,7 +96,7 @@ void main() {
   // ── createPostFromDaily ────────────────────────────────────────────────────
 
   group('createPostFromDaily', () {
-    test('succès avec dailyPhotoUrl → retourne true', () async {
+    test('succès avec dailyPhotoUrl → retourne ok', () async {
       final user =
           fakeUser(uid: 'uid-1').copyWith(dailyPhotoUrl: 'https://daily.url/photo.jpg');
       final ok = await n().createPostFromDaily(
@@ -105,17 +105,29 @@ void main() {
         garments: [fakeGarment()],
         caption: 'Look du jour',
       );
-      expect(ok, true);
+      expect(ok, 'ok');
     });
 
-    test('dailyPhotoUrl vide → retourne false', () async {
+    test('sans dailyPhoto ni référence outfit → no_photo', () async {
       final user = fakeUser(uid: 'uid-1'); // dailyPhotoUrl vide
       final ok = await n().createPostFromDaily(
         user: user,
         outfit: fakeOutfit(),
         garments: [],
       );
-      expect(ok, false);
+      expect(ok, 'no_photo');
+    });
+
+    test('sans dailyPhoto mais photo de référence outfit → ok', () async {
+      final user = fakeUser(uid: 'uid-1');
+      final ok = await n().createPostFromDaily(
+        user: user,
+        outfit: fakeOutfit(
+            referencePhotoUrl: 'https://ref-only.url/outfit.jpg'),
+        garments: [],
+      );
+      expect(ok, 'ok');
+      expect(fakeDb.posts.first.imageUrl, 'https://ref-only.url/outfit.jpg');
     });
 
     test('succès → post contient les garmentRefs', () async {

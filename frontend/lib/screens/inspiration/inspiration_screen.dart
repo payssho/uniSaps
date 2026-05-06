@@ -176,12 +176,11 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
     }
   }
 
-  void _handlePublish(BuildContext context) {
+  Future<void> _handlePublish(BuildContext context) async {
     final user = ref.read(currentUserProvider).valueOrNull;
     if (user == null) return;
 
-    if (user.dailyOutfitId.isEmpty || user.dailyPhotoUrl.isEmpty) {
-      // Redirect to Outfits tab (index 1) with explanatory SnackBar
+    if (user.dailyOutfitId.isEmpty) {
       ref.read(selectedTabProvider.notifier).state = 1;
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
@@ -198,16 +197,53 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
       return;
     }
 
-    _showPublishSheet(context, user);
-  }
-
-  Future<void> _showPublishSheet(BuildContext context, dynamic user) async {
     final uid = ref.read(authServiceProvider).uid;
     try {
       final outfit = await ref
           .read(firestoreServiceProvider)
           .getOutfit(uid, user.dailyOutfitId);
-      if (outfit == null || !mounted) return;
+      if (!mounted || !context.mounted) return;
+      if (outfit == null) {
+        ref.read(selectedTabProvider.notifier).state = 1;
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Cet outfit n\'existe plus. Choisis un outfit du jour.',
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.accent.withOpacity(0.92),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            ),
+          );
+        return;
+      }
+
+      final postImageUrl = user.dailyPhotoUrl.isNotEmpty
+          ? user.dailyPhotoUrl
+          : outfit.referencePhotoUrl;
+
+      if (postImageUrl.isEmpty) {
+        ref.read(selectedTabProvider.notifier).state = 1;
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: const Text(
+                'Ajoute au moins une photo à ton outfit pour publier.',
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.accent.withOpacity(0.92),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            ),
+          );
+        return;
+      }
 
       final garments = <GarmentModel>[];
       for (final gid in outfit.garmentIds) {
@@ -215,10 +251,16 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
             await ref.read(firestoreServiceProvider).getGarment(uid, gid);
         if (g != null) garments.add(g);
       }
-      if (!mounted) return;
-      _showDailyPostSheet(context, user, outfit, garments);
+      if (!mounted || !context.mounted) return;
+      _showDailyPostSheet(
+        context,
+        user,
+        outfit,
+        garments,
+        postImageUrl: postImageUrl,
+      );
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || !context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Erreur lors de la préparation du post.')),
@@ -228,10 +270,11 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
 
   void _showDailyPostSheet(
     BuildContext context,
-    dynamic user,
+    UserModel user,
     OutfitModel outfit,
-    List<GarmentModel> garments,
-  ) {
+    List<GarmentModel> garments, {
+    required String postImageUrl,
+  }) {
     final captionController = TextEditingController();
     showModalBottomSheet(
       context: context,
@@ -269,7 +312,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                 child: AspectRatio(
                   aspectRatio: 3 / 4,
                   child: CachedNetworkImage(
-                    imageUrl: user.dailyPhotoUrl,
+                    imageUrl: postImageUrl,
                     fit: BoxFit.cover,
                     placeholder: (_, __) => Container(
                       color: AppColors.surfaceVariant,

@@ -183,6 +183,25 @@ class FakeFirestoreService extends Fake implements FirestoreService {
   }
 
   @override
+  Future<PostModel?> getUserTodayPost(String uid) async {
+    _checkError();
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
+
+    for (final p in posts) {
+      if (p.userId != uid) continue;
+      final dt = DateTime.tryParse(p.createdAt)?.toLocal();
+      if (dt != null &&
+          dt.isAfter(todayStart) &&
+          dt.isBefore(todayEnd)) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  @override
   Future<bool> toggleLike(String postId, String uid) async {
     _checkError();
     final i = posts.indexWhere((p) => p.id == postId);
@@ -462,6 +481,7 @@ OutfitModel fakeOutfit({
   String userId = 'uid-1',
   String name = 'Test Outfit',
   int timesWorn = 0,
+  String referencePhotoUrl = '',
 }) =>
     OutfitModel(
       id: id,
@@ -470,6 +490,7 @@ OutfitModel fakeOutfit({
       garments: const {'top': 'g-1', 'bottom': 'g-2'},
       createdAt: '2026-01-01T00:00:00.000Z',
       timesWorn: timesWorn,
+      referencePhotoUrl: referencePhotoUrl,
     );
 
 GarmentModel fakeGarment({

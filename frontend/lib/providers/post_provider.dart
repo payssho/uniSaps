@@ -75,8 +75,11 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
     required List<GarmentModel> garments,
     String caption = '',
   }) async {
-    if (user.dailyPhotoUrl.isEmpty) {
-      state = AsyncValue.error('Aucune photo du jour.', StackTrace.current);
+    final imageUrl = user.dailyPhotoUrl.isNotEmpty
+        ? user.dailyPhotoUrl
+        : outfit.referencePhotoUrl;
+    if (imageUrl.isEmpty) {
+      state = AsyncValue.error('Aucune photo pour ce look.', StackTrace.current);
       return 'no_photo';
     }
     state = const AsyncValue.loading();
@@ -96,7 +99,7 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
         userId: user.uid,
         username: user.username,
         userPhotoUrl: user.profilePhotoUrl,
-        imageUrl: user.dailyPhotoUrl,
+        imageUrl: imageUrl,
         outfitId: outfit.id,
         garmentRefs: refs,
         caption: caption,

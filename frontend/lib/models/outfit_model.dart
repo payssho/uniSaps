@@ -10,6 +10,12 @@ class OutfitModel {
   final List<String> photoUrls;
   final String referencePhotoUrl;
 
+  /// Saisons cibles (vide = toutes). Clés `SeasonKeys.*`.
+  final List<String> seasons;
+
+  /// Temps / ressenti (vide = tous). Clés `WeatherTagKeys.*`.
+  final List<String> weatherTags;
+
   const OutfitModel({
     this.id = '',
     this.userId = '',
@@ -21,6 +27,8 @@ class OutfitModel {
     this.wearHistory = const [],
     this.photoUrls = const [],
     this.referencePhotoUrl = '',
+    this.seasons = const [],
+    this.weatherTags = const [],
   });
 
   static const defaultGarments = {
@@ -51,6 +59,8 @@ class OutfitModel {
       wearHistory: List<String>.from(map['wear_history'] ?? []),
       photoUrls: List<String>.from(map['photo_urls'] ?? []),
       referencePhotoUrl: map['reference_photo_url'] ?? '',
+      seasons: List<String>.from(map['seasons'] ?? []),
+      weatherTags: List<String>.from(map['weather_tags'] ?? []),
     );
   }
 
@@ -64,6 +74,8 @@ class OutfitModel {
         'wear_history': wearHistory,
         'photo_urls': photoUrls,
         'reference_photo_url': referencePhotoUrl,
+        'seasons': seasons,
+        'weather_tags': weatherTags,
       };
 
   List<String> get garmentIds =>
@@ -80,6 +92,8 @@ class OutfitModel {
     List<String>? wearHistory,
     List<String>? photoUrls,
     String? referencePhotoUrl,
+    List<String>? seasons,
+    List<String>? weatherTags,
   }) {
     return OutfitModel(
       id: id ?? this.id,
@@ -92,6 +106,8 @@ class OutfitModel {
       wearHistory: wearHistory ?? this.wearHistory,
       photoUrls: photoUrls ?? this.photoUrls,
       referencePhotoUrl: referencePhotoUrl ?? this.referencePhotoUrl,
+      seasons: seasons ?? this.seasons,
+      weatherTags: weatherTags ?? this.weatherTags,
     );
   }
 }

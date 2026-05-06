@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
@@ -7,12 +9,22 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
+import '../../core/constants/weather_catalog.dart';
+import '../../models/daily_weather_summary.dart';
 import '../../models/garment_model.dart';
 import '../../models/outfit_model.dart';
+import '../../models/today_outfit_context.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
+import '../../providers/weather_provider.dart';
+import '../../services/weather_service.dart';
 import '../creations/creation_screen.dart';
+
+/// Suggestions biblio IA (persistées pendant la session pour l’état vide + la feuille).
+final biblioAiSuggestionsProvider =
+    StateProvider<List<Map<String, String>>>((ref) => []);
+final biblioAiLoadingProvider = StateProvider<bool>((ref) => false);
 
 enum _Mode { swipe, biblio }
 
@@ -25,9 +37,6 @@ class OutfitsScreen extends ConsumerStatefulWidget {
 
 class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
   _Mode _mode = _Mode.biblio;
-  String _selectedStyle = 'Simple';
-  List<Map<String, String>> _aiSuggestions = [];
-  bool _aiLoading = false;
 
   @override
   void initState() {
@@ -77,26 +86,40 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
               data: (garments) {
                 final garmentCache = {for (var g in garments) g.id: g};
 
+                final todayCtx = ref.watch(todayOutfitContextProvider);
+                final orderedOutfits = todayCtx.sortOutfits(outfits);
+
                 if (dailyOutfitId.isNotEmpty) {
                   final daily = outfits
                       .where((o) => o.id == dailyOutfitId)
                       .firstOrNull;
                   if (daily != null) {
-                    return _DailyOutfitView(
-                      outfit: daily,
-                      garmentCache: garmentCache,
-                      streak: streak,
-                      dailyPhotoUrl: user?.dailyPhotoUrl ?? '',
-                      onTakePhoto: () => _takePhoto(uid, daily),
-                      onChangeOutfit: () {
-                        ref
-                            .read(outfitNotifierProvider.notifier)
-                            .clearDailyOutfit(uid);
-                      },
-                      onAddFit: _openCreation,
-                      onDelete: () => ref
-                          .read(outfitNotifierProvider.notifier)
-                          .deleteOutfit(uid, daily.id),
+                    return Column(
+                      children: [
+                        _Header(
+                          streak: streak,
+                          onAdd: _openCreation,
+                          showAdd: false,
+                        ),
+                        const SizedBox(height: 6),
+                        Expanded(
+                          child: _DailyOutfitView(
+                            outfit: daily,
+                            garmentCache: garmentCache,
+                            dailyPhotoUrl: user?.dailyPhotoUrl ?? '',
+                            onTakePhoto: () => _takePhoto(uid, daily),
+                            onChangeOutfit: () {
+                              ref
+                                  .read(outfitNotifierProvider.notifier)
+                                  .clearDailyOutfit(uid);
+                            },
+                            onAddFit: _openCreation,
+                            onDelete: () => ref
+                                .read(outfitNotifierProvider.notifier)
+                                .deleteOutfit(uid, daily.id),
+                          ),
+                        ),
+                      ],
                     );
                   }
                 }
@@ -106,9 +129,10 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                     _Header(
                       streak: streak,
                       onAdd: _openCreation,
-                      // Plus de bouton centré "Ajouter un fit" dans le header
                       showAdd: false,
                     ),
+                    const SizedBox(height: 4),
+                    const _BrowseOnlyWeatherCard(),
                     const SizedBox(height: 12),
                     _ModeToggle(
                       mode: _mode,
@@ -128,7 +152,10 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                     Expanded(
                       child: _mode == _Mode.swipe
                           ? _SwipeMode(
-                              outfits: outfits,
+                              key: ValueKey(
+                                  orderedOutfits.map((o) => o.id).join('|')),
+                              outfits: orderedOutfits,
+                              todayContext: todayCtx,
                               garmentCache: garmentCache,
                               onAccept: (outfit) {
                                 ref
@@ -142,18 +169,9 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                               onAdd: _openCreation,
                             )
                           : _BiblioMode(
-                              outfits: outfits,
-                              garments: garments,
+                              outfits: orderedOutfits,
+                              todayContext: todayCtx,
                               garmentCache: garmentCache,
-                              selectedStyle: _selectedStyle,
-                              aiSuggestions: _aiSuggestions,
-                              aiLoading: _aiLoading,
-                              onStyleChanged: (s) =>
-                                  setState(() => _selectedStyle = s),
-                              onGenerate: () => _generateSuggestions(
-                                  uid, garments, outfits),
-                              onChooseSuggestion: (s) =>
-                                  _saveSuggestionAsOutfit(uid, s),
                               onChoose: (outfit) {
                                 ref
                                     .read(outfitNotifierProvider.notifier)
@@ -180,24 +198,50 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
           error: (e, _) => Center(child: Text('Erreur: $e')),
         ),
       ),
-      // On ne montre le bouton flottant "Ajouter un fit" que
-      // lorsqu'aucun outfit du jour n'est sélectionné ET qu'on est en mode biblio.
       floatingActionButton: dailyOutfitId.isEmpty && _mode == _Mode.biblio
           ? Padding(
               padding: const EdgeInsets.only(bottom: 16, right: 16),
-              child: FloatingActionButton.extended(
-                heroTag: 'outfits_fab',
-                backgroundColor: AppColors.accent,
-                elevation: 6,
-                onPressed: _openCreation,
-                icon: const Icon(Icons.add, color: Colors.white, size: 24),
-                label: const Text(
-                  'Ajouter un fit',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'outfits_ai_sheet',
+                    tooltip: 'Suggestions IA',
+                    backgroundColor: AppColors.secondary,
+                    foregroundColor: Colors.white,
+                    elevation: 6,
+                    onPressed: () {
+                      final u = ref.read(authServiceProvider).uid;
+                      final gAsync = ref.read(garmentsProvider(u));
+                      final g = gAsync.valueOrNull;
+                      if (g == null) return;
+                      final cache = {for (final x in g) x.id: x};
+                      _openAiSuggestionsSheet(
+                        context,
+                        uid: u,
+                        garmentCache: cache,
+                      );
+                    },
+                    child:
+                        const Icon(Icons.auto_awesome_rounded, size: 22),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton.extended(
+                    heroTag: 'outfits_fab',
+                    backgroundColor: AppColors.accent,
+                    elevation: 6,
+                    onPressed: _openCreation,
+                    icon: const Icon(Icons.add, color: Colors.white, size: 24),
+                    label: const Text(
+                      'Ajouter un fit',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             )
           : null,
@@ -218,26 +262,24 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
         .setDailyPhoto(uid, outfit.id, url);
   }
 
-  Future<void> _generateSuggestions(
-    String uid,
-    List<GarmentModel> garments,
-    List<OutfitModel> outfits,
-  ) async {
-    setState(() => _aiLoading = true);
-    try {
-      final apiService = ref.read(apiServiceProvider);
-      final suggestions =
-          await apiService.suggestOutfits(style: _selectedStyle, count: 3);
-      setState(() => _aiSuggestions = suggestions);
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la génération')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _aiLoading = false);
-    }
+  void _openAiSuggestionsSheet(
+    BuildContext context, {
+    required String uid,
+    required Map<String, GarmentModel> garmentCache,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) => _AiSuggestionsSheet(
+        garmentCache: garmentCache,
+        onPickSuggestion: (suggestion) async {
+          Navigator.pop(sheetCtx);
+          await _saveSuggestionAsOutfit(uid, suggestion);
+        },
+      ),
+    );
   }
 
   Future<void> _saveSuggestionAsOutfit(
@@ -269,39 +311,54 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rightSafe = MediaQuery.paddingOf(context).right;
+    final rightPad = 20.0 + rightSafe;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: EdgeInsets.fromLTRB(20, 16, rightPad, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text('Mes Outfits', style: AppTextStyles.heading2),
-              ),
-              if (streak > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: AppColors.warning.withOpacity(0.3), width: 1),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.local_fire_department,
-                          size: 16, color: AppColors.warning),
-                      const SizedBox(width: 4),
-                      Text('$streak',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w800, fontSize: 14)),
-                    ],
+          SizedBox(
+            height: 42,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    'Mes Outfits',
+                    style: AppTextStyles.heading2,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-            ],
+                if (streak > 0) ...[
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.warning.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.local_fire_department,
+                            size: 16, color: AppColors.warning),
+                        const SizedBox(width: 4),
+                        Text('$streak',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
           if (showAdd) ...[
             const SizedBox(height: 8),
@@ -419,17 +476,285 @@ class _ModeChip extends StatelessWidget {
   }
 }
 
+/// Carte météo (Open‑Meteo) — uniquement tant qu’aucun outfit du jour n’est sélectionné.
+class _BrowseOnlyWeatherCard extends ConsumerWidget {
+  const _BrowseOnlyWeatherCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final weatherAsync = ref.watch(todayWeatherFetchProvider);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      child: weatherAsync.when(
+        loading: () => const _WeatherBrowseSkeleton(),
+        error: (_, __) => const _WeatherBrowseUnavailable(),
+        data: (fetch) {
+          final w = fetch.weather;
+          if (w == null) {
+            return _WeatherBrowseUnavailable(detail: fetch.message);
+          }
+          return _WeatherBrowseHero(fetch: fetch, weather: w);
+        },
+      ),
+    );
+  }
+}
+
+class _WeatherBrowseSkeleton extends StatelessWidget {
+  const _WeatherBrowseSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+        ),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.accent.withOpacity(0.9),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WeatherBrowseUnavailable extends StatelessWidget {
+  final String? detail;
+
+  const _WeatherBrowseUnavailable({this.detail});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.divider.withOpacity(0.85)),
+          ),
+          child: Row(
+            children: [
+              const SizedBox(width: 12),
+              Icon(Icons.wb_cloudy_outlined,
+                  size: 22, color: AppColors.textHint.withOpacity(0.85)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Météo indisponible',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: AppColors.textPrimary.withOpacity(0.92),
+                      ),
+                    ),
+                    if (detail != null && detail!.isNotEmpty)
+                      Text(
+                        detail!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary.withOpacity(0.95),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+List<Color> _browseHeroGradient(Set<String> tags, double avgC) {
+  if (tags.contains(WeatherTagKeys.snow)) {
+    return [const Color(0xFF64748B), const Color(0xFF475569)];
+  }
+  if (tags.contains(WeatherTagKeys.thunderstorm)) {
+    return [const Color(0xFF4C1D95), const Color(0xFF6D28D9)];
+  }
+  if (tags.contains(WeatherTagKeys.rain) ||
+      tags.contains(WeatherTagKeys.drizzle)) {
+    return [const Color(0xFF1D4ED8), const Color(0xFF3B82F6)];
+  }
+  if (avgC >= 26) {
+    return [const Color(0xFFEA580C), const Color(0xFFF97316)];
+  }
+  if (avgC >= 19) {
+    return [const Color(0xFFD97706), const Color(0xFFF59E0B)];
+  }
+  if (avgC <= 8) {
+    return [const Color(0xFF0369A1), const Color(0xFF0EA5E9)];
+  }
+  return [const Color(0xFF4F46E5), const Color(0xFF7C3AED)];
+}
+
+class _WeatherBrowseHero extends StatelessWidget {
+  final WeatherFetchResult fetch;
+  final DailyWeatherSummary weather;
+
+  const _WeatherBrowseHero({
+    required this.fetch,
+    required this.weather,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = weather;
+    final tags = WeatherTagKeys.dayContext(
+      weatherCode: w.weatherCode,
+      tempMin: w.tempMin,
+      tempMax: w.tempMax,
+    );
+    final visual = WeatherTagKeys.visualFor(tags);
+    final avg = ((w.tempMin + w.tempMax) / 2).round();
+    final avgC = (w.tempMin + w.tempMax) / 2.0;
+    final colors = _browseHeroGradient(tags, avgC);
+    final range = formatTempRange(w.tempMin, w.tempMax);
+    final locHint =
+        fetch.usedFallbackLocation ? 'Paris (approx.)' : 'Ta position';
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: colors,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: colors.first.withOpacity(0.28),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.22),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.4),
+                  width: 1,
+                ),
+              ),
+              child: Icon(visual.icon, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              '$avg°',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                height: 1,
+                letterSpacing: -0.6,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                range,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.88),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    visual.shortLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.96),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Row(
+                    children: [
+                      Icon(Icons.place_outlined,
+                          size: 11, color: Colors.white.withOpacity(0.75)),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          locHint,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.74),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Swipe Mode — Tinder-style photo cards
 // ---------------------------------------------------------------------------
 class _SwipeMode extends StatefulWidget {
   final List<OutfitModel> outfits;
+  final TodayOutfitContext todayContext;
   final Map<String, GarmentModel> garmentCache;
   final ValueChanged<OutfitModel> onAccept;
   final VoidCallback onAdd;
 
   const _SwipeMode({
+    super.key,
     required this.outfits,
+    required this.todayContext,
     required this.garmentCache,
     required this.onAccept,
     required this.onAdd,
@@ -546,6 +871,8 @@ class _SwipeModeState extends State<_SwipeMode> {
                 return _OutfitPhotoCard(
                   outfit: outfit,
                   garmentCache: widget.garmentCache,
+                  highlightToday:
+                      widget.todayContext.isGoodPick(outfit),
                   onTap: () =>
                       _showOutfitDetail(context, outfit, widget.garmentCache),
                 );
@@ -592,59 +919,34 @@ class _SwipeModeState extends State<_SwipeMode> {
 }
 
 // ---------------------------------------------------------------------------
-// Biblio Mode — Grid + Filters + AI
+// Biblio Mode — Grille outfits (IA via FAB + bottom sheet)
 // ---------------------------------------------------------------------------
-class _BiblioMode extends StatelessWidget {
+class _BiblioMode extends ConsumerWidget {
   final List<OutfitModel> outfits;
-  final List<GarmentModel> garments;
+  final TodayOutfitContext todayContext;
   final Map<String, GarmentModel> garmentCache;
-  final String selectedStyle;
-  final List<Map<String, String>> aiSuggestions;
-  final bool aiLoading;
-  final ValueChanged<String> onStyleChanged;
-  final VoidCallback onGenerate;
-  final ValueChanged<Map<String, String>> onChooseSuggestion;
   final ValueChanged<OutfitModel> onChoose;
   final ValueChanged<OutfitModel> onDelete;
   final VoidCallback onAdd;
 
   const _BiblioMode({
     required this.outfits,
-    required this.garments,
+    required this.todayContext,
     required this.garmentCache,
-    required this.selectedStyle,
-    required this.aiSuggestions,
-    required this.aiLoading,
-    required this.onStyleChanged,
-    required this.onGenerate,
-    required this.onChooseSuggestion,
     required this.onChoose,
     required this.onDelete,
     required this.onAdd,
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (outfits.isEmpty && aiSuggestions.isEmpty) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final aiSug = ref.watch(biblioAiSuggestionsProvider);
+    if (outfits.isEmpty && aiSug.isEmpty) {
       return _EmptyState(onAdd: onAdd);
     }
 
     return CustomScrollView(
       slivers: [
-        // AI section as collapsible header
-        SliverToBoxAdapter(
-          child: _AISection(
-            selectedStyle: selectedStyle,
-            suggestions: aiSuggestions,
-            loading: aiLoading,
-            garmentCache: garmentCache,
-            onStyleChanged: onStyleChanged,
-            onGenerate: onGenerate,
-            onChooseSuggestion: onChooseSuggestion,
-          ),
-        ),
-
-        // Grid of outfit photos
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
           sliver: SliverGrid(
@@ -661,6 +963,7 @@ class _BiblioMode extends StatelessWidget {
                   outfit: outfit,
                   garmentCache: garmentCache,
                   index: i,
+                  isTodayPick: todayContext.isGoodPick(outfit),
                   onTap: () => _showOutfitDetail(
                     ctx,
                     outfit,
@@ -680,34 +983,32 @@ class _BiblioMode extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// AI section (collapsible)
+// Feuille modale suggestions IA (ouverture par FAB étincelles)
 // ---------------------------------------------------------------------------
-class _AISection extends StatefulWidget {
-  final String selectedStyle;
-  final List<Map<String, String>> suggestions;
-  final bool loading;
+class _AiSuggestionsSheet extends ConsumerStatefulWidget {
   final Map<String, GarmentModel> garmentCache;
-  final ValueChanged<String> onStyleChanged;
-  final VoidCallback onGenerate;
-  final ValueChanged<Map<String, String>> onChooseSuggestion;
+  final Future<void> Function(Map<String, String> suggestion)
+      onPickSuggestion;
 
-  const _AISection({
-    required this.selectedStyle,
-    required this.suggestions,
-    required this.loading,
+  const _AiSuggestionsSheet({
     required this.garmentCache,
-    required this.onStyleChanged,
-    required this.onGenerate,
-    required this.onChooseSuggestion,
+    required this.onPickSuggestion,
   });
 
   @override
-  State<_AISection> createState() => _AISectionState();
+  ConsumerState<_AiSuggestionsSheet> createState() =>
+      _AiSuggestionsSheetState();
 }
 
-class _AISectionState extends State<_AISection> {
-  bool _expanded = false;
-  final TextEditingController _promptController = TextEditingController();
+class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
+  late final TextEditingController _promptController;
+  String _selectedStyle = 'Simple';
+
+  @override
+  void initState() {
+    super.initState();
+    _promptController = TextEditingController();
+  }
 
   @override
   void dispose() {
@@ -715,125 +1016,163 @@ class _AISectionState extends State<_AISection> {
     super.dispose();
   }
 
+  Future<void> _runGenerate() async {
+    var style = _selectedStyle;
+    final custom = _promptController.text.trim();
+    if (custom.isNotEmpty) style = custom;
+    ref.read(biblioAiLoadingProvider.notifier).state = true;
+    try {
+      final api = ref.read(apiServiceProvider);
+      final list = await api.suggestOutfits(style: style, count: 3);
+      ref.read(biblioAiSuggestionsProvider.notifier).state = list;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la génération')),
+        );
+      }
+    } finally {
+      ref.read(biblioAiLoadingProvider.notifier).state = false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final loading = ref.watch(biblioAiLoadingProvider);
+    final suggestions = ref.watch(biblioAiSuggestionsProvider);
+
+    final viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+    final h = MediaQuery.sizeOf(context).height;
+    final topSafe = MediaQuery.paddingOf(context).top;
+    final maxH =
+        math.min(h * 0.88, h - topSafe - 24).clamp(200.0, h);
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: EdgeInsets.only(bottom: viewInsetsBottom),
       child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppColors.accent.withOpacity(0.06),
-              AppColors.accentLight.withOpacity(0.04),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border:
-              Border.all(color: AppColors.accent.withOpacity(0.12), width: 1),
+        constraints: BoxConstraints(maxHeight: maxH),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(22)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x28000000),
+              blurRadius: 20,
+              offset: Offset(0, -6),
+            ),
+          ],
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => setState(() => _expanded = !_expanded),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppColors.accent.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.auto_awesome,
-                          size: 16, color: AppColors.accent),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        'Suggestions IA',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    AnimatedRotation(
-                      turns: _expanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: const Icon(Icons.keyboard_arrow_down,
-                          color: AppColors.textHint, size: 22),
-                    ),
-                  ],
+            const SizedBox(height: 10),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
             ),
-            AnimatedCrossFade(
-              firstChild: const SizedBox.shrink(),
-              secondChild: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 4, 10),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.auto_awesome_rounded,
+                        color: AppColors.accent, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Suggestions IA',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded,
+                        color: AppColors.textSecondary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
                       children: stylePrompts.map((style) {
-                        final sel = widget.selectedStyle == style;
+                        final sel = _selectedStyle == style;
                         return ChoiceChip(
-                          label: Text(style, style: TextStyle(fontSize: 12,
-                            color: sel ? Colors.white : AppColors.textSecondary)),
+                          label: Text(style,
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: sel
+                                      ? Colors.white
+                                      : AppColors.textSecondary)),
                           selected: sel,
                           selectedColor: AppColors.accent,
                           visualDensity: VisualDensity.compact,
-                          onSelected: (_) => widget.onStyleChanged(style),
+                          onSelected: (_) =>
+                              setState(() => _selectedStyle = style),
                         );
                       }).toList(),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: _promptController,
-                      maxLines: 2,
+                      maxLines: 3,
                       minLines: 1,
                       textInputAction: TextInputAction.done,
                       decoration: const InputDecoration(
-                        hintText: 'Décris ton besoin (ex: tenue chic pour un dîner, streetwear pour un concert)...',
-                        prefixIcon: Icon(Icons.chat_bubble_outline, size: 18),
+                        hintText:
+                            'Précision (facultatif): ex. dîner chic, concert…',
+                        prefixIcon: Icon(Icons.chat_bubble_outline,
+                            size: 18),
                       ),
                     ),
+                    const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: widget.loading
-                            ? null
-                            : () {
-                                final prompt = _promptController.text.trim();
-                                if (prompt.isNotEmpty) {
-                                  widget.onStyleChanged(prompt);
-                                }
-                                widget.onGenerate();
-                              },
-                        icon: widget.loading
+                        onPressed: loading ? null : _runGenerate,
+                        icon: loading
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white))
+                                    strokeWidth: 2,
+                                    color: Colors.white))
                             : const Icon(Icons.auto_awesome,
                                 size: 16, color: Colors.white),
                         label: Text(
-                            widget.loading ? 'Génération...' : 'Générer'),
+                            loading ? 'Génération…' : 'Générer 3 suggestions'),
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           textStyle: const TextStyle(
                               fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
-                    ...widget.suggestions.map((s) {
+                    ...suggestions.map((s) {
                       final items = s.entries
                           .where((e) =>
                               e.value.isNotEmpty &&
@@ -841,13 +1180,16 @@ class _AISectionState extends State<_AISection> {
                           .map((e) => widget.garmentCache[e.value]!)
                           .toList();
                       return Container(
-                        margin: const EdgeInsets.only(top: 10),
-                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.only(top: 12),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(12),
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(14),
+                          border:
+                              Border.all(color: AppColors.divider.withOpacity(0.6)),
                         ),
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Wrap(
                               spacing: 4,
@@ -866,19 +1208,15 @@ class _AISectionState extends State<_AISection> {
                                       ))
                                   .toList(),
                             ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton(
-                                onPressed: () =>
-                                    widget.onChooseSuggestion(s),
-                                style: OutlinedButton.styleFrom(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                ),
-                                child: const Text('Choisir',
-                                    style: TextStyle(fontSize: 12)),
+                            const SizedBox(height: 10),
+                            OutlinedButton(
+                              onPressed: () =>
+                                  widget.onPickSuggestion(s),
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
                               ),
+                              child: const Text('Choisir ce look'),
                             ),
                           ],
                         ),
@@ -887,10 +1225,6 @@ class _AISectionState extends State<_AISection> {
                   ],
                 ),
               ),
-              crossFadeState: _expanded
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 250),
             ),
           ],
         ),
@@ -905,11 +1239,14 @@ class _AISectionState extends State<_AISection> {
 class _OutfitPhotoCard extends StatelessWidget {
   final OutfitModel outfit;
   final Map<String, GarmentModel> garmentCache;
+  /// Correspond au contexte saison + météo du jour.
+  final bool highlightToday;
   final VoidCallback onTap;
 
   const _OutfitPhotoCard({
     required this.outfit,
     required this.garmentCache,
+    this.highlightToday = false,
     required this.onTap,
   });
 
@@ -993,6 +1330,35 @@ class _OutfitPhotoCard extends StatelessWidget {
               ),
             ),
 
+            if (highlightToday)
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withOpacity(0.92),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.auto_awesome, size: 13, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text(
+                        "Pour aujourd'hui",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             // Tap hint
             Positioned(
               top: 16,
@@ -1033,12 +1399,14 @@ class _OutfitGridTile extends StatefulWidget {
   final OutfitModel outfit;
   final Map<String, GarmentModel> garmentCache;
   final int index;
+  final bool isTodayPick;
   final VoidCallback onTap;
 
   const _OutfitGridTile({
     required this.outfit,
     required this.garmentCache,
     required this.index,
+    this.isTodayPick = false,
     required this.onTap,
   });
 
@@ -1124,6 +1492,36 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
                   ),
                 ),
               ),
+
+              if (widget.isTodayPick)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.wb_sunny_outlined,
+                            size: 12, color: Colors.white),
+                        SizedBox(width: 3),
+                        Text(
+                          "Aujourd'hui",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               if (widget.outfit.timesWorn > 0)
                 Positioned(
@@ -1321,7 +1719,6 @@ class _EmptyState extends StatelessWidget {
 class _DailyOutfitView extends StatelessWidget {
   final OutfitModel outfit;
   final Map<String, GarmentModel> garmentCache;
-  final int streak;
   final String dailyPhotoUrl;
   final VoidCallback onTakePhoto;
   final VoidCallback onChangeOutfit;
@@ -1331,7 +1728,6 @@ class _DailyOutfitView extends StatelessWidget {
   const _DailyOutfitView({
     required this.outfit,
     required this.garmentCache,
-    required this.streak,
     required this.dailyPhotoUrl,
     required this.onTakePhoto,
     required this.onChangeOutfit,
@@ -1348,41 +1744,27 @@ class _DailyOutfitView extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
-                children: [
-                  const Text('Outfit du jour', style: AppTextStyles.heading2),
-                  const Spacer(),
-                  if (streak > 0)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.warning.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.local_fire_department,
-                              size: 16, color: AppColors.warning),
-                          const SizedBox(width: 4),
-                          Text('$streak',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w700)),
-                        ],
-                      ),
+                children: const [
+                  Expanded(
+                    child: Text(
+                      'Outfit du jour',
+                      style: AppTextStyles.heading2,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
               Center(
                 child: TextButton.icon(
                   onPressed: onAddFit,
-                  icon: const Icon(Icons.add, size: 18),
+                  icon: Icon(Icons.add, size: 18),
                   label: const Text(
                     'Ajouter un fit à la bibliothèque',
                     style: TextStyle(fontWeight: FontWeight.w600),

@@ -21,6 +21,8 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
     required String name,
     required Map<String, String> garments,
     String referencePhotoUrl = '',
+    List<String> seasons = const [],
+    List<String> weatherTags = const [],
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -30,6 +32,8 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
         garments: garments,
         createdAt: DateTime.now().toIso8601String(),
         referencePhotoUrl: referencePhotoUrl,
+        seasons: seasons,
+        weatherTags: weatherTags,
       );
       final id = await _db.addOutfit(outfit);
       state = const AsyncValue.data(null);
