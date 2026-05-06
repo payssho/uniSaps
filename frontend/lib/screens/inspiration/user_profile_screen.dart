@@ -143,7 +143,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                  const Icon(Icons.check_circle, color: AppColors.white, size: 18),
                   const SizedBox(width: 10),
                   Text('Demande envoyée à @${_targetUser!.username} !',
                       style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -389,8 +389,8 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       case RelationshipStatus.requestReceived:
         button = ElevatedButton.icon(
           onPressed: _acceptRequest,
-          icon: const Icon(Icons.person_add, size: 18, color: Colors.white),
-          label: const Text('Accepter', style: TextStyle(color: Colors.white)),
+          icon: const Icon(Icons.person_add, size: 18, color: AppColors.white),
+          label: const Text('Accepter', style: TextStyle(color: AppColors.white)),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -400,8 +400,8 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       case RelationshipStatus.none:
         button = ElevatedButton.icon(
           onPressed: _sendRequest,
-          icon: const Icon(Icons.person_add_outlined, size: 18, color: Colors.white),
-          label: const Text('Ajouter en ami', style: TextStyle(color: Colors.white)),
+          icon: const Icon(Icons.person_add_outlined, size: 18, color: AppColors.white),
+          label: const Text('Ajouter en ami', style: TextStyle(color: AppColors.white)),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accent,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

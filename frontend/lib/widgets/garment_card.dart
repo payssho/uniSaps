@@ -45,7 +45,7 @@ class _GarmentCardState extends State<GarmentCard>
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: AppColors.graphite.withOpacity(0.06),
               blurRadius: 12,
               offset: const Offset(0, 3),
             ),

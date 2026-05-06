@@ -145,7 +145,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 color: AppColors.error,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.close, size: 18, color: Colors.white),
+                              child: const Icon(Icons.close, size: 18, color: AppColors.white),
                             ),
                           ),
                         ),
@@ -205,7 +205,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     child: _loading
                         ? const SizedBox(
                             height: 20, width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                           )
                         : const Text('C\'est parti !'),
                   ),

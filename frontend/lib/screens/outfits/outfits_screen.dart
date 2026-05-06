@@ -208,7 +208,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                     heroTag: 'outfits_ai_sheet',
                     tooltip: 'Suggestions IA',
                     backgroundColor: AppColors.secondary,
-                    foregroundColor: Colors.white,
+                    foregroundColor: AppColors.white,
                     elevation: 6,
                     onPressed: () {
                       final u = ref.read(authServiceProvider).uid;
@@ -231,11 +231,11 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                     backgroundColor: AppColors.accent,
                     elevation: 6,
                     onPressed: _openCreation,
-                    icon: const Icon(Icons.add, color: Colors.white, size: 24),
+                    icon: const Icon(Icons.add, color: AppColors.white, size: 24),
                     label: const Text(
                       'Ajouter un fit',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -461,14 +461,14 @@ class _ModeChip extends StatelessWidget {
             children: [
               Icon(icon,
                   size: 17,
-                  color: active ? Colors.white : AppColors.textHint),
+                  color: active ? AppColors.white : AppColors.textHint),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: active ? Colors.white : AppColors.textHint,
+                  color: active ? AppColors.white : AppColors.textHint,
                 ),
               ),
             ],
@@ -480,26 +480,27 @@ class _ModeChip extends StatelessWidget {
 }
 
 List<Color> _browseHeroGradient(Set<String> tags, double avgC) {
+  // Uniquement la palette AppColors ; contrastes prévus pour texte/icônes blancs.
   if (tags.contains(WeatherTagKeys.snow)) {
-    return [const Color(0xFF64748B), const Color(0xFF475569)];
+    return [AppColors.yaleBlue, AppColors.graphite];
   }
   if (tags.contains(WeatherTagKeys.thunderstorm)) {
-    return [const Color(0xFF4C1D95), const Color(0xFF6D28D9)];
+    return [AppColors.graphite, AppColors.yaleBlue];
   }
   if (tags.contains(WeatherTagKeys.rain) ||
       tags.contains(WeatherTagKeys.drizzle)) {
-    return [const Color(0xFF1D4ED8), const Color(0xFF3B82F6)];
+    return [AppColors.yaleBlue, AppColors.stormyTeal];
   }
   if (avgC >= 26) {
-    return [const Color(0xFFEA580C), const Color(0xFFF97316)];
+    return [AppColors.stormyTeal, AppColors.yaleBlue];
   }
   if (avgC >= 19) {
-    return [const Color(0xFFD97706), const Color(0xFFF59E0B)];
+    return [AppColors.stormyTeal, AppColors.graphite];
   }
   if (avgC <= 8) {
-    return [const Color(0xFF0369A1), const Color(0xFF0EA5E9)];
+    return [AppColors.graphite, AppColors.yaleBlue];
   }
-  return [const Color(0xFF4F46E5), const Color(0xFF7C3AED)];
+  return [AppColors.stormyTeal, AppColors.yaleBlue];
 }
 
 /// Pastille météo sur la ligne du titre (Open‑Meteo).
@@ -636,12 +637,12 @@ class _CompactWeatherPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(visual.icon, color: Colors.white, size: 18),
+          Icon(visual.icon, color: AppColors.white, size: 18),
           const SizedBox(width: 8),
           Text(
             '$avg°',
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.white,
               fontSize: 16,
               fontWeight: FontWeight.w800,
               height: 1,
@@ -654,7 +655,7 @@ class _CompactWeatherPill extends StatelessWidget {
             child: Icon(
               Icons.place_outlined,
               size: 12,
-              color: Colors.white.withOpacity(0.82),
+              color: AppColors.white.withOpacity(0.82),
             ),
           ),
         ],
@@ -748,11 +749,11 @@ class _SwipeModeState extends State<_SwipeMode> {
               ElevatedButton.icon(
                 onPressed: _reset,
                 icon: const Icon(Icons.refresh_rounded,
-                    size: 20, color: Colors.white),
+                    size: 20, color: AppColors.white),
                 label: const Text('Recommencer'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.white,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 28, vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -973,13 +974,13 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
       padding: EdgeInsets.only(bottom: viewInsetsBottom),
       child: Container(
         constraints: BoxConstraints(maxHeight: maxH),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius:
               BorderRadius.vertical(top: Radius.circular(22)),
           boxShadow: [
             BoxShadow(
-              color: Color(0x28000000),
+              color: AppColors.graphite.withValues(alpha: 0.15),
               blurRadius: 20,
               offset: Offset(0, -6),
             ),
@@ -1048,7 +1049,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                               style: TextStyle(
                                   fontSize: 12,
                                   color: sel
-                                      ? Colors.white
+                                      ? AppColors.white
                                       : AppColors.textSecondary)),
                           selected: sel,
                           selectedColor: AppColors.accent,
@@ -1082,9 +1083,9 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                                 height: 16,
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white))
+                                    color: AppColors.white))
                             : const Icon(Icons.auto_awesome,
-                                size: 16, color: Colors.white),
+                                size: 16, color: AppColors.white),
                         label: Text(
                             loading ? 'Génération…' : 'Générer 3 suggestions'),
                         style: ElevatedButton.styleFrom(
@@ -1183,7 +1184,7 @@ class _OutfitPhotoCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.12),
+              color: AppColors.graphite.withOpacity(0.12),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
@@ -1220,7 +1221,7 @@ class _OutfitPhotoCard extends StatelessWidget {
                     begin: Alignment.bottomCenter,
                     end: Alignment.topCenter,
                     colors: [
-                      Colors.black.withOpacity(0.7),
+                      AppColors.graphite.withOpacity(0.7),
                       Colors.transparent,
                     ],
                   ),
@@ -1231,7 +1232,7 @@ class _OutfitPhotoCard extends StatelessWidget {
                     Text(
                       outfit.name.isEmpty ? 'Outfit' : outfit.name,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1242,7 +1243,7 @@ class _OutfitPhotoCard extends StatelessWidget {
                         child: Text(
                           'Porté ${outfit.timesWorn}x',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
+                            color: AppColors.white.withOpacity(0.7),
                             fontSize: 13,
                           ),
                         ),
@@ -1266,14 +1267,14 @@ class _OutfitPhotoCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(Icons.auto_awesome, size: 13, color: Colors.white),
+                      Icon(Icons.auto_awesome, size: 13, color: AppColors.white),
                       SizedBox(width: 4),
                       Text(
                         "Pour aujourd'hui",
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                          color: AppColors.white,
                         ),
                       ),
                     ],
@@ -1289,18 +1290,18 @@ class _OutfitPhotoCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: AppColors.graphite.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.touch_app_rounded,
-                        size: 14, color: Colors.white70),
+                        size: 14, color: AppColors.white.withOpacity(0.7)),
                     SizedBox(width: 4),
                     Text('Détails',
                         style: TextStyle(
-                            color: Colors.white70,
+                            color: AppColors.white.withOpacity(0.7),
                             fontSize: 11,
                             fontWeight: FontWeight.w500)),
                   ],
@@ -1356,7 +1357,7 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
             borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: AppColors.graphite.withOpacity(0.08),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -1395,7 +1396,7 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Colors.black.withOpacity(0.65),
+                        AppColors.graphite.withOpacity(0.65),
                         Colors.transparent,
                       ],
                     ),
@@ -1405,7 +1406,7 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
                         ? 'Outfit'
                         : widget.outfit.name,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1430,12 +1431,12 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
                       mainAxisSize: MainAxisSize.min,
                       children: const [
                         Icon(Icons.wb_sunny_outlined,
-                            size: 12, color: Colors.white),
+                            size: 12, color: AppColors.white),
                         SizedBox(width: 3),
                         Text(
                           "Aujourd'hui",
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
                           ),
@@ -1453,13 +1454,13 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.4),
+                      color: AppColors.graphite.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '${widget.outfit.timesWorn}x',
                       style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.w600),
                     ),
@@ -1693,7 +1694,7 @@ class _DailyOutfitView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: AppColors.graphite.withOpacity(0.1),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -1730,7 +1731,7 @@ class _DailyOutfitView extends StatelessWidget {
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
                           colors: [
-                            Colors.black.withOpacity(0.7),
+                            AppColors.graphite.withOpacity(0.7),
                             Colors.transparent,
                           ],
                         ),
@@ -1741,7 +1742,7 @@ class _DailyOutfitView extends StatelessWidget {
                           Text(
                             outfit.name.isEmpty ? 'Outfit' : outfit.name,
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.white,
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
                             ),
@@ -1750,7 +1751,7 @@ class _DailyOutfitView extends StatelessWidget {
                           Text(
                             'Tap pour voir les détails',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.6),
+                              color: AppColors.white.withOpacity(0.6),
                               fontSize: 12,
                             ),
                           ),
@@ -1771,7 +1772,7 @@ class _DailyOutfitView extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: onTakePhoto,
                   icon: const Icon(Icons.camera_alt_outlined,
-                      size: 18, color: Colors.white),
+                      size: 18, color: AppColors.white),
                   label: const Text('Photo du jour'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 13),
@@ -2067,11 +2068,11 @@ class _OutfitDetailSheet extends StatelessWidget {
                           onChoose!();
                         },
                         icon: const Icon(Icons.check_circle_outline,
-                            size: 20, color: Colors.white),
+                            size: 20, color: AppColors.white),
                         label: const Text('Choisir pour aujourd\'hui'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.success,
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppColors.white,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14)),
@@ -2096,7 +2097,7 @@ void _showStreakCelebration(BuildContext context, int newStreak) {
     context: context,
     barrierDismissible: false,
     barrierLabel: 'streak',
-    barrierColor: Colors.black.withOpacity(0.5),
+    barrierColor: AppColors.graphite.withOpacity(0.5),
     transitionDuration: const Duration(milliseconds: 350),
     pageBuilder: (_, __, ___) =>
         _StreakCelebrationOverlay(streak: newStreak),
@@ -2125,7 +2126,7 @@ class _StreakCelebrationOverlayState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black.withOpacity(0.5),
+      backgroundColor: AppColors.graphite.withOpacity(0.5),
       body: Center(
         child: Container(
           width: 260,
@@ -2136,7 +2137,7 @@ class _StreakCelebrationOverlayState
             borderRadius: BorderRadius.circular(26),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: AppColors.graphite.withOpacity(0.3),
                 blurRadius: 30,
                 offset: const Offset(0, 16),
               ),
@@ -2168,7 +2169,7 @@ class _StreakCelebrationOverlayState
                       .then()
                       .shake(hz: 3, duration: 300.ms),
                   const Icon(Icons.local_fire_department,
-                          size: 52, color: Colors.white)
+                          size: 52, color: AppColors.white)
                       .animate()
                       .scale(
                         begin: const Offset(0.8, 0.8),
@@ -2184,7 +2185,7 @@ class _StreakCelebrationOverlayState
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppColors.white,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: const Text('+1',

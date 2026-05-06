@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
 
+import '../core/constants/app_colors.dart';
+
 class ColorService {
   static final List<ColorOption> _colors = [
-    const ColorOption(name: 'Noir', color: Colors.black),
-    const ColorOption(name: 'Blanc', color: Colors.white),
-    const ColorOption(name: 'Gris', color: Colors.grey),
-    ColorOption(name: 'Gris clair', color: Colors.grey.shade300),
-    ColorOption(name: 'Gris foncé', color: Colors.grey.shade700),
+    const ColorOption(name: 'Noir', color: AppColors.graphite),
+    const ColorOption(name: 'Blanc', color: AppColors.white),
+    const ColorOption(name: 'Gris', color: AppColors.alabasterGrey),
+    const ColorOption(name: 'Gris clair', color: AppColors.alabasterGrey),
+    const ColorOption(name: 'Gris foncé', color: AppColors.graphite),
     const ColorOption(name: 'Beige', color: Color(0xFFF5F5DC)),
     const ColorOption(name: 'Camel', color: Color(0xFFC19A6B)),
     const ColorOption(name: 'Marron', color: Colors.brown),
     ColorOption(name: 'Marron clair', color: Colors.brown.shade300),
     ColorOption(name: 'Marron foncé', color: Colors.brown.shade700),
-    const ColorOption(name: 'Bleu', color: Colors.blue),
-    ColorOption(name: 'Bleu clair', color: Colors.blue.shade300),
-    ColorOption(name: 'Bleu foncé', color: Colors.blue.shade700),
+    const ColorOption(name: 'Bleu', color: AppColors.yaleBlue),
+    ColorOption(name: 'Bleu clair', color: AppColors.stormyTeal),
+    ColorOption(name: 'Bleu foncé', color: AppColors.graphite),
     const ColorOption(name: 'Bleu marine', color: Color(0xFF000080)),
     const ColorOption(name: 'Bleu ciel', color: Color(0xFF87CEEB)),
-    const ColorOption(name: 'Bleu turquoise', color: Colors.cyan),
+    const ColorOption(name: 'Bleu turquoise', color: AppColors.stormyTeal),
     const ColorOption(name: 'Rouge', color: Colors.red),
     ColorOption(name: 'Rouge foncé', color: Colors.red.shade700),
     const ColorOption(name: 'Rouge bordeaux', color: Color(0xFF800020)),

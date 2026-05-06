@@ -269,7 +269,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                       child: const Icon(
                                           Icons.check,
                                           size: 12,
-                                          color: Colors.white),
+                                          color: AppColors.white),
                                     ),
                                   ),
                               ],
@@ -489,7 +489,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                   boxShadow: hasPhoto
                       ? [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: AppColors.graphite.withOpacity(0.1),
                             blurRadius: 16,
                             offset: const Offset(0, 6),
                           ),
@@ -532,7 +532,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.5),
+                                    color: AppColors.graphite.withOpacity(0.5),
                                     borderRadius:
                                         BorderRadius.circular(10),
                                   ),
@@ -541,11 +541,11 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                     children: [
                                       Icon(Icons.edit_rounded,
                                           size: 14,
-                                          color: Colors.white),
+                                          color: AppColors.white),
                                       SizedBox(width: 4),
                                       Text('Changer',
                                           style: TextStyle(
-                                              color: Colors.white,
+                                              color: AppColors.white,
                                               fontSize: 12,
                                               fontWeight:
                                                   FontWeight.w500)),
@@ -930,7 +930,7 @@ class _MultiSelectDropdownTile extends StatelessWidget {
           Material(
             color: AppColors.surface,
             elevation: 2,
-            shadowColor: Colors.black26,
+            shadowColor: AppColors.graphite.withValues(alpha: 0.26),
             borderRadius: BorderRadius.circular(14),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),

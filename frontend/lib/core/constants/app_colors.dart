@@ -1,29 +1,51 @@
 import 'package:flutter/material.dart';
 
+/// Couleurs globales : uniquement la palette produit (hex officiels).
 class AppColors {
   AppColors._();
 
-  static const primary = Color(0xFF0F0F1A);
-  static const secondary = Color(0xFF1C1C2E);
-  static const accent = Color(0xFFE94560);
-  static const accentLight = Color(0xFFFF6B81);
+  // ── Palette brute ─────────────────────────────────────────────────────────
+  static const graphite = Color(0xFF353535);
+  static const stormyTeal = Color(0xFF3C6E71);
+  static const white = Color(0xFFFFFFFF);
+  static const alabasterGrey = Color(0xFFD9D9D9);
+  static const yaleBlue = Color(0xFF284B63);
 
-  static const background = Color(0xFFF5F5F8);
-  static const surface = Color(0xFFFFFFFF);
-  static const surfaceVariant = Color(0xFFF0F1F5);
+  // ── Sémantique UI (dérivée uniquement de cette palette) ───────────────────
+  static const primary = yaleBlue;
+  static const secondary = graphite;
+  static const accent = stormyTeal;
 
-  static const textPrimary = Color(0xFF0F0F1A);
-  static const textSecondary = Color(0xFF6B7280);
-  static const textHint = Color(0xFF9CA3AF);
+  /// Pour dégradés légers (palette : blanc ↔ teal).
+  static const accentLight = white;
 
-  static const divider = Color(0xFFE5E7EB);
-  static const success = Color(0xFF10B981);
-  static const warning = Color(0xFFF59E0B);
-  static const error = Color(0xFFEF4444);
+  static const background = alabasterGrey;
+  static const surface = white;
+  static const surfaceVariant = alabasterGrey;
 
-  static const shimmerBase = Color(0xFFE5E7EB);
-  static const shimmerHighlight = Color(0xFFF5F5F8);
+  static const textPrimary = graphite;
+  static const textSecondary = yaleBlue;
+  static const textHint = stormyTeal;
 
-  static const cardGradientStart = Color(0xFFFFFFFF);
-  static const cardGradientEnd = Color(0xFFF8F9FC);
+  static const divider = alabasterGrey;
+
+  /// États : hiérarchie distincte avec les 5 teintes seulement.
+  static const success = stormyTeal;
+  static const warning = yaleBlue;
+  static const error = graphite;
+
+  static const shimmerBase = alabasterGrey;
+  static const shimmerHighlight = white;
+
+  static const cardGradientStart = white;
+  static const cardGradientEnd = alabasterGrey;
+
+  /// Ombrages / scrims (graphite, même teinte de base).
+  static Color get scrimLight => graphite.withValues(alpha: 0.08);
+
+  static Color get scrimMedium => graphite.withValues(alpha: 0.35);
+
+  static Color get scrimStrong => graphite.withValues(alpha: 0.55);
+
+  static Color get scrimHeavy => graphite.withValues(alpha: 0.72);
 }

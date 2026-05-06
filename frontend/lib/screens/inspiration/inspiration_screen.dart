@@ -136,7 +136,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                     children: [
                       const SizedBox(height: 200),
                       Icon(Icons.keyboard_arrow_down,
-                              color: Colors.white.withOpacity(0.7), size: 48)
+                              color: AppColors.white.withOpacity(0.7), size: 48)
                           .animate(onPlay: (c) => c.repeat(reverse: true))
                           .moveY(
                               begin: 0,
@@ -148,13 +148,13 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 18, vertical: 10),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.55),
+                          color: AppColors.graphite.withOpacity(0.55),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           'Swipe pour voir plus',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
+                            color: AppColors.white.withOpacity(0.85),
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -389,7 +389,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                             content: const Row(
                               children: [
                                 Icon(Icons.check_circle,
-                                    color: Colors.white, size: 18),
+                                    color: AppColors.white, size: 18),
                                 SizedBox(width: 10),
                                 Text('Outfit publié !',
                                     style: TextStyle(
@@ -413,7 +413,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                             content: const Row(
                               children: [
                                 Icon(Icons.info_outline,
-                                    color: Colors.white, size: 18),
+                                    color: AppColors.white, size: 18),
                                 SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
@@ -448,7 +448,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                   child: const Text(
                     'Publier',
                     style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600),
+                        color: AppColors.white, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -475,7 +475,7 @@ class _FeedToggle extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.35),
+        color: AppColors.graphite.withOpacity(0.35),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -512,13 +512,13 @@ class _ToggleChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: active ? Colors.white : Colors.transparent,
+          color: active ? AppColors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: active ? Colors.black : Colors.white.withOpacity(0.7),
+            color: active ? AppColors.graphite : AppColors.white.withOpacity(0.7),
             fontWeight: FontWeight.w600,
             fontSize: 13,
           ),
@@ -557,12 +557,12 @@ class _PublishButton extends StatelessWidget {
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add, color: Colors.white, size: 20),
+            Icon(Icons.add, color: AppColors.white, size: 20),
             SizedBox(width: 8),
             Text(
               'Publier',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.white,
                 fontWeight: FontWeight.w700,
                 fontSize: 14,
               ),
@@ -612,7 +612,7 @@ class _FriendsFeed extends ConsumerWidget {
               label: const Text('Trouver des amis'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
@@ -653,10 +653,10 @@ class _FriendsFeed extends ConsumerWidget {
         );
       },
       loading: () =>
-          const Center(child: CircularProgressIndicator(color: Colors.white)),
+          const Center(child: CircularProgressIndicator(color: AppColors.white)),
       error: (e, _) => Center(
           child: Text('Erreur: $e',
-              style: const TextStyle(color: Colors.white))),
+              style: const TextStyle(color: AppColors.white))),
     );
   }
 }
@@ -714,10 +714,10 @@ class _ExploreFeed extends ConsumerWidget {
         );
       },
       loading: () =>
-          const Center(child: CircularProgressIndicator(color: Colors.white)),
+          const Center(child: CircularProgressIndicator(color: AppColors.white)),
       error: (e, _) => Center(
           child: Text('Erreur: $e',
-              style: const TextStyle(color: Colors.white))),
+              style: const TextStyle(color: AppColors.white))),
     );
   }
 }
@@ -814,14 +814,14 @@ class _EndOfDayMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.black,
-            Colors.black87,
-            Colors.black,
+            AppColors.graphite,
+            AppColors.graphite.withValues(alpha: 0.87),
+            AppColors.graphite,
           ],
         ),
       ),
@@ -830,14 +830,14 @@ class _EndOfDayMessage extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(Icons.wb_twighlight, size: 56, color: Colors.white70),
+            children: [
+              Icon(Icons.wb_twighlight, size: 56, color: AppColors.white.withOpacity(0.7)),
               SizedBox(height: 16),
               Text(
                 'Tu as vu tous les looks du jour',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                 ),
@@ -847,7 +847,7 @@ class _EndOfDayMessage extends StatelessWidget {
                 'Reviens demain pour decouvrir de nouveaux outfits !',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white70,
+                  color: AppColors.white.withOpacity(0.7),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -943,20 +943,20 @@ class _FullScreenPostState extends State<_FullScreenPost>
               width: screenSize.width,
               height: screenSize.height,
               placeholder: (_, __) => Container(
-                color: Colors.grey[900],
+                color: AppColors.graphite,
                 child: const Center(
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2, color: AppColors.white),
                 ),
               ),
               errorWidget: (_, __, ___) => Container(
-                color: Colors.grey[900],
-                child: const Icon(Icons.broken_image_outlined,
-                    color: Colors.white38, size: 48),
+                color: AppColors.graphite,
+                child: Icon(Icons.broken_image_outlined,
+                    color: AppColors.white.withOpacity(0.38), size: 48),
               ),
             )
           else
-            Container(color: Colors.grey[900]),
+            Container(color: AppColors.graphite),
 
           // Top gradient
           Positioned(
@@ -970,7 +970,7 @@ class _FullScreenPostState extends State<_FullScreenPost>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.6),
+                    AppColors.graphite.withOpacity(0.6),
                     Colors.transparent,
                   ],
                 ),
@@ -990,8 +990,8 @@ class _FullScreenPostState extends State<_FullScreenPost>
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black.withOpacity(0.85),
-                    Colors.black.withOpacity(0.0),
+                    AppColors.graphite.withOpacity(0.85),
+                    AppColors.graphite.withOpacity(0.0),
                   ],
                 ),
               ),
@@ -1014,7 +1014,7 @@ class _FullScreenPostState extends State<_FullScreenPost>
                     ),
                     child: CircleAvatar(
                       radius: 22,
-                      backgroundColor: Colors.grey[800],
+                      backgroundColor: AppColors.yaleBlue,
                       backgroundImage: widget.post.userPhotoUrl.isNotEmpty
                           ? CachedNetworkImageProvider(
                               widget.post.userPhotoUrl)
@@ -1025,7 +1025,7 @@ class _FullScreenPostState extends State<_FullScreenPost>
                                   ? widget.post.username[0].toUpperCase()
                                   : '?',
                               style: const TextStyle(
-                                  color: Colors.white,
+                                  color: AppColors.white,
                                   fontWeight: FontWeight.w600),
                             )
                           : null,
@@ -1046,14 +1046,14 @@ class _FullScreenPostState extends State<_FullScreenPost>
                     children: [
                       Icon(
                         _liked ? Icons.favorite : Icons.favorite_border,
-                        color: _liked ? AppColors.accent : Colors.white,
+                        color: _liked ? AppColors.accent : AppColors.white,
                         size: 32,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '$_likes',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1067,12 +1067,12 @@ class _FullScreenPostState extends State<_FullScreenPost>
                     onTap: () => _showPostDetails(context, widget.post),
                     child: const Column(
                       children: [
-                        Icon(Icons.checkroom, color: Colors.white, size: 28),
+                        Icon(Icons.checkroom, color: AppColors.white, size: 28),
                         SizedBox(height: 4),
                         Text(
                           'Détails',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.white,
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                           ),
@@ -1090,17 +1090,17 @@ class _FullScreenPostState extends State<_FullScreenPost>
                         Container(
                           padding: const EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.35),
+                            color: AppColors.graphite.withOpacity(0.35),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.more_horiz,
-                              color: Colors.white, size: 26),
+                              color: AppColors.white, size: 26),
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           'Options',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: AppColors.white,
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                           ),
@@ -1127,7 +1127,7 @@ class _FullScreenPostState extends State<_FullScreenPost>
                   child: Text(
                     '@${widget.post.username}',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.white,
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
                     ),
@@ -1138,7 +1138,7 @@ class _FullScreenPostState extends State<_FullScreenPost>
                   Text(
                     widget.post.caption,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
+                      color: AppColors.white.withOpacity(0.9),
                       fontSize: 14,
                     ),
                     maxLines: 3,
@@ -1158,16 +1158,16 @@ class _FullScreenPostState extends State<_FullScreenPost>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: AppColors.white.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: Colors.white.withOpacity(0.2)),
+                              color: AppColors.white.withOpacity(0.2)),
                         ),
                         child: Text(
                           text,
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.white.withOpacity(0.9),
+                            color: AppColors.white.withOpacity(0.9),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1184,7 +1184,7 @@ class _FullScreenPostState extends State<_FullScreenPost>
             Center(
               child: Icon(
                 Icons.favorite,
-                color: Colors.white.withOpacity(0.85),
+                color: AppColors.white.withOpacity(0.85),
                 size: 100,
               )
                   .animate()
@@ -1308,7 +1308,7 @@ class _FullScreenPostState extends State<_FullScreenPost>
             },
             style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
-                foregroundColor: Colors.white),
+                foregroundColor: AppColors.white),
             child: const Text('Enregistrer'),
           ),
         ],
@@ -1341,17 +1341,17 @@ class _EmptyFeedMessage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 72, color: Colors.white.withOpacity(0.2)),
+            Icon(icon, size: 72, color: AppColors.white.withOpacity(0.2)),
             const SizedBox(height: 20),
             Text(title,
-                style: const TextStyle(
-                    color: Colors.white70,
+                style: TextStyle(
+                    color: AppColors.white.withOpacity(0.7),
                     fontSize: 16,
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: TextStyle(color: Colors.white.withOpacity(0.4)),
+              style: TextStyle(color: AppColors.white.withOpacity(0.4)),
               textAlign: TextAlign.center,
             ),
             if (action != null) ...[
@@ -1586,7 +1586,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
                         child: Text(
                           '${requestsAsync.valueOrNull?.length ?? 0}',
                           style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.white,
                               fontSize: 10,
                               fontWeight: FontWeight.w700),
                         ),

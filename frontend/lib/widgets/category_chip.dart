@@ -49,7 +49,7 @@ class _CategoryChipState extends State<CategoryChip> {
             Icon(
               widget.icon,
               size: 16,
-              color: widget.selected ? Colors.white : AppColors.textSecondary,
+              color: widget.selected ? AppColors.white : AppColors.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(
@@ -57,7 +57,7 @@ class _CategoryChipState extends State<CategoryChip> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: widget.selected ? Colors.white : AppColors.textSecondary,
+                color: widget.selected ? AppColors.white : AppColors.textSecondary,
               ),
             ),
           ],

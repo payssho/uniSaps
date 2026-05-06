@@ -232,7 +232,7 @@ class GarmentDetailSheet extends ConsumerWidget {
                                 color: colorOption.color,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: colorOption.color == Colors.white ||
+                                  color: colorOption.color == AppColors.white ||
                                           colorOption.color == Colors.transparent
                                       ? AppColors.divider
                                       : Colors.transparent,
@@ -240,7 +240,7 @@ class GarmentDetailSheet extends ConsumerWidget {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: AppColors.graphite.withOpacity(0.1),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -254,13 +254,11 @@ class GarmentDetailSheet extends ConsumerWidget {
                                         decoration: const BoxDecoration(
                                           gradient: LinearGradient(
                                             colors: [
-                                              Colors.red,
-                                              Colors.orange,
-                                              Colors.yellow,
-                                              Colors.green,
-                                              Colors.blue,
-                                              Colors.indigo,
-                                              Colors.purple,
+                                              AppColors.graphite,
+                                              AppColors.stormyTeal,
+                                              AppColors.white,
+                                              AppColors.alabasterGrey,
+                                              AppColors.yaleBlue,
                                             ],
                                           ),
                                           shape: BoxShape.circle,
@@ -324,13 +322,13 @@ class GarmentDetailSheet extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      icon: const Icon(Icons.delete_outline, color: Colors.white, size: 20),
+                      icon: const Icon(Icons.delete_outline, color: AppColors.white, size: 20),
                       label: const Text(
                         'Supprimer',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: AppColors.white,
                         ),
                       ),
                     ),

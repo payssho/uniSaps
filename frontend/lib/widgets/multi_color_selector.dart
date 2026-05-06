@@ -154,7 +154,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
                     color: colorOption.color,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: colorOption.color == Colors.white ||
+                      color: colorOption.color == AppColors.white ||
                               colorOption.color == Colors.transparent
                           ? AppColors.divider
                           : Colors.transparent,
@@ -162,7 +162,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: AppColors.graphite.withOpacity(0.1),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -176,13 +176,11 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  Colors.red,
-                                  Colors.orange,
-                                  Colors.yellow,
-                                  Colors.green,
-                                  Colors.blue,
-                                  Colors.indigo,
-                                  Colors.purple,
+                                  AppColors.graphite,
+                                  AppColors.stormyTeal,
+                                  AppColors.white,
+                                  AppColors.alabasterGrey,
+                                  AppColors.yaleBlue,
                                 ],
                               ),
                               shape: BoxShape.circle,
@@ -284,7 +282,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: AppColors.graphite.withOpacity(0.1),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -318,7 +316,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
                               color: colorOption.color,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: colorOption.color == Colors.white ||
+                                color: colorOption.color == AppColors.white ||
                                         colorOption.color == Colors.transparent
                                     ? AppColors.divider
                                     : Colors.transparent,
@@ -326,7 +324,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.15),
+                                  color: AppColors.graphite.withOpacity(0.15),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -340,13 +338,11 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
                                       decoration: const BoxDecoration(
                                         gradient: LinearGradient(
                                           colors: [
-                                            Colors.red,
-                                            Colors.orange,
-                                            Colors.yellow,
-                                            Colors.green,
-                                            Colors.blue,
-                                            Colors.indigo,
-                                            Colors.purple,
+                                            AppColors.graphite,
+                                            AppColors.stormyTeal,
+                                            AppColors.white,
+                                            AppColors.alabasterGrey,
+                                            AppColors.yaleBlue,
                                           ],
                                         ),
                                         shape: BoxShape.circle,

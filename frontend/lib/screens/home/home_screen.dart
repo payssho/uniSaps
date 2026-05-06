@@ -110,7 +110,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.lock_outline, color: Colors.white, size: 16),
+                  const Icon(Icons.lock_outline, color: AppColors.white, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(_lockMessages[index],
@@ -159,7 +159,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           content: Row(
                             children: [
                               const Icon(Icons.lock_outline,
-                                  color: Colors.white, size: 16),
+                                  color: AppColors.white, size: 16),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -306,7 +306,7 @@ class _SearchFriendsButton extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: AppColors.graphite.withOpacity(0.15),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -357,7 +357,7 @@ class _BottomNavBar extends StatelessWidget {
         color: AppColors.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.graphite.withOpacity(0.05),
             blurRadius: 16,
             offset: const Offset(0, -3),
           ),
@@ -507,7 +507,7 @@ class _NavProfileBubble extends StatelessWidget {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.08),
+                              color: AppColors.graphite.withOpacity(0.08),
                               blurRadius: 3,
                             ),
                           ],
@@ -538,7 +538,7 @@ class _NavProfileBubble extends StatelessWidget {
                           badgeCount > 99 ? '99+' : '$badgeCount',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppColors.white,
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
                             height: 1,
@@ -623,7 +623,7 @@ class _NavItem extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: AppColors.graphite.withOpacity(0.08),
                           blurRadius: 3,
                         ),
                       ],
@@ -650,7 +650,7 @@ class _NavItem extends StatelessWidget {
                       requestBadgeCount > 99 ? '99+' : '$requestBadgeCount',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.white,
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
                         height: 1,
@@ -724,7 +724,7 @@ class _TutorialOverlay extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: Container(
-          color: Colors.black.withOpacity(0.55),
+          color: AppColors.graphite.withOpacity(0.55),
           child: Center(
             child: Container(
               width: size.width * 0.82,
@@ -734,7 +734,7 @@ class _TutorialOverlay extends StatelessWidget {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.25),
+                    color: AppColors.graphite.withOpacity(0.25),
                     blurRadius: 24,
                     offset: const Offset(0, 10),
                   ),
@@ -807,7 +807,7 @@ class _TutorialOverlay extends StatelessWidget {
                           child: Text(
                             step == 2 ? 'C\'est parti !' : 'Suivant',
                             style: const TextStyle(
-                                color: Colors.white,
+                                color: AppColors.white,
                                 fontWeight: FontWeight.w600),
                           ),
                         ),

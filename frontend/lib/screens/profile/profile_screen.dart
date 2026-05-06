@@ -53,96 +53,100 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
+        bottom: false,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.only(left: 4, right: 4, top: 8),
+              padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
               child: Row(
                 children: [
                   if (!widget.embeddedInMainNav)
                     IconButton(
                       icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                          size: 22),
+                          size: 20, color: AppColors.textPrimary),
                       onPressed: () => Navigator.of(context).pop(),
                       tooltip: 'Retour',
                     )
                   else
                     const SizedBox(width: 8),
                   const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.logout_rounded,
-                        size: 22, color: AppColors.textSecondary),
-                    tooltip: 'Se deconnecter',
-                    onPressed: () async {
-                      await ref.read(authNotifierProvider.notifier).signOut();
-                      if (context.mounted) context.go('/login');
-                    },
+                  Material(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(14),
+                    elevation: 0,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () async {
+                        await ref.read(authNotifierProvider.notifier).signOut();
+                        if (context.mounted) context.go('/login');
+                      },
+                      child: const Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.logout_rounded,
+                                size: 20, color: AppColors.textSecondary),
+                            SizedBox(width: 8),
+                            Text(
+                              'Déconnexion',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 4),
-            _ProfileHeader(user: user),
-            const SizedBox(height: 24),
-            TabBar(
-              controller: _tabController,
-              indicatorColor: AppColors.accent,
-              labelColor: AppColors.accent,
-              unselectedLabelColor: AppColors.textHint,
-              indicatorSize: TabBarIndicatorSize.label,
-              isScrollable: true,
-              tabAlignment: TabAlignment.center,
-              tabs: [
-                const Tab(text: 'Stats'),
-                const Tab(text: 'Outfits'),
-                const Tab(text: 'Memories'),
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text('Amis'),
-                      if (requestCount > 0) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.accent,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '$requestCount',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const Tab(text: 'Infos'),
-              ],
-            ),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _StatsTab(uid: user.uid, user: user),
-                  _OutfitsTab(uid: user.uid),
-                  _GalleryTab(uid: user.uid),
-                  _FriendsTab(user: user),
-                  _InfosTab(
-                    user: user,
-                    onLogout: () async {
-                      await ref.read(authNotifierProvider.notifier).signOut();
-                      if (context.mounted) context.go('/login');
-                    },
-                  ),
-                ],
+              child: NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: _ProfileHero(
+                          user: user,
+                          pendingFriendRequests: requestCount,
+                        ),
+                      ),
+                    ),
+                    SliverPersistentHeader(
+                      pinned: true,
+                      delegate: _ProfileTabsHeaderDelegate(
+                        tabController: _tabController,
+                        requestCount: requestCount,
+                      ),
+                    ),
+                  ];
+                },
+                body: TabBarView(
+                  controller: _tabController,
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    _StatsTab(uid: user.uid, user: user),
+                    _OutfitsTab(uid: user.uid),
+                    _GalleryTab(uid: user.uid),
+                    _FriendsTab(user: user),
+                    _InfosTab(
+                      user: user,
+                      onLogout: () async {
+                        await ref.read(authNotifierProvider.notifier).signOut();
+                        if (context.mounted) context.go('/login');
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -385,7 +389,7 @@ class _OutfitsTab extends ConsumerWidget {
                   border: Border.all(color: AppColors.divider, width: 1),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
+                      color: AppColors.graphite.withOpacity(0.02),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
                     ),
@@ -670,13 +674,13 @@ class _GalleryTab extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.55),
+                        color: AppColors.graphite.withOpacity(0.55),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         date.isNotEmpty ? date : '-',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppColors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),
@@ -914,7 +918,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                         child: Text(
                           '${requests.length}',
                           style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.w700),
                         ),
@@ -1231,7 +1235,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
               onPressed: () => Navigator.pop(ctx, true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
@@ -1304,7 +1308,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.textSecondary,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
                 padding: const EdgeInsets.symmetric(vertical: 14),

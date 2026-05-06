@@ -151,7 +151,7 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
                                   color: AppColors.error,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.close, size: 16, color: Colors.white),
+                                child: const Icon(Icons.close, size: 16, color: AppColors.white),
                               ),
                             ),
                           ),
@@ -196,7 +196,7 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
                   selected: selected,
                   selectedColor: AppColors.accent,
                   labelStyle: TextStyle(
-                    color: selected ? Colors.white : AppColors.textSecondary,
+                    color: selected ? AppColors.white : AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                   onSelected: (_) => setState(() => _selectedCategory = cat.key),
@@ -234,7 +234,7 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
                 child: _loading
                     ? const SizedBox(
                         height: 20, width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                       )
                     : const Text('Enregistrer'),
               ),

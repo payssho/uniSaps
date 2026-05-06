@@ -130,8 +130,8 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
           backgroundColor: AppColors.accent,
           elevation: 6,
           onPressed: () => _showAddGarmentSheet(),
-          icon: const Icon(Icons.add, color: Colors.white, size: 24),
-          label: const Text('Ajouter', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          icon: const Icon(Icons.add, color: AppColors.white, size: 24),
+          label: const Text('Ajouter', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
         ),
       ),
     );
@@ -273,7 +273,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: AppColors.white,
                           ),
                         ),
                       ),

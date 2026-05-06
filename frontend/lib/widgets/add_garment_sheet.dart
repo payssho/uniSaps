@@ -200,7 +200,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               SnackBar(
                 content: Row(
                   children: [
-                    const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                    const Icon(Icons.check_circle, color: AppColors.white, size: 20),
                     const SizedBox(width: 8),
                     Text(widget.garment == null ? 'Vêtement ajouté !' : 'Vêtement modifié !'),
                   ],
@@ -323,7 +323,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                                           color: AppColors.error,
                                           shape: BoxShape.circle,
                                         ),
-                                        child: const Icon(Icons.close, size: 16, color: Colors.white),
+                                        child: const Icon(Icons.close, size: 16, color: AppColors.white),
                                       ),
                                     ),
                                   ),
@@ -408,7 +408,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                           selected: selected,
                           selectedColor: AppColors.accent,
                           labelStyle: TextStyle(
-                            color: selected ? Colors.white : AppColors.textSecondary,
+                            color: selected ? AppColors.white : AppColors.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                           onSelected: (_) => setState(() => _selectedCategory = cat.key),
@@ -458,14 +458,14 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                               )
                             : Text(
                                 widget.garment == null ? 'Enregistrer' : 'Modifier',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                                  color: AppColors.white,
                                 ),
                               ),
                       ),
