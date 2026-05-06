@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -126,37 +128,56 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
               child: _PublishButton(onTap: () => _handlePublish(context)),
             ),
 
-          // Scroll hint overlay (first visit only)
+          // Indication premier passage : défilement fluide (plus de mode « short »)
           if (_showScrollHint)
             Positioned.fill(
               child: IgnorePointer(
-                child: Center(
+                child: Align(
+                  alignment: const Alignment(0, 0.25),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(height: 200),
-                      Icon(Icons.keyboard_arrow_down,
-                              color: AppColors.white.withOpacity(0.7), size: 48)
+                      Icon(
+                        Icons.unfold_more_double_rounded,
+                        color: AppColors.textSecondary.withValues(alpha: 0.75),
+                        size: 40,
+                      )
                           .animate(onPlay: (c) => c.repeat(reverse: true))
                           .moveY(
-                              begin: 0,
-                              end: 14,
-                              duration: 800.ms,
-                              curve: Curves.easeInOut),
-                      const SizedBox(height: 8),
+                            begin: 0,
+                            end: 10,
+                            duration: 1100.ms,
+                            curve: Curves.easeInOutCubic,
+                          )
+                          .shimmer(
+                            duration: 1800.ms,
+                            color: AppColors.accent.withValues(alpha: 0.35),
+                          ),
+                      const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 10),
+                            horizontal: 20, vertical: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.graphite.withOpacity(0.55),
-                          borderRadius: BorderRadius.circular(20),
+                          color: AppColors.surface.withValues(alpha: 0.94),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(
+                            color: AppColors.scrimLight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.scrimMedium,
+                              blurRadius: 24,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
                         ),
                         child: Text(
-                          'Swipe pour voir plus',
+                          'Fais défiler pour parcourir les looks',
                           style: TextStyle(
-                            color: AppColors.white.withOpacity(0.85),
+                            color: AppColors.textPrimary.withValues(alpha: 0.88),
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
                           ),
                         ),
                       ),

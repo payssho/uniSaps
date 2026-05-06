@@ -76,7 +76,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   Material(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(14),
-                    elevation: 0,
                     child: InkWell(
                       borderRadius: BorderRadius.circular(14),
                       onTap: () async {
@@ -109,44 +108,46 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               ),
             ),
             Expanded(
-              child: NestedScrollView(
-                headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  return [
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                        child: _ProfileHero(
-                          user: user,
-                          pendingFriendRequests: requestCount,
-                        ),
-                      ),
-                    ),
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _ProfileTabsHeaderDelegate(
-                        tabController: _tabController,
-                        requestCount: requestCount,
-                      ),
-                    ),
-                  ];
-                },
-                body: TabBarView(
-                  controller: _tabController,
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    _StatsTab(uid: user.uid, user: user),
-                    _OutfitsTab(uid: user.uid),
-                    _GalleryTab(uid: user.uid),
-                    _FriendsTab(user: user),
-                    _InfosTab(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                    child: _ProfileHero(
                       user: user,
-                      onLogout: () async {
-                        await ref.read(authNotifierProvider.notifier).signOut();
-                        if (context.mounted) context.go('/login');
-                      },
+                      pendingFriendRequests: requestCount,
                     ),
-                  ],
-                ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: _ProfileTabRail(
+                      controller: _tabController,
+                      pendingRequests: requestCount,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      physics: const BouncingScrollPhysics(),
+                      children: [
+                        _StatsTab(uid: user.uid, user: user),
+                        _OutfitsTab(uid: user.uid),
+                        _GalleryTab(uid: user.uid),
+                        _FriendsTab(user: user),
+                        _InfosTab(
+                          user: user,
+                          onLogout: () async {
+                            await ref
+                                .read(authNotifierProvider.notifier)
+                                .signOut();
+                            if (context.mounted) context.go('/login');
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -156,51 +157,451 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 }
 
-class _ProfileHeader extends StatelessWidget {
+class _ProfileHero extends StatelessWidget {
   final UserModel user;
+  final int pendingFriendRequests;
 
-  const _ProfileHeader({required this.user});
+  const _ProfileHero({
+    required this.user,
+    required this.pendingFriendRequests,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 44,
-          backgroundColor: AppColors.surfaceVariant,
-          backgroundImage: user.profilePhotoUrl.isNotEmpty
-              ? CachedNetworkImageProvider(user.profilePhotoUrl)
-              : null,
-          child: user.profilePhotoUrl.isEmpty
-              ? Text(
-                  user.username.isNotEmpty
-                      ? user.username[0].toUpperCase()
-                      : '?',
-                  style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textHint),
-                )
-              : null,
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              user.displayName.isNotEmpty ? user.displayName : user.username,
-              style: AppTextStyles.heading3,
+    final displayName =
+        user.displayName.isNotEmpty ? user.displayName : user.username;
+    final initials = user.username.isNotEmpty
+        ? user.username[0].toUpperCase()
+        : (displayName.isNotEmpty ? displayName[0].toUpperCase() : '?');
+    final friendCount = user.friends.length;
+
+    return Material(
+      color: Colors.transparent,
+      elevation: 0,
+      borderRadius: BorderRadius.circular(28),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppColors.cardGradientStart,
+                    AppColors.surface,
+                    AppColors.accent.withValues(alpha: 0.14),
+                    AppColors.primary.withValues(alpha: 0.07),
+                  ],
+                  stops: const [0.0, 0.35, 0.72, 1.0],
+                ),
+              ),
             ),
-            if (user.isPrivate) ...[
-              const SizedBox(width: 6),
-              const Icon(Icons.lock_outline,
-                  size: 16, color: AppColors.textHint),
-            ],
+          ),
+          Positioned(
+            top: -28,
+            right: -36,
+            child: IgnorePointer(
+              child: Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accent.withValues(alpha: 0.18),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -20,
+            left: -16,
+            child: IgnorePointer(
+              child: Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.primary.withValues(alpha: 0.06),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color:
+                              AppColors.accent.withValues(alpha: 0.45),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.scrimLight,
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 42,
+                        backgroundColor: AppColors.surfaceVariant,
+                        backgroundImage:
+                            user.profilePhotoUrl.isNotEmpty
+                                ? CachedNetworkImageProvider(
+                                    user.profilePhotoUrl)
+                                : null,
+                        child: user.profilePhotoUrl.isEmpty
+                            ? Text(
+                                initials,
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textHint,
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  displayName,
+                                  style: AppTextStyles.heading2.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.15,
+                                    letterSpacing: -0.5,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (user.isPrivate) ...[
+                                const SizedBox(width: 6),
+                                Tooltip(
+                                  message: 'Profil privé',
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Icon(
+                                      Icons.lock_rounded,
+                                      size: 20,
+                                      color: AppColors.textHint
+                                          .withValues(alpha: 0.9),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          if (user.username.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                '@${user.username}',
+                                style: AppTextStyles.bodySecondary.copyWith(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              _HeroChip(
+                                icon: Icons.local_fire_department_rounded,
+                                label:
+                                    '${user.currentStreak} j. série',
+                                iconColor: AppColors.warning,
+                              ),
+                              _HeroChip(
+                                icon: Icons.groups_rounded,
+                                label:
+                                    friendCount <= 1
+                                        ? '$friendCount ami'
+                                        : '$friendCount amis',
+                                iconColor: AppColors.success,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (pendingFriendRequests > 0) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person_add_alt_1_rounded,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            pendingFriendRequests == 1
+                                ? 'Une demande d’ami en attente'
+                                : '$pendingFriendRequests demandes d’amis en attente',
+                            style: AppTextStyles.body.copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                              height: 1.25,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '$pendingFriendRequests',
+                            style: const TextStyle(
+                              color: AppColors.surface,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color iconColor;
+
+  const _HeroChip({
+    required this.icon,
+    required this.label,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.75),
+        borderRadius: BorderRadius.circular(999),
+        border:
+            Border.all(color: AppColors.accent.withValues(alpha: 0.18)),
+      ),
+      child: Padding(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 17, color: iconColor),
+            const SizedBox(width: 7),
+            Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: AppColors.textPrimary,
+              ),
+            ),
           ],
         ),
-        if (user.username.isNotEmpty)
-          Text('@${user.username}', style: AppTextStyles.bodySecondary),
-      ],
+      ),
+    );
+  }
+}
+
+/// Onglets en pastilles horizontales, synchronisés avec [TabController].
+class _ProfileTabRail extends StatelessWidget {
+  final TabController controller;
+  final int pendingRequests;
+
+  static const _entries = <
+      ({
+        IconData icon,
+        String short,
+      })>[
+    (
+      icon: Icons.insights_rounded,
+      short: 'Stats',
+    ),
+    (
+      icon: Icons.checkroom_rounded,
+      short: 'Tenues',
+    ),
+    (
+      icon: Icons.photo_library_rounded,
+      short: 'Souvenirs',
+    ),
+    (
+      icon: Icons.group_rounded,
+      short: 'Amis',
+    ),
+    (
+      icon: Icons.manage_accounts_rounded,
+      short: 'Infos',
+    ),
+  ];
+
+  const _ProfileTabRail({
+    required this.controller,
+    required this.pendingRequests,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.zero,
+          child: Row(
+            children: List.generate(_entries.length, (i) {
+              final e = _entries[i];
+              final selected = controller.index == i;
+              final showBadge = i == 3 && pendingRequests > 0;
+
+              return Padding(
+                padding: EdgeInsets.only(
+                  left: i == 0 ? 0 : 6,
+                  right: i == _entries.length - 1 ? 0 : 6,
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => controller.animateTo(i),
+                    borderRadius: BorderRadius.circular(16),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutCubic,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 11,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? AppColors.primary
+                            : AppColors.surface.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.primary
+                              : AppColors.divider.withValues(alpha: 0.9),
+                          width: selected ? 1.5 : 1,
+                        ),
+                        boxShadow: selected
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.primary
+                                      .withValues(alpha: 0.28),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ]
+                            : [
+                                BoxShadow(
+                                  color: AppColors.scrimLight,
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Icon(
+                                e.icon,
+                                size: 20,
+                                color: selected
+                                    ? AppColors.surface
+                                    : AppColors.textSecondary,
+                              ),
+                              if (showBadge)
+                                Positioned(
+                                  top: -4,
+                                  right: -8,
+                                  child: Container(
+                                    width: 9,
+                                    height: 9,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.accent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            e.short,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              letterSpacing: -0.2,
+                              color: selected
+                                  ? AppColors.surface
+                                  : AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        );
+      },
     );
   }
 }
