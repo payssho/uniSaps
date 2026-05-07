@@ -519,6 +519,7 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             "season": "",
             "pattern": "",
             "material": "",
+            "_debug": "no_api_key",
         }
 
     api_url = "https://api.openai.com/v1/chat/completions"
@@ -620,4 +621,5 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             "season": "",
             "pattern": "",
             "material": "",
+            "_debug": f"exception:{type(e).__name__}:{str(e)[:120]}",
         }
