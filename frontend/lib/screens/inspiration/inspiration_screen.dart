@@ -608,37 +608,30 @@ class _PublishButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.accent, AppColors.accentLight],
-          ),
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.accent.withOpacity(0.4),
-              blurRadius: 14,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add, color: AppColors.white, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Publier',
-              style: TextStyle(
-                color: AppColors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
+    return Material(
+      color: AppColors.primary,
+      borderRadius: BorderRadius.circular(22),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.add_rounded, color: AppColors.white.withValues(alpha: 0.95), size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Publier',
+                style: TextStyle(
+                  color: AppColors.white.withValues(alpha: 0.98),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  letterSpacing: 0.1,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -839,7 +832,7 @@ class _ContinuousFeed extends ConsumerWidget {
         return false;
       },
       child: ListView.separated(
-        padding: EdgeInsets.fromLTRB(12, topInset, 12, bottomInset),
+        padding: EdgeInsets.fromLTRB(12, topInset + 14, 12, bottomInset),
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
@@ -1499,7 +1492,8 @@ class _InspoPostCardState extends State<_InspoPostCard>
           GestureDetector(
             onDoubleTap: _onDoubleTapImage,
             child: AspectRatio(
-              aspectRatio: 4 / 5,
+              // Un peu moins haut que 4/5 pour que la carte tienne mieux à l’écran.
+              aspectRatio: 7 / 8,
               child: Stack(
                 fit: StackFit.expand,
                 children: [

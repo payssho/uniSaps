@@ -11,6 +11,9 @@ class AppColors {
   static const alabasterGrey = Color(0xFFD9D9D9);
   static const yaleBlue = Color(0xFF284B63);
 
+  /// Fond d’app global : gris très clair (ni blanc, ni le gris moyen d’alabaster).
+  static const canvas = Color(0xFFF0F1F4);
+
   // ── Sémantique UI (dérivée uniquement de cette palette) ───────────────────
   static const primary = yaleBlue;
   static const secondary = graphite;
@@ -19,8 +22,9 @@ class AppColors {
   /// Pour dégradés légers (palette : blanc ↔ teal).
   static const accentLight = white;
 
-  static const background = alabasterGrey;
+  static const background = canvas;
   static const surface = white;
+  /// Champs, puces : léger contraste sur le fond `canvas`.
   static const surfaceVariant = alabasterGrey;
 
   static const textPrimary = graphite;
@@ -34,7 +38,7 @@ class AppColors {
   static const warning = yaleBlue;
   static const error = graphite;
 
-  static const shimmerBase = alabasterGrey;
+  static const shimmerBase = Color(0xFFE3E4E9);
   static const shimmerHighlight = white;
 
   static const cardGradientStart = white;

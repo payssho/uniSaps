@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
@@ -30,15 +31,46 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  /// Indique s’il reste du contenu scrollable vers le bas dans l’onglet actif.
+  bool _scrollMoreBelow = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(_onProfileTabChanged);
+  }
+
+  void _onProfileTabChanged() {
+    if (_tabController.indexIsChanging) return;
+    if (_scrollMoreBelow) {
+      setState(() => _scrollMoreBelow = false);
+    }
+  }
+
+  bool _onProfileTabScrollOrMetrics(Notification notification) {
+    final ScrollMetrics? m;
+    if (notification is ScrollNotification) {
+      m = notification.metrics;
+    } else if (notification is ScrollMetricsNotification) {
+      m = notification.metrics;
+    } else {
+      return false;
+    }
+    if (m.axis != Axis.vertical) return false;
+    if (!m.hasPixels || !m.hasViewportDimension) return false;
+
+    final canScrollDown =
+        m.maxScrollExtent > 12 && m.pixels < m.maxScrollExtent - 12;
+    if (canScrollDown != _scrollMoreBelow) {
+      setState(() => _scrollMoreBelow = canScrollDown);
+    }
+    return false;
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onProfileTabChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -59,54 +91,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
-              child: Row(
-                children: [
-                  if (!widget.embeddedInMainNav)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                          size: 20, color: AppColors.textPrimary),
-                      onPressed: () => Navigator.of(context).pop(),
-                      tooltip: 'Retour',
-                    )
-                  else
-                    const SizedBox(width: 8),
-                  const Spacer(),
-                  Material(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(14),
-                      onTap: () async {
-                        await ref.read(authNotifierProvider.notifier).signOut();
-                        if (context.mounted) context.go('/login');
-                      },
-                      child: const Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.logout_rounded,
-                                size: 20, color: AppColors.textSecondary),
-                            SizedBox(width: 8),
-                            Text(
-                              'Déconnexion',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+            if (!widget.embeddedInMainNav)
+              Padding(
+                padding: const EdgeInsets.only(left: 4, right: 16, top: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                        size: 20, color: AppColors.textPrimary),
+                    onPressed: () => Navigator.of(context).pop(),
+                    tooltip: 'Retour',
                   ),
-                ],
+                ),
               ),
-            ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -116,6 +113,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     child: _ProfileHero(
                       user: user,
                       pendingFriendRequests: requestCount,
+                      onLogout: () async {
+                        await ref
+                            .read(authNotifierProvider.notifier)
+                            .signOut();
+                        if (context.mounted) context.go('/login');
+                      },
                     ),
                   ),
                   Padding(
@@ -127,22 +130,99 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ),
                   const SizedBox(height: 8),
                   Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      physics: const BouncingScrollPhysics(),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      fit: StackFit.expand,
                       children: [
-                        _StatsTab(uid: user.uid, user: user),
-                        _OutfitsTab(uid: user.uid),
-                        _GalleryTab(uid: user.uid),
-                        _FriendsTab(user: user),
-                        _InfosTab(
-                          user: user,
-                          onLogout: () async {
-                            await ref
-                                .read(authNotifierProvider.notifier)
-                                .signOut();
-                            if (context.mounted) context.go('/login');
-                          },
+                        NotificationListener<Notification>(
+                          onNotification: _onProfileTabScrollOrMetrics,
+                          child: TabBarView(
+                            controller: _tabController,
+                            physics: const BouncingScrollPhysics(),
+                            children: [
+                              _StatsTab(uid: user.uid, user: user),
+                              _OutfitsTab(uid: user.uid),
+                              _GalleryTab(uid: user.uid),
+                              _FriendsTab(user: user),
+                              _InfosTab(
+                                user: user,
+                                onLogout: () async {
+                                  await ref
+                                      .read(authNotifierProvider.notifier)
+                                      .signOut();
+                                  if (context.mounted) context.go('/login');
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          height: 56,
+                          child: AnimatedOpacity(
+                            opacity: _scrollMoreBelow ? 1 : 0,
+                            duration: const Duration(milliseconds: 240),
+                            curve: Curves.easeOutCubic,
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      AppColors.background.withValues(
+                                          alpha: 0),
+                                      AppColors.background
+                                          .withValues(alpha: 0.45),
+                                      AppColors.background
+                                          .withValues(alpha: 0.92),
+                                    ],
+                                    stops: const [0.0, 0.35, 1.0],
+                                  ),
+                                ),
+                                child: Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(bottom: 6),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons
+                                              .keyboard_arrow_down_rounded,
+                                          size: 26,
+                                          color: AppColors.textHint
+                                              .withValues(alpha: 0.8),
+                                        )
+                                            .animate(
+                                              onPlay: (c) =>
+                                                  c.repeat(reverse: true),
+                                            )
+                                            .moveY(
+                                              begin: 0,
+                                              end: 5,
+                                              duration: 750.ms,
+                                              curve: Curves.easeInOutCubic,
+                                            ),
+                                        Text(
+                                          'Fais défiler',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            letterSpacing: -0.1,
+                                            color: AppColors.textHint
+                                                .withValues(alpha: 0.65),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -160,10 +240,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 class _ProfileHero extends StatelessWidget {
   final UserModel user;
   final int pendingFriendRequests;
+  final Future<void> Function() onLogout;
 
   const _ProfileHero({
     required this.user,
     required this.pendingFriendRequests,
+    required this.onLogout,
   });
 
   @override
@@ -295,7 +377,7 @@ class _ProfileHero extends StatelessWidget {
                                 ),
                               ),
                               if (user.isPrivate) ...[
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 4),
                                 Tooltip(
                                   message: 'Profil privé',
                                   child: Padding(
@@ -309,6 +391,28 @@ class _ProfileHero extends StatelessWidget {
                                   ),
                                 ),
                               ],
+                              const SizedBox(width: 4),
+                              Tooltip(
+                                message: 'Déconnexion',
+                                child: Material(
+                                  color: AppColors.surface
+                                      .withValues(alpha: 0.72),
+                                  shape: const CircleBorder(),
+                                  child: InkWell(
+                                    customBorder: const CircleBorder(),
+                                    onTap: () => onLogout(),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Icon(
+                                        Icons.logout_rounded,
+                                        size: 20,
+                                        color: AppColors.textSecondary
+                                            .withValues(alpha: 0.95),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                           if (user.username.isNotEmpty)

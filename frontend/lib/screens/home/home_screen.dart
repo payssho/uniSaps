@@ -400,7 +400,7 @@ class _BottomNavBar extends StatelessWidget {
   }
 }
 
-/// 4ᵉ onglet : bulle photo de profil (même emplacement, sans libellé).
+/// 4ᵉ onglet : bulle photo + libellé « Profil » (aligné sur les autres onglets).
 class _NavProfileBubble extends StatelessWidget {
   final bool selected;
   final bool locked;
@@ -428,6 +428,11 @@ class _NavProfileBubble extends StatelessWidget {
             ? AppColors.accent
             : AppColors.divider.withOpacity(0.9);
     final borderWidth = selected ? 2.5 : 1.5;
+    final labelColor = locked
+        ? AppColors.textHint.withOpacity(0.35)
+        : selected
+            ? AppColors.accent
+            : AppColors.textHint;
 
     return Semantics(
       label: 'Profil',
@@ -549,8 +554,16 @@ class _NavProfileBubble extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 3),
-              // Espace équivalent au libellé 10px des autres onglets
-              const SizedBox(height: 13),
+              Text(
+                'Profil',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: labelColor,
+                ),
+              ),
             ],
           ),
         ),

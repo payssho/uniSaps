@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../models/friend_request_model.dart';
 import '../../models/user_model.dart';
 import '../../models/post_model.dart';
 import '../../models/garment_model.dart';
@@ -10,7 +11,9 @@ import '../../models/outfit_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/friendship_provider.dart';
 import '../../providers/post_provider.dart';
+import '../../services/firestore_service.dart';
 import '../../widgets/post_card.dart';
+import '../../core/constants/categories.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -245,7 +248,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                   children: [
                     _PostsTab(posts: _posts, uid: myUid),
                     _DressingTab(garments: _garments),
-                    _OutfitsTab(outfits: _outfits),
+                    _OutfitsTab(outfits: _outfits, ownerUid: user.uid),
                   ],
                 ),
               ),
@@ -343,7 +346,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _StatBadge(value: '${user.friends.length}', label: 'Amis'),
+              _StatBadge(
+                value: '${user.friends.length}',
+                label: 'Amis',
+                onTap: () => _openProfileFriendsList(user, isMe),
+              ),
               const SizedBox(width: 28),
               _StatBadge(value: '${user.currentStreak}', label: 'Streak'),
               const SizedBox(width: 28),
@@ -441,21 +448,303 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       ),
     );
   }
+
+  void _openProfileFriendsList(UserModel profileUser, bool isMe) {
+    final hostCtx = context;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ProfileFriendsSheet(
+        profileUser: profileUser,
+        showAddActions: !isMe,
+        hostContext: hostCtx,
+      ),
+    );
+  }
 }
 
 class _StatBadge extends StatelessWidget {
   final String value;
   final String label;
+  final VoidCallback? onTap;
 
-  const _StatBadge({required this.value, required this.label});
+  const _StatBadge({required this.value, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final child = Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
         Text(label, style: AppTextStyles.caption),
       ],
+    );
+
+    if (onTap == null) return child;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// Liste des amis d’un profil (tap sur le compteur « Amis ») — ajout possible depuis chaque ligne.
+class _ProfileFriendsSheet extends ConsumerStatefulWidget {
+  final UserModel profileUser;
+  final bool showAddActions;
+  final BuildContext hostContext;
+
+  const _ProfileFriendsSheet({
+    required this.profileUser,
+    required this.showAddActions,
+    required this.hostContext,
+  });
+
+  @override
+  ConsumerState<_ProfileFriendsSheet> createState() => _ProfileFriendsSheetState();
+}
+
+class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
+  Future<List<UserModel>>? _friendsFuture;
+  String? _actingUid;
+
+  FriendRequestModel? _sentTo(List<FriendRequestModel> sent, String uid) {
+    for (final r in sent) {
+      if (r.toUid == uid) return r;
+    }
+    return null;
+  }
+
+  FriendRequestModel? _receivedFrom(List<FriendRequestModel> recv, String uid) {
+    for (final r in recv) {
+      if (r.fromUid == uid) return r;
+    }
+    return null;
+  }
+
+  List<UserModel> _orderLikeProfile(List<UserModel> loaded) {
+    final byId = {for (final u in loaded) u.uid: u};
+    return widget.profileUser.friends
+        .map((id) => byId[id])
+        .whereType<UserModel>()
+        .toList();
+  }
+
+  Future<void> _sendRequest(UserModel to) async {
+    final my = ref.read(currentUserProvider).valueOrNull;
+    if (my == null) return;
+    setState(() => _actingUid = to.uid);
+    try {
+      await ref.read(friendshipNotifierProvider.notifier).sendRequest(from: my, to: to);
+    } finally {
+      if (mounted) setState(() => _actingUid = null);
+    }
+  }
+
+  Future<void> _acceptRequest(FriendRequestModel request) async {
+    setState(() => _actingUid = request.fromUid);
+    try {
+      await ref.read(friendshipNotifierProvider.notifier).acceptRequest(request);
+    } finally {
+      if (mounted) setState(() => _actingUid = null);
+    }
+  }
+
+  void _goToProfile(UserModel u) {
+    Navigator.of(context).pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!widget.hostContext.mounted) return;
+      Navigator.of(widget.hostContext).push(
+        MaterialPageRoute<void>(
+          builder: (_) => UserProfileScreen(userId: u.uid),
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.watch(firestoreServiceProvider);
+    _friendsFuture ??= db.getUsersByIds(widget.profileUser.friends);
+
+    final myUser = ref.watch(currentUserProvider).valueOrNull;
+    final sent = ref.watch(sentRequestsProvider).valueOrNull ?? [];
+    final recv = ref.watch(receivedRequestsProvider).valueOrNull ?? [];
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.58,
+      minChildSize: 0.38,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (_, scrollCtrl) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.textHint.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.profileUser.username.isNotEmpty
+                          ? 'Amis de @${widget.profileUser.username}'
+                          : 'Amis',
+                      style: AppTextStyles.heading3,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, color: AppColors.textHint),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: FutureBuilder<List<UserModel>>(
+                future: _friendsFuture,
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+                  }
+                  if (snap.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text('Impossible de charger la liste : ${snap.error}', style: AppTextStyles.bodySecondary),
+                      ),
+                    );
+                  }
+                  final friends = _orderLikeProfile(snap.data ?? []);
+                  if (friends.isEmpty) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text('Aucun ami pour le moment', style: AppTextStyles.bodySecondary),
+                      ),
+                    );
+                  }
+                  return ListView.separated(
+                    controller: scrollCtrl,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+                    itemCount: friends.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.divider),
+                    itemBuilder: (_, i) {
+                      final u = friends[i];
+                      final isSelf = myUser != null && u.uid == myUser.uid;
+                      final isFriend = myUser != null && myUser.friends.contains(u.uid);
+                      final pendingSent = _sentTo(sent, u.uid);
+                      final pendingRecv = _receivedFrom(recv, u.uid);
+                      final busy = _actingUid == u.uid;
+
+                      Widget? trailing;
+                      if (widget.showAddActions && myUser != null && !isSelf) {
+                        if (isFriend) {
+                          trailing = const Text('Ami', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.success));
+                        } else if (pendingSent != null) {
+                          trailing = Text('En attente', style: AppTextStyles.caption.copyWith(color: AppColors.textHint));
+                        } else if (pendingRecv != null) {
+                          trailing = busy
+                              ? const SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(4),
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : TextButton(
+                                  onPressed: () => _acceptRequest(pendingRecv),
+                                  child: const Text('Accepter'),
+                                );
+                        } else {
+                          trailing = busy
+                              ? const SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(4),
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                )
+                              : TextButton(
+                                  onPressed: () => _sendRequest(u),
+                                  child: const Text('Ajouter'),
+                                );
+                        }
+                      }
+
+                      return InkWell(
+                        onTap: () => _goToProfile(u),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 24,
+                                backgroundColor: AppColors.surfaceVariant,
+                                backgroundImage: u.profilePhotoUrl.isNotEmpty ? CachedNetworkImageProvider(u.profilePhotoUrl) : null,
+                                child: u.profilePhotoUrl.isEmpty
+                                    ? Text(
+                                        u.username.isNotEmpty ? u.username[0].toUpperCase() : '?',
+                                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textHint),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      u.username.isNotEmpty ? '@${u.username}' : u.displayName,
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    if (u.displayName.isNotEmpty && u.username.isNotEmpty)
+                                      Text(u.displayName, style: AppTextStyles.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  ],
+                                ),
+                              ),
+                              if (isSelf)
+                                Text('Toi', style: AppTextStyles.caption.copyWith(color: AppColors.textHint))
+                              else if (trailing != null)
+                                trailing,
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -604,53 +893,76 @@ class _DressingTab extends StatelessWidget {
       itemCount: garments.length,
       itemBuilder: (_, i) {
         final g = garments[i];
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.divider),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              Expanded(
-                child: g.imageUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: g.imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
-                        errorWidget: (_, __, ___) => Container(
-                          color: AppColors.surfaceVariant,
-                          child: const Icon(Icons.broken_image_outlined, color: AppColors.textHint),
-                        ),
-                      )
-                    : Container(
-                        color: AppColors.surfaceVariant,
-                        child: const Icon(Icons.checkroom, color: AppColors.textHint),
-                      ),
+            onTap: () => _showReadOnlyGarment(context, g),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.divider),
               ),
-              Padding(
-                padding: const EdgeInsets.all(6),
-                child: Text(
-                  g.name.isNotEmpty ? g.name : g.brand,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: g.imageUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: g.imageUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
+                            errorWidget: (_, __, ___) => Container(
+                              color: AppColors.surfaceVariant,
+                              child: const Icon(Icons.broken_image_outlined, color: AppColors.textHint),
+                            ),
+                          )
+                        : Container(
+                            color: AppColors.surfaceVariant,
+                            child: Icon(categoryIcon(g.category), color: AppColors.textHint, size: 32),
+                          ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Text(
+                      g.name.isNotEmpty ? g.name : g.brand,
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  void _showReadOnlyGarment(BuildContext context, GarmentModel g) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ReadOnlyGarmentSheet(garment: g),
     );
   }
 }
 
 class _OutfitsTab extends StatelessWidget {
   final List<OutfitModel> outfits;
+  final String ownerUid;
 
-  const _OutfitsTab({required this.outfits});
+  const _OutfitsTab({required this.outfits, required this.ownerUid});
+
+  static String _thumbUrl(OutfitModel o) {
+    if (o.referencePhotoUrl.isNotEmpty) return o.referencePhotoUrl;
+    if (o.photoUrls.isNotEmpty) return o.photoUrls.first;
+    return '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -673,42 +985,490 @@ class _OutfitsTab extends StatelessWidget {
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (_, i) {
         final o = outfits[i];
-        return Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
+        final thumb = _thumbUrl(o);
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.divider),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Text(
-                    '${o.timesWorn}x',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.accent),
+            onTap: () => _showFriendOutfitDetail(context, o),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.divider),
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      width: 64,
+                      height: 64,
+                      child: thumb.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: thumb,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
+                              errorWidget: (_, __, ___) => Container(
+                                color: AppColors.surfaceVariant,
+                                child: const Icon(Icons.style_rounded, color: AppColors.textHint),
+                              ),
+                            )
+                          : Container(
+                              color: AppColors.surfaceVariant,
+                              alignment: Alignment.center,
+                              child: const Icon(Icons.style_rounded, color: AppColors.textHint),
+                            ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          o.name.isEmpty ? 'Outfit' : o.name,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (o.lastWorn.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Dernier port : ${o.lastWorn}',
+                              style: AppTextStyles.caption,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${o.timesWorn}x',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  o.name.isEmpty ? 'Outfit' : o.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  void _showFriendOutfitDetail(BuildContext context, OutfitModel outfit) {
+    final hostContext = context;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Consumer(
+        builder: (_, ref, __) => _FriendOutfitDetailSheet(
+          outfit: outfit,
+          ownerUid: ownerUid,
+          hostContext: hostContext,
+        ),
+      ),
+    );
+  }
+}
+
+/// Détail outfit d’un autre utilisateur : photo principale + pièces résolues.
+class _FriendOutfitDetailSheet extends ConsumerStatefulWidget {
+  final OutfitModel outfit;
+  final String ownerUid;
+  /// Context sous la feuille (écran profil) pour ouvrir une autre feuille après pop.
+  final BuildContext hostContext;
+
+  const _FriendOutfitDetailSheet({
+    required this.outfit,
+    required this.ownerUid,
+    required this.hostContext,
+  });
+
+  @override
+  ConsumerState<_FriendOutfitDetailSheet> createState() =>
+      _FriendOutfitDetailSheetState();
+}
+
+class _FriendOutfitDetailSheetState
+    extends ConsumerState<_FriendOutfitDetailSheet> {
+  Future<List<GarmentModel>>? _piecesFuture;
+
+  String get _heroUrl {
+    final o = widget.outfit;
+    if (o.referencePhotoUrl.isNotEmpty) return o.referencePhotoUrl;
+    if (o.photoUrls.isNotEmpty) return o.photoUrls.first;
+    return '';
+  }
+
+  Future<List<GarmentModel>> _loadGarments(
+    FirestoreService db,
+    List<String> ids,
+  ) async {
+    if (ids.isEmpty) return [];
+    final out = <GarmentModel>[];
+    for (final id in ids) {
+      final g = await db.getGarment(widget.ownerUid, id);
+      if (g != null) out.add(g);
+    }
+    return out;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.watch(firestoreServiceProvider);
+    _piecesFuture ??= _loadGarments(db, widget.outfit.garmentIds);
+    final outfit = widget.outfit;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.45,
+      maxChildSize: 0.94,
+      expand: false,
+      builder: (_, scrollCtrl) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SingleChildScrollView(
+          controller: scrollCtrl,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.textHint.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                outfit.name.isEmpty ? 'Outfit' : outfit.name,
+                style: AppTextStyles.heading3,
+              ),
+              if (outfit.lastWorn.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text('Dernier port : ${outfit.lastWorn}', style: AppTextStyles.caption),
+              ],
+              const SizedBox(height: 14),
+              if (_heroUrl.isNotEmpty)
+                GestureDetector(
+                  onTap: () => _openPhotoFullScreen(context, _heroUrl),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: CachedNetworkImage(
+                      imageUrl: _heroUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 260,
+                      placeholder: (_, __) => Container(
+                        height: 260,
+                        color: AppColors.surfaceVariant,
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (_, __, ___) => Container(
+                        height: 260,
+                        color: AppColors.surfaceVariant,
+                        child: const Icon(Icons.broken_image_outlined, size: 40, color: AppColors.textHint),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  height: 120,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceVariant,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(Icons.photo_library_outlined, size: 40, color: AppColors.textHint),
+                ),
+              if (outfit.photoUrls.length > 1) ...[
+                const SizedBox(height: 14),
+                const Text('Autres photos', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 88,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: outfit.photoUrls.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (_, i) {
+                      final url = outfit.photoUrls[i];
+                      return GestureDetector(
+                        onTap: () => _openPhotoFullScreen(context, url),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: SizedBox(
+                            width: 88,
+                            height: 88,
+                            child: CachedNetworkImage(
+                              imageUrl: url,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              FutureBuilder<List<GarmentModel>>(
+                future: _piecesFuture,
+                builder: (context, snap) {
+                  if (snap.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    );
+                  }
+                  final pieces = snap.data ?? [];
+                  if (pieces.isEmpty) {
+                    return const Text('Aucune pièce liée', style: AppTextStyles.bodySecondary);
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Pièces', style: AppTextStyles.heading3),
+                      const SizedBox(height: 10),
+                      ...pieces.map((g) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Navigator.of(context).pop();
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (!widget.hostContext.mounted) return;
+                                  showModalBottomSheet<void>(
+                                    context: widget.hostContext,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (_) => _ReadOnlyGarmentSheet(garment: g),
+                                  );
+                                });
+                              },
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: SizedBox(
+                                      width: 48,
+                                      height: 48,
+                                      child: g.imageUrl.isNotEmpty
+                                          ? CachedNetworkImage(
+                                              imageUrl: g.imageUrl,
+                                              fit: BoxFit.cover,
+                                              placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
+                                            )
+                                          : Container(
+                                              color: AppColors.surfaceVariant,
+                                              child: Icon(categoryIcon(g.category), color: AppColors.textHint),
+                                            ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          g.name.isNotEmpty ? g.name : 'Sans nom',
+                                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (g.brand.isNotEmpty)
+                                          Text(g.brand, style: AppTextStyles.caption),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openPhotoFullScreen(BuildContext context, String url) {
+    showDialog<void>(
+      context: context,
+      builder: (dCtx) => Dialog(
+        insetPadding: const EdgeInsets.all(12),
+        backgroundColor: Colors.black87,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(dCtx),
+          child: InteractiveViewer(
+            minScale: 0.5,
+            maxScale: 4,
+            child: CachedNetworkImage(
+              imageUrl: url,
+              fit: BoxFit.contain,
+              placeholder: (_, __) => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator(color: AppColors.white))),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Détail dressing en lecture seule (profil ami).
+class _ReadOnlyGarmentSheet extends StatelessWidget {
+  final GarmentModel garment;
+
+  const _ReadOnlyGarmentSheet({required this.garment});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.textHint.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: garment.imageUrl.isNotEmpty
+                  ? () {
+                      showDialog<void>(
+                        context: context,
+                        builder: (dCtx) => Dialog(
+                          insetPadding: const EdgeInsets.all(12),
+                          backgroundColor: Colors.black87,
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(dCtx),
+                            child: InteractiveViewer(
+                              minScale: 0.5,
+                              maxScale: 4,
+                              child: CachedNetworkImage(
+                                imageUrl: garment.imageUrl,
+                                fit: BoxFit.contain,
+                                placeholder: (_, __) => const SizedBox(
+                                  height: 200,
+                                  child: Center(child: CircularProgressIndicator(color: AppColors.white)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  : null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  height: 260,
+                  width: double.infinity,
+                  color: AppColors.surfaceVariant,
+                  child: garment.imageUrl.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: garment.imageUrl,
+                          fit: BoxFit.cover,
+                          placeholder: (_, __) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          errorWidget: (_, __, ___) => Icon(categoryIcon(garment.category), size: 56, color: AppColors.textHint),
+                        )
+                      : Icon(categoryIcon(garment.category), size: 56, color: AppColors.textHint),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(categoryIcon(garment.category), size: 16, color: AppColors.accent),
+                      const SizedBox(width: 6),
+                      Text(
+                        categoryLabel(garment.category),
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent),
+                      ),
+                    ],
+                  ),
+                ),
+                if (garment.timesWorn > 0) ...[
+                  const SizedBox(width: 10),
+                  Text('${garment.timesWorn}x porté', style: AppTextStyles.caption),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              garment.name.isNotEmpty ? garment.name : 'Sans nom',
+              style: AppTextStyles.heading3,
+            ),
+            if (garment.brand.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(garment.brand, style: const TextStyle(fontSize: 16, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+            ],
+            if (garment.colors.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: garment.colors
+                    .map((c) => Chip(label: Text(c, style: const TextStyle(fontSize: 12))))
+                    .toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

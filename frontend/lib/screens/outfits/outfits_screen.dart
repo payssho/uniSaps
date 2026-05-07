@@ -810,7 +810,7 @@ class _SwipeModeState extends State<_SwipeMode> {
             children: [
               _ActionCircle(
                 icon: Icons.close_rounded,
-                color: AppColors.error,
+                color: AppColors.graphite,
                 size: 54,
                 onTap: () => _ctrl.swipe(CardSwiperDirection.left),
               ),
@@ -829,7 +829,7 @@ class _SwipeModeState extends State<_SwipeMode> {
               ),
               _ActionCircle(
                 icon: Icons.favorite_rounded,
-                color: AppColors.success,
+                color: AppColors.accent,
                 size: 54,
                 onTap: () => _ctrl.swipe(CardSwiperDirection.right),
               ),
@@ -1566,12 +1566,17 @@ class _ActionCircleState extends State<_ActionCircle> {
           width: widget.size,
           height: widget.size,
           decoration: BoxDecoration(
-            color: widget.color.withOpacity(0.1),
+            color: widget.color,
             shape: BoxShape.circle,
-            border: Border.all(
-                color: widget.color.withOpacity(0.3), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withValues(alpha: 0.45),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
-          child: Icon(widget.icon, color: widget.color, size: 26),
+          child: Icon(widget.icon, color: AppColors.white, size: 28),
         ),
       ),
     );
