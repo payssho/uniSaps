@@ -100,6 +100,20 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         final result = await api.analyzeGarmentImage(bytes, picked.name);
 
         if (!mounted) return;
+
+        final isGarment = result['is_garment'];
+        final isNotGarment = isGarment == false;
+
+        if (isNotGarment) {
+          setState(() {
+            _imageFile = null;
+            _aiAnalyzing = false;
+            _aiAttributes = null;
+          });
+          await _showNotGarmentDialog();
+          return;
+        }
+
         setState(() {
           _aiAttributes = result;
 
@@ -130,6 +144,41 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         if (mounted) setState(() => _aiAnalyzing = false);
       }
     }
+  }
+
+  Future<void> _showNotGarmentDialog() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        backgroundColor: AppColors.surface,
+        icon: const Icon(Icons.image_not_supported_outlined,
+            color: AppColors.error, size: 36),
+        title: const Text(
+          'Image non reconnue',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+          textAlign: TextAlign.center,
+        ),
+        content: const Text(
+          'L’IA n’a pas reconnu de vêtement, chaussure ou accessoire sur cette photo. '
+          'Choisis une autre image plus claire montrant la pièce que tu veux ajouter.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.accent,
+              textStyle: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            child: const Text('Choisir une autre photo'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _save() async {

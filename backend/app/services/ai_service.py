@@ -514,6 +514,7 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             "[analyze_garment_image] GEMINI_API_KEY is not set — falling back to empty result."
         )
         return {
+            "is_garment": True,
             "name": "",
             "brand": "",
             "colors": [],
@@ -530,6 +531,7 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
         "Tu es un assistant de mode qui analyse UNE SEULE pièce vestimentaire sur une photo. "
         "Réponds STRICTEMENT au format JSON suivant, sans texte autour :\n\n"
         "{\n"
+        '  "is_garment": true,\n'
         '  "name": "nom court et descriptif du vêtement (ex: \'T-shirt blanc oversize\', \'Air Force 1\', \'Jean slim noir\')",\n'
         '  "brand": "marque la plus probable si visible ou reconnaissable, sinon \\"\\"",\n'
         '  "colors": ["couleur_principale", "autre_couleur_eventuelle"],\n'
@@ -540,6 +542,10 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
         '  "pattern": "uni|rayures|carreaux|motif|fleuri|graphique",\n'
         '  "material": "coton|denim|laine|cuir|synthétique|soie|lin|autre"\n'
         "}\n\n"
+        "- \"is_garment\" : true UNIQUEMENT si la photo montre clairement un vêtement, une chaussure ou un accessoire mode "
+        "(top, pantalon, robe, chaussure, casquette, sac, ceinture, etc.). "
+        "false dans tous les autres cas (paysage, animal, nourriture, personne sans vêtement clair, objet non vestimentaire, "
+        "image floue ou inexploitable). Si is_garment vaut false, mets TOUS les autres champs à des chaînes ou listes vides.\n"
         "- \"name\" : 2 à 5 mots maximum, en français, descriptif (forme + style + couleur si pertinent). "
         "Pour des sneakers connues, utilise le nom du modèle (ex: 'Air Force 1', 'Stan Smith', 'Samba'). "
         "Pour un t-shirt simple : 'T-shirt blanc col rond'. Évite les phrases trop longues.\n"
@@ -583,7 +589,14 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
                 return [val]
             return []
 
+        is_garment_raw = parsed.get("is_garment", True)
+        if isinstance(is_garment_raw, str):
+            is_garment = is_garment_raw.strip().lower() in ("true", "1", "yes", "oui")
+        else:
+            is_garment = bool(is_garment_raw)
+
         result = {
+            "is_garment": is_garment,
             "name": str(parsed.get("name", "")).strip(),
             "brand": str(parsed.get("brand", "")).strip(),
             "colors": _as_list(parsed.get("colors", [])),
@@ -595,8 +608,9 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             "material": str(parsed.get("material", "")).strip(),
         }
         logger.info(
-            "[analyze_garment_image] ok filename=%s name=%s brand=%s colors=%s category=%s",
+            "[analyze_garment_image] ok filename=%s is_garment=%s name=%s brand=%s colors=%s category=%s",
             filename,
+            result.get("is_garment"),
             result.get("name"),
             result.get("brand"),
             result.get("colors"),
@@ -608,6 +622,7 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             "[analyze_garment_image] FAILED filename=%s err=%s", filename, e
         )
         return {
+            "is_garment": True,
             "name": "",
             "brand": "",
             "colors": [],
