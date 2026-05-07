@@ -21,12 +21,21 @@ class ApiService {
   Future<List<Map<String, String>>> suggestOutfits({
     String style = 'Simple',
     int count = 3,
+    String? seasonKey,
+    List<String>? weatherTags,
   }) async {
     final headers = await _headers();
+    final body = <String, dynamic>{
+      'style': style,
+      'count': count,
+      if (seasonKey != null && seasonKey.isNotEmpty) 'season_key': seasonKey,
+      if (weatherTags != null && weatherTags.isNotEmpty)
+        'weather_tags': weatherTags,
+    };
     final resp = await http.post(
       Uri.parse('$baseUrl/ai/suggest'),
       headers: headers,
-      body: jsonEncode({'style': style, 'count': count}),
+      body: jsonEncode(body),
     );
     if (resp.statusCode != 200) {
       throw Exception('Erreur API: ${resp.statusCode}');

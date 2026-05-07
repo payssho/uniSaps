@@ -955,8 +955,18 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
     if (custom.isNotEmpty) style = custom;
     ref.read(biblioAiLoadingProvider.notifier).state = true;
     try {
+      // On enrichit la requête avec saison + tags météo du jour pour
+      // que le scoring backend puisse en tenir compte.
+      final ctx = ref.read(todayOutfitContextProvider);
       final api = ref.read(apiServiceProvider);
-      final list = await api.suggestOutfits(style: style, count: 3);
+      final list = await api.suggestOutfits(
+        style: style,
+        count: 3,
+        seasonKey: ctx.seasonKey,
+        weatherTags: ctx.weatherDataAvailable
+            ? ctx.activeWeatherTags.toList()
+            : null,
+      );
       ref.read(biblioAiSuggestionsProvider.notifier).state = list;
     } catch (_) {
       if (mounted) {
