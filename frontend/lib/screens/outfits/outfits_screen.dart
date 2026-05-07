@@ -1107,7 +1107,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                             : const Icon(Icons.auto_awesome,
                                 size: 16, color: AppColors.white),
                         label: Text(
-                            loading ? 'Génération…' : 'Générer 3 suggestions'),
+                            loading ? 'Génération…' : 'Générer des suggestions'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           textStyle: const TextStyle(

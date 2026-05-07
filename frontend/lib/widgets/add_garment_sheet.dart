@@ -31,7 +31,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   XFile? _imageFile;
   String? _error;
   bool _loading = false;
-  bool _removeBackground = true;
+  bool _removeBackground = false;
   bool _useAiAnalysis = true;
   bool _aiAnalyzing = false;
   Map<String, dynamic>? _aiAttributes;
