@@ -231,7 +231,7 @@ SEASON_FROM_GPT: dict[str, set[str]] = {
 }
 
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -487,12 +487,12 @@ def suggest_multiple(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Vision (analyse d'une photo de vêtement) — OpenAI GPT-4o-mini
+# Vision (analyse d'une photo de vêtement) — Google Gemini (tier gratuit)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> Dict[str, Any]:
     """
-    Analyze a garment photo using an external vision-capable LLM (e.g. OpenAI GPT-4o).
+    Analyze a garment photo using Google Gemini Vision (free tier: 1 500 req/day).
 
     Returns a dict with:
       - colors: List[str]           # couleurs détectées (principale + éventuelles secondaires)
@@ -506,10 +506,13 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
     Si la clé API n'est pas configurée, renvoie une structure vide pour que le frontend
     ne plante pas, et on log un warning explicite (utile pour debug en prod).
     """
-    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
+    import base64
+    import json
+
+    api_key = os.getenv("GEMINI_API_KEY") or GEMINI_API_KEY
     if not api_key:
         logger.warning(
-            "[analyze_garment_image] OPENAI_API_KEY is not set — falling back to empty result."
+            "[analyze_garment_image] GEMINI_API_KEY is not set — falling back to empty result."
         )
         return {
             "colors": [],
@@ -522,14 +525,15 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             "_debug": "no_api_key",
         }
 
-    api_url = "https://api.openai.com/v1/chat/completions"
-
-    import base64
-
     b64 = base64.b64encode(image_bytes).decode("ascii")
-    data_url = f"data:image/jpeg;base64,{b64}"
+    mime_type = "image/jpeg"
+    fn_lower = (filename or "").lower()
+    if fn_lower.endswith(".png"):
+        mime_type = "image/png"
+    elif fn_lower.endswith(".webp"):
+        mime_type = "image/webp"
 
-    system_prompt = (
+    prompt = (
         "Tu es un assistant de mode qui analyse UNE SEULE pièce vestimentaire sur une photo. "
         "Réponds STRICTEMENT au format JSON suivant, sans texte autour :\n\n"
         "{\n"
@@ -549,41 +553,37 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
         "Écru, Taupe, Charbon, Anthracite, Nude, Pêche, Corail, Saumon, Terracotta, Rouille, Brique, Caramel, Cognac, "
         "Champagne, Doré, Cuivre, Bronze, Argent, Métallique, Multicolore. "
         "Si tu hésites entre plusieurs variantes proches, choisis la plus basique (ex: 'Bleu', 'Rouge', 'Vert').\n\n"
-        "Si tu hésites sur d'autres valeurs, choisis la plus probable, mais garde le JSON valide."
+        "Si tu hésites sur d'autres valeurs, choisis la plus probable, mais garde le JSON valide.\n\n"
+        "Analyse ce vêtement."
     )
 
+    api_url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.0-flash-lite:generateContent?key={api_key}"
+    )
     payload: Dict[str, Any] = {
-        "model": "gpt-4o-mini",
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": "Analyse ce vêtement."},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": data_url},
-                    },
-                ],
-            },
-        ],
-        "temperature": 0.2,
-        "response_format": {"type": "json_object"},
-    }
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
+        "contents": [{
+            "parts": [
+                {"text": prompt},
+                {"inline_data": {"mime_type": mime_type, "data": b64}},
+            ]
+        }],
+        "generationConfig": {
+            "temperature": 0.2,
+            "response_mime_type": "application/json",
+        },
     }
 
     try:
-        resp = requests.post(api_url, headers=headers, json=payload, timeout=30)
+        resp = requests.post(
+            api_url,
+            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=30,
+        )
         resp.raise_for_status()
         data = resp.json()
-        content = data["choices"][0]["message"]["content"]
-        # content is already JSON thanks to response_format
-        import json
-
+        content = data["candidates"][0]["content"]["parts"][0]["text"]
         parsed: Dict[str, Any] = json.loads(content)
 
         def _as_list(val: Any) -> List[str]:

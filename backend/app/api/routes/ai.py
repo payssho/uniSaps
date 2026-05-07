@@ -70,18 +70,17 @@ async def analyze_garment(
 
 @router.get("/health")
 async def ai_health():
-    """Diagnostic rapide : indique si la clé OpenAI est configurée côté serveur.
+    """Diagnostic rapide : indique si la clé Gemini est configurée côté serveur.
 
     Volontairement public (pas de uid requis) pour pouvoir vérifier depuis
     n'importe quel client. On ne renvoie JAMAIS la clé : juste un booléen.
     """
-    has_key = bool(os.getenv("OPENAI_API_KEY"))
+    has_key = bool(os.getenv("GEMINI_API_KEY"))
     masked = ""
-    raw = os.getenv("OPENAI_API_KEY") or ""
+    raw = os.getenv("GEMINI_API_KEY") or ""
     if raw:
-        # ex: sk-abcd...wxyz
-        masked = f"{raw[:5]}…{raw[-4:]}" if len(raw) > 12 else "configured"
+        masked = f"{raw[:6]}…{raw[-4:]}" if len(raw) > 12 else "configured"
     return {
-        "openai_key_configured": has_key,
-        "openai_key_preview": masked,
+        "gemini_key_configured": has_key,
+        "gemini_key_preview": masked,
     }
