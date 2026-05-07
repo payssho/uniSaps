@@ -33,6 +33,17 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
     _focusNode.addListener(_onFocusChanged);
   }
 
+  @override
+  void didUpdateWidget(covariant MultiColorSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldSet = oldWidget.initialColors.map((e) => e.toLowerCase()).toSet();
+    final newSet = widget.initialColors.map((e) => e.toLowerCase()).toSet();
+    if (oldSet.length != newSet.length || !oldSet.containsAll(newSet)) {
+      _loadInitialColors();
+      setState(() {});
+    }
+  }
+
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
       Future.delayed(const Duration(milliseconds: 150), () {

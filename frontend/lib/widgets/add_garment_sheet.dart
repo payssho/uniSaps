@@ -32,6 +32,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   String? _error;
   bool _loading = false;
   bool _removeBackground = true;
+  bool _useAiAnalysis = true;
+  bool _aiAnalyzing = false;
   Map<String, dynamic>? _aiAttributes;
 
   @override
@@ -85,9 +87,13 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     if (source == null) return;
     final picked = await picker.pickImage(source: source, maxWidth: 1200, imageQuality: 95);
     if (picked != null) {
-      setState(() => _imageFile = picked);
+      setState(() {
+        _imageFile = picked;
+        if (_useAiAnalysis) _aiAnalyzing = true;
+      });
 
-      // Analyse IA de l'image pour pré-remplir couleur / catégorie / tags
+      if (!_useAiAnalysis) return;
+
       try {
         final bytes = await picked.readAsBytes();
         final api = ref.read(apiServiceProvider);
@@ -99,7 +105,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
 
           final detectedColors = (result['colors'] as List?)?.cast<String>() ?? const [];
           if (detectedColors.isNotEmpty) {
-            _selectedColors = detectedColors;
+            _selectedColors = List<String>.from(detectedColors);
           }
 
           final detectedCategory = (result['category'] as String?) ?? '';
@@ -107,11 +113,21 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           if (allowedCats.contains(detectedCategory)) {
             _selectedCategory = detectedCategory;
           }
+
+          final detectedName = (result['name'] as String?)?.trim() ?? '';
+          if (detectedName.isNotEmpty && _nameController.text.trim().isEmpty) {
+            _nameController.text = detectedName;
+          }
+
+          final detectedBrand = (result['brand'] as String?)?.trim() ?? '';
+          if (detectedBrand.isNotEmpty && _brandController.text.trim().isEmpty) {
+            _brandController.text = detectedBrand;
+          }
+
+          _aiAnalyzing = false;
         });
       } catch (e) {
-        // En cas d'échec de l'IA, on ne bloque pas l'utilisateur
-        // ignore: avoid_print
-        print('[IA] analyzeGarmentImage ERREUR : $e');
+        if (mounted) setState(() => _aiAnalyzing = false);
       }
     }
   }
@@ -314,21 +330,48 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                                 fit: StackFit.expand,
                                 children: [
                                   PlatformImage(file: _imageFile!, fit: BoxFit.cover),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: GestureDetector(
-                                      onTap: () => setState(() => _imageFile = null),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.error,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(Icons.close, size: 16, color: AppColors.white),
+                                  if (_aiAnalyzing)
+                                    Container(
+                                      color: AppColors.graphite.withOpacity(0.55),
+                                      child: const Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: 36,
+                                            height: 36,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 3,
+                                              color: AppColors.white,
+                                            ),
+                                          ),
+                                          SizedBox(height: 14),
+                                          Text(
+                                            'Analyse de l’image par l’IA…',
+                                            style: TextStyle(
+                                              color: AppColors.white,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ),
+                                  if (!_aiAnalyzing)
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: GestureDetector(
+                                        onTap: () => setState(() => _imageFile = null),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.error,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.close, size: 16, color: AppColors.white),
+                                        ),
+                                      ),
+                                    ),
                                 ],
                               )
                             : widget.garment?.imageUrl.isNotEmpty == true
@@ -372,6 +415,23 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                         style: TextStyle(fontSize: 12, color: AppColors.textHint),
                       ),
                     ),
+                    SwitchListTile.adaptive(
+                      value: _useAiAnalysis,
+                      onChanged: _aiAnalyzing
+                          ? null
+                          : (value) {
+                              setState(() => _useAiAnalysis = value);
+                            },
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Pré-remplir avec l’IA',
+                        style: AppTextStyles.bodySecondary,
+                      ),
+                      subtitle: const Text(
+                        'Détecte automatiquement couleurs, catégorie, style, matière. Décoche pour saisir à la main.',
+                        style: TextStyle(fontSize: 12, color: AppColors.textHint),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     TextField(
                       controller: _nameController,
@@ -391,6 +451,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                     const Text('Couleurs', style: AppTextStyles.heading3),
                     const SizedBox(height: 8),
                     MultiColorSelector(
+                      key: ValueKey('colors_${_selectedColors.join("_")}'),
                       initialColors: _selectedColors,
                       onColorsChanged: (colors) {
                         setState(() => _selectedColors = colors);

@@ -514,6 +514,8 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             "[analyze_garment_image] GEMINI_API_KEY is not set — falling back to empty result."
         )
         return {
+            "name": "",
+            "brand": "",
             "colors": [],
             "category": "",
             "style_tags": [],
@@ -528,6 +530,8 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
         "Tu es un assistant de mode qui analyse UNE SEULE pièce vestimentaire sur une photo. "
         "Réponds STRICTEMENT au format JSON suivant, sans texte autour :\n\n"
         "{\n"
+        '  "name": "nom court et descriptif du vêtement (ex: \'T-shirt blanc oversize\', \'Air Force 1\', \'Jean slim noir\')",\n'
+        '  "brand": "marque la plus probable si visible ou reconnaissable, sinon \\"\\"",\n'
         '  "colors": ["couleur_principale", "autre_couleur_eventuelle"],\n'
         '  "category": "top|bottom|shoes|outerwear|headwear|accessory",\n'
         '  "style_tags": ["streetwear", "chic", "minimaliste", ...],\n'
@@ -536,6 +540,11 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
         '  "pattern": "uni|rayures|carreaux|motif|fleuri|graphique",\n'
         '  "material": "coton|denim|laine|cuir|synthétique|soie|lin|autre"\n'
         "}\n\n"
+        "- \"name\" : 2 à 5 mots maximum, en français, descriptif (forme + style + couleur si pertinent). "
+        "Pour des sneakers connues, utilise le nom du modèle (ex: 'Air Force 1', 'Stan Smith', 'Samba'). "
+        "Pour un t-shirt simple : 'T-shirt blanc col rond'. Évite les phrases trop longues.\n"
+        "- \"brand\" : seulement si tu reconnais clairement le logo, le motif signature ou la silhouette caractéristique "
+        "(ex: 'Nike', 'Adidas', 'Carhartt', 'Ralph Lauren', 'Levi\\'s', 'The North Face'). Sinon laisse une chaîne vide.\n"
         "- IMPORTANT pour \"colors\" : utilise uniquement des noms de couleurs en français compatibles avec une palette de mode, "
         "par exemple parmi : Noir, Blanc, Gris, Gris clair, Gris foncé, Beige, Camel, Marron, Marron clair, Marron foncé, "
         "Bleu, Bleu clair, Bleu foncé, Bleu marine, Bleu ciel, Bleu turquoise, Rouge, Rouge foncé, Rouge bordeaux, "
@@ -575,6 +584,8 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             return []
 
         result = {
+            "name": str(parsed.get("name", "")).strip(),
+            "brand": str(parsed.get("brand", "")).strip(),
             "colors": _as_list(parsed.get("colors", [])),
             "category": str(parsed.get("category", "")).strip(),
             "style_tags": _as_list(parsed.get("style_tags", [])),
@@ -584,8 +595,10 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             "material": str(parsed.get("material", "")).strip(),
         }
         logger.info(
-            "[analyze_garment_image] ok filename=%s colors=%s category=%s",
+            "[analyze_garment_image] ok filename=%s name=%s brand=%s colors=%s category=%s",
             filename,
+            result.get("name"),
+            result.get("brand"),
             result.get("colors"),
             result.get("category"),
         )
@@ -595,6 +608,8 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             "[analyze_garment_image] FAILED filename=%s err=%s", filename, e
         )
         return {
+            "name": "",
+            "brand": "",
             "colors": [],
             "category": "",
             "style_tags": [],
