@@ -553,7 +553,7 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
         from PIL import Image
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-2.5-flash")
 
         image = Image.open(io.BytesIO(image_bytes))
         response = model.generate_content(
