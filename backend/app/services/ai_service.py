@@ -487,27 +487,26 @@ def suggest_multiple(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Vision (analyse d'une photo de vêtement) — Google Gemini (tier gratuit)
+# Vision (analyse d'une photo de vêtement) — Google Gemini SDK (tier gratuit)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> Dict[str, Any]:
     """
     Analyze a garment photo using Google Gemini Vision (free tier: 1 500 req/day).
+    Uses the official google-generativeai SDK to avoid REST format issues.
 
     Returns a dict with:
-      - colors: List[str]           # couleurs détectées (principale + éventuelles secondaires)
-      - category: str               # 'top', 'bottom', 'shoes', 'outerwear', 'headwear', 'accessory'
-      - style_tags: List[str]       # ex: ['chic', 'streetwear', 'minimaliste']
-      - formality: str              # 'casual', 'formel', 'soirée', ...
-      - season: str                 # 'été', 'hiver', 'mi-saison', ...
-      - pattern: str                # 'uni', 'rayures', 'carreaux', ...
-      - material: str               # 'coton', 'denim', 'cuir', ...
-
-    Si la clé API n'est pas configurée, renvoie une structure vide pour que le frontend
-    ne plante pas, et on log un warning explicite (utile pour debug en prod).
+      - colors: List[str]           # couleurs détectées
+      - category: str               # top/bottom/shoes/outerwear/headwear/accessory
+      - style_tags: List[str]
+      - formality: str
+      - season: str
+      - pattern: str
+      - material: str
     """
-    import base64
+    import io
     import json
+    import re as _re
 
     api_key = os.getenv("GEMINI_API_KEY") or GEMINI_API_KEY
     if not api_key:
@@ -524,14 +523,6 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             "material": "",
             "_debug": "no_api_key",
         }
-
-    b64 = base64.b64encode(image_bytes).decode("ascii")
-    mime_type = "image/jpeg"
-    fn_lower = (filename or "").lower()
-    if fn_lower.endswith(".png"):
-        mime_type = "image/png"
-    elif fn_lower.endswith(".webp"):
-        mime_type = "image/webp"
 
     prompt = (
         "Tu es un assistant de mode qui analyse UNE SEULE pièce vestimentaire sur une photo. "
@@ -557,38 +548,21 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
         "Analyse ce vêtement."
     )
 
-    api_url = (
-        "https://generativelanguage.googleapis.com/v1/models/"
-        f"gemini-1.5-flash:generateContent?key={api_key}"
-    )
-    payload: Dict[str, Any] = {
-        "contents": [{
-            "parts": [
-                {"text": prompt},
-                {"inline_data": {"mime_type": mime_type, "data": b64}},
-            ]
-        }],
-        "generationConfig": {
-            "temperature": 0.2,
-        },
-    }
-
     try:
-        resp = requests.post(
-            api_url,
-            headers={"Content-Type": "application/json"},
-            json=payload,
-            timeout=30,
+        import google.generativeai as genai
+        from PIL import Image
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+
+        image = Image.open(io.BytesIO(image_bytes))
+        response = model.generate_content(
+            [prompt, image],
+            generation_config=genai.types.GenerationConfig(temperature=0.2),
         )
-        if not resp.ok:
-            logger.error(
-                "[analyze_garment_image] HTTP %s body=%s", resp.status_code, resp.text[:300]
-            )
-        resp.raise_for_status()
-        data = resp.json()
-        content = data["candidates"][0]["content"]["parts"][0]["text"]
-        # Gemini peut envelopper le JSON dans des blocs markdown ```json ... ```
-        import re as _re
+        content = response.text
+
+        # Extraire le JSON même si Gemini l'enveloppe dans ```json ... ```
         m = _re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, _re.DOTALL)
         json_str = m.group(1) if m else content.strip()
         parsed: Dict[str, Any] = json.loads(json_str)
