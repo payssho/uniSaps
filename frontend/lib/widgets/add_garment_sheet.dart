@@ -108,8 +108,10 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             _selectedCategory = detectedCategory;
           }
         });
-      } catch (_) {
+      } catch (e) {
         // En cas d'échec de l'IA, on ne bloque pas l'utilisateur
+        // ignore: avoid_print
+        print('[IA] analyzeGarmentImage ERREUR : $e');
       }
     }
   }
