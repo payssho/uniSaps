@@ -544,11 +544,11 @@ class _HeroChip extends StatelessWidget {
 }
 
 /// Onglets en pastilles horizontales, synchronisés avec [TabController].
-class _ProfileTabRail extends StatelessWidget {
+class _ProfileTabRail extends StatefulWidget {
   final TabController controller;
   final int pendingRequests;
 
-  static const _entries = <
+  static const entries = <
       ({
         IconData icon,
         String short,
@@ -581,115 +581,257 @@ class _ProfileTabRail extends StatelessWidget {
   });
 
   @override
+  State<_ProfileTabRail> createState() => _ProfileTabRailState();
+}
+
+class _ProfileTabRailState extends State<_ProfileTabRail> {
+  final ScrollController _hCtrl = ScrollController();
+  bool _showRightFade = true;
+  bool _showLeftFade = false;
+  bool _userScrolled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _hCtrl.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _hCtrl.removeListener(_onScroll);
+    _hCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_hCtrl.hasClients) return;
+    final pos = _hCtrl.position;
+    final atEnd = pos.pixels >= pos.maxScrollExtent - 1;
+    final atStart = pos.pixels <= 0;
+    final showRight = !atEnd;
+    final showLeft = !atStart;
+    if (showRight != _showRightFade ||
+        showLeft != _showLeftFade ||
+        !_userScrolled) {
+      setState(() {
+        _showRightFade = showRight;
+        _showLeftFade = showLeft;
+        _userScrolled = true;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: controller,
+      animation: widget.controller,
       builder: (context, _) {
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.zero,
-          child: Row(
-            children: List.generate(_entries.length, (i) {
-              final e = _entries[i];
-              final selected = controller.index == i;
-              final showBadge = i == 3 && pendingRequests > 0;
-
-              return Padding(
-                padding: EdgeInsets.only(
-                  left: i == 0 ? 0 : 6,
-                  right: i == _entries.length - 1 ? 0 : 6,
+        // Affiche le hint chevron tant que l’utilisateur n’a pas scrollé
+        // et qu’il reste manifestement du contenu à droite.
+        final showHintChevron = !_userScrolled && _showRightFade;
+        return SizedBox(
+          height: 48,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              NotificationListener<ScrollNotification>(
+                onNotification: (n) {
+                  // Couvre les cas où le listener du controller n’a pas
+                  // encore tagué le rail (premier mouvement).
+                  if (!_userScrolled) {
+                    setState(() => _userScrolled = true);
+                  }
+                  return false;
+                },
+                child: SingleChildScrollView(
+                  controller: _hCtrl,
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  child: Row(
+                    children: List.generate(_ProfileTabRail.entries.length,
+                        (i) => _buildEntry(context, i)),
+                  ),
                 ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => controller.animateTo(i),
-                    borderRadius: BorderRadius.circular(16),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      curve: Curves.easeOutCubic,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 11,
-                      ),
+              ),
+              // Fade gauche
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 22,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 220),
+                    opacity: _showLeftFade ? 1 : 0,
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: selected
-                            ? AppColors.primary
-                            : AppColors.surface.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: selected
-                              ? AppColors.primary
-                              : AppColors.divider.withValues(alpha: 0.9),
-                          width: selected ? 1.5 : 1,
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            AppColors.background,
+                            AppColors.background.withValues(alpha: 0),
+                          ],
                         ),
-                        boxShadow: selected
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.primary
-                                      .withValues(alpha: 0.28),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ]
-                            : [
-                                BoxShadow(
-                                  color: AppColors.scrimLight,
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Icon(
-                                e.icon,
-                                size: 20,
-                                color: selected
-                                    ? AppColors.surface
-                                    : AppColors.textSecondary,
-                              ),
-                              if (showBadge)
-                                Positioned(
-                                  top: -4,
-                                  right: -8,
-                                  child: Container(
-                                    width: 9,
-                                    height: 9,
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.accent,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            e.short,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                              letterSpacing: -0.2,
-                              color: selected
-                                  ? AppColors.surface
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                        ],
                       ),
                     ),
                   ),
                 ),
-              );
-            }),
+              ),
+              // Fade droit + chevron hint
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                width: 36,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    duration: const Duration(milliseconds: 220),
+                    opacity: _showRightFade ? 1 : 0,
+                    child: Stack(
+                      alignment: Alignment.centerRight,
+                      children: [
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [
+                                AppColors.background.withValues(alpha: 0),
+                                AppColors.background,
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (showHintChevron)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 2),
+                            child: Icon(
+                              Icons.chevron_right_rounded,
+                              size: 22,
+                              color: AppColors.textSecondary
+                                  .withValues(alpha: 0.9),
+                            )
+                                .animate(
+                                  onPlay: (c) => c.repeat(reverse: true),
+                                )
+                                .moveX(
+                                  begin: -2,
+                                  end: 2,
+                                  duration: 700.ms,
+                                  curve: Curves.easeInOutCubic,
+                                ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildEntry(BuildContext context, int i) {
+    final entries = _ProfileTabRail.entries;
+    final controller = widget.controller;
+    final pendingRequests = widget.pendingRequests;
+    final e = entries[i];
+    final selected = controller.index == i;
+    final showBadge = i == 3 && pendingRequests > 0;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: i == 0 ? 0 : 6,
+        right: i == entries.length - 1 ? 0 : 6,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => controller.animateTo(i),
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 11,
+            ),
+            decoration: BoxDecoration(
+              color: selected
+                  ? AppColors.primary
+                  : AppColors.surface.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected
+                    ? AppColors.primary
+                    : AppColors.divider.withValues(alpha: 0.9),
+                width: selected ? 1.5 : 1,
+              ),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.28),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: AppColors.scrimLight,
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      e.icon,
+                      size: 20,
+                      color: selected
+                          ? AppColors.surface
+                          : AppColors.textSecondary,
+                    ),
+                    if (showBadge)
+                      Positioned(
+                        top: -4,
+                        right: -8,
+                        child: Container(
+                          width: 9,
+                          height: 9,
+                          decoration: const BoxDecoration(
+                            color: AppColors.accent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  e.short,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    letterSpacing: -0.2,
+                    color: selected
+                        ? AppColors.surface
+                        : AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/friendship_provider.dart';
+import '../../providers/weather_provider.dart';
 import '../inspiration/inspiration_screen.dart';
 import '../inspiration/search_users_screen.dart';
 import '../outfits/outfits_screen.dart';
@@ -25,7 +26,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   final _pageController = PageController();
   bool _tutorialStarted = false;
   int _currentTab = 0;
@@ -38,9 +40,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Force le refetch de la météo lors d'un retour de l'app au premier plan,
+      // pour que la "météo du jour" soit toujours celle d'aujourd'hui.
+      ref.invalidate(todayWeatherFetchProvider);
+    }
   }
 
   void _goToTab(int index) {

@@ -540,6 +540,16 @@ class _CompactHeaderWeather extends ConsumerWidget {
         if (w == null) {
           return _CompactWeatherUnavailable(detail: fetch.message);
         }
+        // Si la donnée mise en cache n'est plus celle d'aujourd'hui (passage de
+        // minuit / app dormante depuis hier), on relance la récupération.
+        final now = DateTime.now();
+        final wDay = DateTime(w.date.year, w.date.month, w.date.day);
+        final today = DateTime(now.year, now.month, now.day);
+        if (wDay.isBefore(today)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.invalidate(todayWeatherFetchProvider);
+          });
+        }
         return _CompactWeatherPill(fetch: fetch, weather: w);
       },
     );
