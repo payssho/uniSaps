@@ -109,8 +109,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      widget.embeddedInMainNav ? 0 : 10,
+                      16,
+                      12,
+                    ),
                     child: _ProfileHero(
+                      embeddedInMainNav: widget.embeddedInMainNav,
                       user: user,
                       pendingFriendRequests: requestCount,
                       onLogout: () async {
@@ -241,11 +247,14 @@ class _ProfileHero extends StatelessWidget {
   final UserModel user;
   final int pendingFriendRequests;
   final Future<void> Function() onLogout;
+  /// Aligne le bloc avec les autres onglets (Sans bande retour + moins de marge haute).
+  final bool embeddedInMainNav;
 
   const _ProfileHero({
     required this.user,
     required this.pendingFriendRequests,
     required this.onLogout,
+    this.embeddedInMainNav = false,
   });
 
   @override
@@ -312,7 +321,12 @@ class _ProfileHero extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(18, 20, 18, 18),
+            padding: EdgeInsets.fromLTRB(
+              18,
+              embeddedInMainNav ? 16 : 20,
+              18,
+              18,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
