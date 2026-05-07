@@ -61,8 +61,9 @@ service cloud.firestore {
 
     // ── Posts ────────────────────────────────────────────────────────────────
     match /posts/{postId} {
-      // Lecture : tout user connecté (feed explorer, feed amis)
-      allow read: if isAuth();
+      // get = lecture d’un doc ; list = query/stream sur la collection (Explorer).
+      // Équivalent à allow read si isAuth(), plus explicite pour le débogage.
+      allow get, list: if isAuth();
 
       // Création : le champ user_id doit correspondre à l'uid du créateur
       allow create: if isAuth()
