@@ -570,7 +570,6 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
         }],
         "generationConfig": {
             "temperature": 0.2,
-            "response_mime_type": "application/json",
         },
     }
 
@@ -581,10 +580,18 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
             json=payload,
             timeout=30,
         )
+        if not resp.ok:
+            logger.error(
+                "[analyze_garment_image] HTTP %s body=%s", resp.status_code, resp.text[:300]
+            )
         resp.raise_for_status()
         data = resp.json()
         content = data["candidates"][0]["content"]["parts"][0]["text"]
-        parsed: Dict[str, Any] = json.loads(content)
+        # Gemini peut envelopper le JSON dans des blocs markdown ```json ... ```
+        import re as _re
+        m = _re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, _re.DOTALL)
+        json_str = m.group(1) if m else content.strip()
+        parsed: Dict[str, Any] = json.loads(json_str)
 
         def _as_list(val: Any) -> List[str]:
             if isinstance(val, list):
