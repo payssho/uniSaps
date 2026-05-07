@@ -51,6 +51,7 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
 
     final prevId = user.dailyOutfitId;
     final prevDate = user.dailyOutfitDate;
+    final prevPhoto = user.dailyPhotoUrl;
 
     // Déjà l’outfit du jour : ne pas recompter plusieurs « ports » dans la même journée.
     if (prevId == outfitId && prevDate == today) {
@@ -68,11 +69,21 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
           'times_worn': next,
         });
       }
+      // Une photo prise pour l’outfit précédent ne doit pas rester comme
+      // souvenir : on garde 1 photo / jour rattachée à l’outfit du jour courant.
+      if (prevPhoto.isNotEmpty) {
+        await _db.updateOutfit(uid, prevId, {
+          'photo_urls': FieldValue.arrayRemove([prevPhoto]),
+        });
+      }
     }
 
     await _db.updateUser(uid, {
       'daily_outfit_id': outfitId,
       'daily_outfit_date': today,
+      // Reset de la photo du jour : la photo précédente était associée à
+      // l’ancien outfit, l’utilisateur en reprendra une si besoin.
+      if (sameDayPrevious) 'daily_photo_url': '',
     });
     await _db.updateOutfit(uid, outfitId, {
       'times_worn': FieldValue.increment(1),
@@ -119,6 +130,7 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
         user.dailyOutfitDate == today &&
         user.dailyOutfitId.isNotEmpty;
     final clearedId = user?.dailyOutfitId ?? '';
+    final clearedPhoto = user?.dailyPhotoUrl ?? '';
 
     if (hadToday) {
       final cur = await _db.getOutfit(uid, clearedId);
@@ -126,6 +138,13 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
         final next = (cur.timesWorn - 1).clamp(0, 0x7fffffff);
         await _db.updateOutfit(uid, clearedId, {
           'times_worn': next,
+        });
+      }
+      // On retire aussi la photo du jour des souvenirs de l'outfit qu'on
+      // est en train de désactiver, pour rester sur 1 souvenir par jour.
+      if (clearedPhoto.isNotEmpty) {
+        await _db.updateOutfit(uid, clearedId, {
+          'photo_urls': FieldValue.arrayRemove([clearedPhoto]),
         });
       }
     }

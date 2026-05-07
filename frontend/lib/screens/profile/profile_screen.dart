@@ -111,7 +111,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   Padding(
                     padding: EdgeInsets.fromLTRB(
                       16,
-                      widget.embeddedInMainNav ? 0 : 10,
+                      widget.embeddedInMainNav ? 4 : 10,
                       16,
                       12,
                     ),
@@ -119,12 +119,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       embeddedInMainNav: widget.embeddedInMainNav,
                       user: user,
                       pendingFriendRequests: requestCount,
-                      onLogout: () async {
-                        await ref
-                            .read(authNotifierProvider.notifier)
-                            .signOut();
-                        if (context.mounted) context.go('/login');
-                      },
                     ),
                   ),
                   Padding(
@@ -246,14 +240,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 class _ProfileHero extends StatelessWidget {
   final UserModel user;
   final int pendingFriendRequests;
-  final Future<void> Function() onLogout;
   /// Aligne le bloc avec les autres onglets (Sans bande retour + moins de marge haute).
   final bool embeddedInMainNav;
 
   const _ProfileHero({
     required this.user,
     required this.pendingFriendRequests,
-    required this.onLogout,
     this.embeddedInMainNav = false,
   });
 
@@ -323,7 +315,7 @@ class _ProfileHero extends StatelessWidget {
           Padding(
             padding: EdgeInsets.fromLTRB(
               18,
-              embeddedInMainNav ? 16 : 20,
+              embeddedInMainNav ? 12 : 20,
               18,
               18,
             ),
@@ -405,28 +397,6 @@ class _ProfileHero extends StatelessWidget {
                                   ),
                                 ),
                               ],
-                              const SizedBox(width: 4),
-                              Tooltip(
-                                message: 'Déconnexion',
-                                child: Material(
-                                  color: AppColors.surface
-                                      .withValues(alpha: 0.72),
-                                  shape: const CircleBorder(),
-                                  child: InkWell(
-                                    customBorder: const CircleBorder(),
-                                    onTap: () => onLogout(),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8),
-                                      child: Icon(
-                                        Icons.logout_rounded,
-                                        size: 20,
-                                        color: AppColors.textSecondary
-                                            .withValues(alpha: 0.95),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
                             ],
                           ),
                           if (user.username.isNotEmpty)
