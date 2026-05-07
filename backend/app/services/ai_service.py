@@ -506,7 +506,8 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
     Si la clé API n'est pas configurée, renvoie une structure vide pour que le frontend
     ne plante pas, et on log un warning explicite (utile pour debug en prod).
     """
-    if not OPENAI_API_KEY:
+    api_key = os.getenv("OPENAI_API_KEY") or OPENAI_API_KEY
+    if not api_key:
         logger.warning(
             "[analyze_garment_image] OPENAI_API_KEY is not set — falling back to empty result."
         )
@@ -570,7 +571,7 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
     }
 
     headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
 
