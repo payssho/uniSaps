@@ -558,7 +558,7 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
     )
 
     api_url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
+        "https://generativelanguage.googleapis.com/v1/models/"
         f"gemini-1.5-flash:generateContent?key={api_key}"
     )
     payload: Dict[str, Any] = {
