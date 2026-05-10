@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
@@ -14,6 +13,7 @@ import '../widgets/platform_image.dart';
 import '../widgets/brand_selector.dart';
 import '../widgets/multi_color_selector.dart';
 import '../widgets/premium_upgrade_dialog.dart';
+import '../widgets/storage_aware_cached_image.dart';
 
 const int _kMaxGarmentImages = 8;
 
@@ -486,10 +486,10 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             itemBuilder: (context, i) {
               final s = _slots[i];
               if (s.networkUrl != null) {
-                return CachedNetworkImage(
+                return StorageAwareCachedImage(
                   imageUrl: s.networkUrl!,
                   fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(
+                  loadingWidget: Container(
                     color: AppColors.surfaceVariant,
                     child: const Center(
                       child: SizedBox(
@@ -498,6 +498,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     ),
+                  ),
+                  errorWidget: (_, __) => Container(
+                    color: AppColors.surfaceVariant,
+                    child: const Icon(Icons.broken_image_outlined,
+                        color: AppColors.textHint),
                   ),
                 );
               }

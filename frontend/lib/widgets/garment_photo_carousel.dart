@@ -1,7 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/categories.dart';
+import 'storage_aware_cached_image.dart';
 
 /// Affiche une ou plusieurs photos de vêtement avec défilement et indicateurs.
 class GarmentPhotoCarousel extends StatefulWidget {
@@ -74,11 +74,11 @@ class _GarmentPhotoCarouselState extends State<GarmentPhotoCarousel> {
             itemCount: _urls.length,
             onPageChanged: (i) => setState(() => _page = i),
             itemBuilder: (context, i) {
-              return CachedNetworkImage(
+              return StorageAwareCachedImage(
                 imageUrl: _urls[i],
                 fit: BoxFit.cover,
                 width: double.infinity,
-                placeholder: (_, __) => Container(
+                loadingWidget: Container(
                   color: AppColors.surfaceVariant,
                   child: const Center(
                     child: SizedBox(
@@ -88,7 +88,7 @@ class _GarmentPhotoCarouselState extends State<GarmentPhotoCarousel> {
                     ),
                   ),
                 ),
-                errorWidget: (_, __, ___) => Container(
+                errorWidget: (_, __) => Container(
                   color: AppColors.surfaceVariant,
                   child: Icon(
                     categoryIcon(widget.category),
