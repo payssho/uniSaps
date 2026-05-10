@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
+import 'garment_photo_carousel.dart';
 
 class GarmentCard extends StatefulWidget {
   final GarmentModel garment;
@@ -58,37 +58,20 @@ class _GarmentCardState extends State<GarmentCard>
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: widget.garment.imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: widget.garment.imageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                            color: AppColors.surfaceVariant,
-                            child: const Center(
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            ),
-                          ),
-                          errorWidget: (_, __, ___) => Container(
-                            color: AppColors.surfaceVariant,
-                            child: Icon(
-                              categoryIcon(widget.garment.category),
-                              size: 40,
-                              color: AppColors.textHint,
-                            ),
-                          ),
-                        )
-                      : Container(
-                          color: AppColors.surfaceVariant,
-                          child: Icon(
-                            categoryIcon(widget.garment.category),
-                            size: 40,
-                            color: AppColors.textHint,
-                          ),
-                        ),
+                  child: LayoutBuilder(
+                    builder: (context, bc) {
+                      final urls = widget.garment.imageUrls.isNotEmpty
+                          ? widget.garment.imageUrls
+                          : (widget.garment.imageUrl.isNotEmpty
+                              ? [widget.garment.imageUrl]
+                              : <String>[]);
+                      return GarmentPhotoCarousel(
+                          imageUrls: urls,
+                          category: widget.garment.category,
+                          height: bc.maxHeight,
+                        );
+                    },
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(10),

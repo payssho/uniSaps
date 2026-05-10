@@ -5,7 +5,8 @@ class GarmentModel {
   final String brand;
   final List<String> colors; // Support pour plusieurs couleurs
   final String category;
-  final String imageUrl;
+  /// URLs des photos du vêtement (ordre d’affichage). Ancien champ unique : [image_url].
+  final List<String> imageUrls;
   final String createdAt;
   final int timesWorn;
   // Métadonnées enrichies par l'IA (optionnelles)
@@ -22,7 +23,7 @@ class GarmentModel {
     this.brand = '',
     this.colors = const [],
     this.category = '',
-    this.imageUrl = '',
+    this.imageUrls = const [],
     this.createdAt = '',
     this.timesWorn = 0,
     this.styleTags = const [],
@@ -31,6 +32,9 @@ class GarmentModel {
     this.pattern = '',
     this.material = '',
   });
+
+  /// Première image (compatibilité avec l’ancien champ unique `image_url`).
+  String get imageUrl => imageUrls.isNotEmpty ? imageUrls.first : '';
 
   // Propriété de compatibilité pour l'ancien format (une seule couleur)
   String get color => colors.isNotEmpty ? colors.first : '';
@@ -46,7 +50,20 @@ class GarmentModel {
       // Migration depuis l'ancien format
       colorsList = [map['color'].toString()];
     }
-    
+
+    List<String> urls = [];
+    if (map['image_urls'] != null && map['image_urls'] is List) {
+      urls = (map['image_urls'] as List)
+          .map((e) => e.toString())
+          .where((u) => u.isNotEmpty)
+          .toList();
+    }
+    if (urls.isEmpty &&
+        map['image_url'] != null &&
+        map['image_url'].toString().isNotEmpty) {
+      urls = [map['image_url'].toString()];
+    }
+
     return GarmentModel(
       id: docId ?? map['id'] ?? '',
       userId: map['user_id'] ?? '',
@@ -54,7 +71,7 @@ class GarmentModel {
       brand: map['brand'] ?? '',
       colors: colorsList,
       category: map['category'] ?? '',
-      imageUrl: map['image_url'] ?? '',
+      imageUrls: urls,
       createdAt: map['created_at'] ?? '',
       timesWorn: map['times_worn'] ?? 0,
       styleTags: List<String>.from(map['style_tags'] ?? const []),
@@ -72,7 +89,8 @@ class GarmentModel {
         'colors': colors, // Nouveau format
         'color': colors.isNotEmpty ? colors.first : '', // Compatibilité
         'category': category,
-        'image_url': imageUrl,
+        'image_urls': imageUrls,
+        'image_url': imageUrl, // Compatibilité lecture ancienne doc
         'created_at': createdAt,
         'times_worn': timesWorn,
         'style_tags': styleTags,
@@ -89,7 +107,7 @@ class GarmentModel {
     String? brand,
     List<String>? colors,
     String? category,
-    String? imageUrl,
+    List<String>? imageUrls,
     String? createdAt,
     int? timesWorn,
     List<String>? styleTags,
@@ -105,7 +123,7 @@ class GarmentModel {
       brand: brand ?? this.brand,
       colors: colors ?? this.colors,
       category: category ?? this.category,
-      imageUrl: imageUrl ?? this.imageUrl,
+      imageUrls: imageUrls ?? this.imageUrls,
       createdAt: createdAt ?? this.createdAt,
       timesWorn: timesWorn ?? this.timesWorn,
       styleTags: styleTags ?? this.styleTags,

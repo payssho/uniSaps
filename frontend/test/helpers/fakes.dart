@@ -506,7 +506,7 @@ GarmentModel fakeGarment({
       brand: 'Nike',
       colors: const ['Blanc'],
       category: 'top',
-      imageUrl: imageUrl,
+      imageUrls: imageUrl.isNotEmpty ? [imageUrl] : const [],
       createdAt: '2026-01-01T00:00:00.000Z',
     );
 

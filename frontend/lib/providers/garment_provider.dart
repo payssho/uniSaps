@@ -55,24 +55,28 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
     String season = '',
     String pattern = '',
     String material = '',
-    Uint8List? imageBytes,
-    String? imageName,
+    List<Uint8List> imageBytesList = const [],
+    List<String> imageNames = const [],
     bool removeBackground = true,
   }) async {
     state = const AsyncValue.loading();
     try {
-      String imageUrl = '';
-      if (imageBytes != null && imageName != null) {
-        // Utiliser l'API backend pour l'upload des images de vêtements
-        imageUrl = await _apiService.uploadImage(
-          imageBytes: imageBytes,
-          filename: imageName,
-          folder: 'garments',
-          removeBackground: removeBackground,
-        );
-        // Vérifier que l'imageUrl n'est pas vide
-        if (imageUrl.isEmpty) {
-          throw Exception('L\'URL de l\'image est vide après l\'upload');
+      final urls = <String>[];
+      if (imageBytesList.isNotEmpty) {
+        if (imageBytesList.length != imageNames.length) {
+          throw Exception('Incohérence images / noms de fichiers.');
+        }
+        for (var i = 0; i < imageBytesList.length; i++) {
+          final u = await _apiService.uploadImage(
+            imageBytes: imageBytesList[i],
+            filename: imageNames[i],
+            folder: 'garments',
+            removeBackground: removeBackground,
+          );
+          if (u.isEmpty) {
+            throw Exception('L\'URL d\'une image est vide après l\'upload');
+          }
+          urls.add(u);
         }
       }
       final garment = GarmentModel(
@@ -81,7 +85,7 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
         brand: brand,
         colors: colors,
         category: category,
-        imageUrl: imageUrl,
+        imageUrls: urls,
         createdAt: DateTime.now().toIso8601String(),
         styleTags: styleTags,
         formality: formality,
@@ -105,35 +109,50 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
     required String brand,
     required List<String> colors,
     required String category,
-    Uint8List? imageBytes,
-    String? imageName,
+    /// URLs déjà en ligne conservées par l’utilisateur (ordre final).
+    List<String> keptImageUrls = const [],
+    List<Uint8List> newImageBytesList = const [],
+    List<String> newImageNames = const [],
     bool removeBackground = true,
   }) async {
     state = const AsyncValue.loading();
     try {
-      // Récupérer le vêtement existant
       final existingGarment = await _db.getGarment(uid, garmentId);
       if (existingGarment == null) {
         state = AsyncValue.error('Vêtement introuvable', StackTrace.current);
         return false;
       }
 
-      String imageUrl = existingGarment.imageUrl;
-      
-      // Si une nouvelle image est fournie, uploader et supprimer l'ancienne
-      if (imageBytes != null && imageName != null) {
-        final newImageUrl = await _apiService.uploadImage(
-          imageBytes: imageBytes,
-          filename: imageName,
+      if (newImageBytesList.isNotEmpty &&
+          newImageBytesList.length != newImageNames.length) {
+        throw Exception('Incohérence nouvelles images / noms de fichiers.');
+      }
+
+      final previousUrls = existingGarment.imageUrls.isNotEmpty
+          ? existingGarment.imageUrls
+          : (existingGarment.imageUrl.isNotEmpty
+              ? [existingGarment.imageUrl]
+              : <String>[]);
+
+      // Supprimer du storage les photos retirées par l’utilisateur
+      for (final url in previousUrls) {
+        if (!keptImageUrls.contains(url)) {
+          await _storage.deleteImage(url);
+        }
+      }
+
+      final uploaded = <String>[];
+      for (var i = 0; i < newImageBytesList.length; i++) {
+        final u = await _apiService.uploadImage(
+          imageBytes: newImageBytesList[i],
+          filename: newImageNames[i],
           folder: 'garments',
           removeBackground: removeBackground,
         );
-        // Supprimer l'ancienne image si elle existe
-        if (imageUrl.isNotEmpty) {
-          await _storage.deleteImage(imageUrl);
-        }
-        imageUrl = newImageUrl;
+        if (u.isNotEmpty) uploaded.add(u);
       }
+
+      final finalUrls = [...keptImageUrls, ...uploaded];
 
       final garment = GarmentModel(
         id: garmentId,
@@ -142,11 +161,16 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
         brand: brand,
         colors: colors,
         category: category,
-        imageUrl: imageUrl,
+        imageUrls: finalUrls,
         createdAt: existingGarment.createdAt,
         timesWorn: existingGarment.timesWorn,
+        styleTags: existingGarment.styleTags,
+        formality: existingGarment.formality,
+        season: existingGarment.season,
+        pattern: existingGarment.pattern,
+        material: existingGarment.material,
       );
-      
+
       await _db.updateGarment(uid, garmentId, garment.toMap());
       state = const AsyncValue.data(null);
       return true;
@@ -160,8 +184,13 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
     try {
       // Récupérer le vêtement pour supprimer son image
       final garment = await _db.getGarment(uid, garmentId);
-      if (garment != null && garment.imageUrl.isNotEmpty) {
-        await _storage.deleteImage(garment.imageUrl);
+      if (garment != null) {
+        final urls = garment.imageUrls.isNotEmpty
+            ? garment.imageUrls
+            : (garment.imageUrl.isNotEmpty ? [garment.imageUrl] : <String>[]);
+        for (final url in urls) {
+          if (url.isNotEmpty) await _storage.deleteImage(url);
+        }
       }
       // Supprimer le document Firestore
       await _db.deleteGarment(uid, garmentId);

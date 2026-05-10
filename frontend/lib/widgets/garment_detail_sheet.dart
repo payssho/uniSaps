@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
 import '../services/color_service.dart';
 import '../providers/auth_provider.dart';
+import 'garment_photo_carousel.dart';
 
 class GarmentDetailSheet extends ConsumerWidget {
   final GarmentModel garment;
@@ -76,61 +76,17 @@ class GarmentDetailSheet extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            // Image du vêtement
+            // Photos du vêtement
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Container(
+                child: GarmentPhotoCarousel(
+                  imageUrls: garment.imageUrls.isNotEmpty
+                      ? garment.imageUrls
+                      : (garment.imageUrl.isNotEmpty ? [garment.imageUrl] : <String>[]),
+                  category: garment.category,
                   height: 280,
-                  width: double.infinity,
-                  color: AppColors.surfaceVariant,
-                  child: garment.imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: garment.imageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => Container(
-                            color: AppColors.surfaceVariant,
-                            child: const Center(
-                              child: SizedBox(
-                                width: 32,
-                                height: 32,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            ),
-                          ),
-                          errorWidget: (_, __, error) {
-                            // Debug: afficher l'erreur dans la console
-                            debugPrint('Erreur chargement image: $error');
-                            debugPrint('URL image: ${garment.imageUrl}');
-                            return Container(
-                              color: AppColors.surfaceVariant,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    categoryIcon(garment.category),
-                                    size: 60,
-                                    color: AppColors.textHint,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  const Text(
-                                    'Image non disponible',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textHint,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        )
-                      : Icon(
-                          categoryIcon(garment.category),
-                          size: 60,
-                          color: AppColors.textHint,
-                        ),
                 ),
               ),
             ),

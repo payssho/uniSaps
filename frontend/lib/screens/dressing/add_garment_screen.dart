@@ -95,8 +95,10 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
               _colorController.text.trim(),
           ],
           category: _selectedCategory,
-          imageBytes: imageBytes,
-          imageName: imageName,
+          imageBytesList: imageBytes != null && imageName != null
+              ? [imageBytes]
+              : const [],
+          imageNames: imageBytes != null && imageName != null ? [imageName] : const [],
         );
 
     if (mounted) {

@@ -29,6 +29,8 @@ void main() {
       expect(g.brand, 'Nike');
       expect(g.colors, ['Blanc', 'Gris']);
       expect(g.category, 'top');
+      expect(g.imageUrls, ['https://img.url/tshirt.jpg']);
+      expect(g.imageUrl, 'https://img.url/tshirt.jpg');
       expect(g.timesWorn, 3);
       expect(g.styleTags, ['casual', 'sport']);
       expect(g.formality, 'casual');

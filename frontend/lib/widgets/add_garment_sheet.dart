@@ -14,6 +14,17 @@ import '../widgets/platform_image.dart';
 import '../widgets/brand_selector.dart';
 import '../widgets/multi_color_selector.dart';
 
+const int _kMaxGarmentImages = 8;
+
+/// Une photo locale choisie ou une URL déjà en ligne (édition).
+class _GarmentImageSlot {
+  _GarmentImageSlot.network(this.networkUrl) : file = null;
+  _GarmentImageSlot.local(this.file) : networkUrl = null;
+
+  final String? networkUrl;
+  final XFile? file;
+}
+
 class AddGarmentSheet extends ConsumerStatefulWidget {
   final GarmentModel? garment;
 
@@ -28,7 +39,14 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   late final TextEditingController _brandController;
   late List<String> _selectedColors;
   late String _selectedCategory;
-  XFile? _imageFile;
+
+  final List<_GarmentImageSlot> _slots = [];
+  final Set<String> _analyzedPaths = {};
+  bool _primaryAiApplied = false;
+
+  late final PageController _previewController;
+  int _previewPage = 0;
+
   String? _error;
   bool _loading = false;
   bool _removeBackground = false;
@@ -39,22 +57,134 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   @override
   void initState() {
     super.initState();
+    _previewController = PageController();
     _nameController = TextEditingController(text: widget.garment?.name ?? '');
     _brandController = TextEditingController(text: widget.garment?.brand ?? '');
-    _selectedColors = widget.garment?.colors ?? [];
+    _selectedColors = List<String>.from(widget.garment?.colors ?? []);
     _selectedCategory = widget.garment?.category ?? 'top';
+
+    if (widget.garment != null) {
+      final urls = widget.garment!.imageUrls.isNotEmpty
+          ? widget.garment!.imageUrls
+          : (widget.garment!.imageUrl.isNotEmpty ? [widget.garment!.imageUrl] : <String>[]);
+      for (final u in urls) {
+        if (u.trim().isNotEmpty) {
+          _slots.add(_GarmentImageSlot.network(u));
+        }
+      }
+      _primaryAiApplied = true;
+    }
   }
 
   @override
   void dispose() {
+    _previewController.dispose();
     _nameController.dispose();
     _brandController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final source = await showModalBottomSheet<ImageSource>(
+  List<String> _mergeColorLists(List<String> a, List<String> b) {
+    final seen = a.map((e) => e.toLowerCase()).toSet();
+    final out = List<String>.from(a);
+    for (final c in b) {
+      final k = c.toLowerCase();
+      if (!seen.contains(k)) {
+        seen.add(k);
+        out.add(c);
+      }
+    }
+    return out;
+  }
+
+  void _mergeAiIntoForm(Map<String, dynamic> result) {
+    const allowedCats = ['top', 'bottom', 'shoes', 'outerwear', 'headwear', 'accessory'];
+
+    setState(() {
+      final newColors = (result['colors'] as List?)?.cast<String>() ?? const [];
+      _selectedColors = _mergeColorLists(_selectedColors, newColors);
+
+      if (!_primaryAiApplied) {
+        final cat = (result['category'] as String?) ?? '';
+        if (allowedCats.contains(cat)) {
+          _selectedCategory = cat;
+        }
+
+        final n = (result['name'] as String?)?.trim() ?? '';
+        if (n.isNotEmpty && _nameController.text.trim().isEmpty) {
+          _nameController.text = n;
+        }
+
+        final b = (result['brand'] as String?)?.trim() ?? '';
+        if (b.isNotEmpty && _brandController.text.trim().isEmpty) {
+          _brandController.text = b;
+        }
+        _primaryAiApplied = true;
+      }
+
+      final prevTags = (_aiAttributes?['style_tags'] as List?)?.cast<String>() ?? const [];
+      final newTags = (result['style_tags'] as List?)?.cast<String>() ?? const [];
+      final mergedTags = [...{...prevTags, ...newTags}];
+
+      _aiAttributes = {
+        ...result,
+        'colors': _selectedColors,
+        'style_tags': mergedTags,
+      };
+    });
+  }
+
+  Future<void> _runAiOnPendingLocals() async {
+    if (!_useAiAnalysis) return;
+    setState(() => _aiAnalyzing = true);
+    final api = ref.read(apiServiceProvider);
+    try {
+      for (final slot in List<_GarmentImageSlot>.from(_slots)) {
+        if (slot.file == null) continue;
+        final path = slot.file!.path;
+        if (_analyzedPaths.contains(path)) continue;
+
+        final bytes = await slot.file!.readAsBytes();
+        final result = await api.analyzeGarmentImage(bytes, slot.file!.name);
+        if (!mounted) return;
+
+        if (result['is_garment'] == false) {
+          setState(() {
+            _slots.removeWhere((s) => s.file?.path == path);
+          });
+          await _showNotGarmentDialog();
+          continue;
+        }
+
+        _analyzedPaths.add(path);
+        _mergeAiIntoForm(result);
+      }
+    } catch (_) {
+      // une image peut échouer sans bloquer le reste
+    } finally {
+      if (mounted) setState(() => _aiAnalyzing = false);
+    }
+  }
+
+  void _removeSlotAt(int index) {
+    final s = _slots[index];
+    if (s.file?.path != null) {
+      _analyzedPaths.remove(s.file!.path);
+    }
+    setState(() {
+      _slots.removeAt(index);
+      if (_previewPage >= _slots.length && _slots.isNotEmpty) {
+        _previewPage = _slots.length - 1;
+      } else if (_slots.isEmpty) {
+        _previewPage = 0;
+      }
+    });
+  }
+
+  Future<void> _openPickSources() async {
+    if (_slots.length >= _kMaxGarmentImages) return;
+
+    final choice = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
@@ -71,12 +201,12 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                 ListTile(
                   leading: const Icon(Icons.camera_alt_outlined),
                   title: const Text('Prendre une photo'),
-                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                  onTap: () => Navigator.pop(context, 'camera'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Choisir depuis la galerie'),
-                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                  title: const Text('Galerie — plusieurs photos'),
+                  onTap: () => Navigator.pop(context, 'gallery_multi'),
                 ),
               ],
             ),
@@ -84,64 +214,27 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         ),
       ),
     );
-    if (source == null) return;
-    final picked = await picker.pickImage(source: source, maxWidth: 1200, imageQuality: 95);
-    if (picked != null) {
-      setState(() {
-        _imageFile = picked;
-        if (_useAiAnalysis) _aiAnalyzing = true;
-      });
+    if (choice == null || !mounted) return;
 
-      if (!_useAiAnalysis) return;
+    final picker = ImagePicker();
+    final remain = _kMaxGarmentImages - _slots.length;
 
-      try {
-        final bytes = await picked.readAsBytes();
-        final api = ref.read(apiServiceProvider);
-        final result = await api.analyzeGarmentImage(bytes, picked.name);
-
-        if (!mounted) return;
-
-        final isGarment = result['is_garment'];
-        final isNotGarment = isGarment == false;
-
-        if (isNotGarment) {
-          setState(() {
-            _imageFile = null;
-            _aiAnalyzing = false;
-            _aiAttributes = null;
-          });
-          await _showNotGarmentDialog();
-          return;
-        }
-
+    if (choice == 'camera') {
+      final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 1200, imageQuality: 95);
+      if (picked != null && mounted) {
+        setState(() => _slots.add(_GarmentImageSlot.local(picked)));
+        await _runAiOnPendingLocals();
+      }
+    } else if (choice == 'gallery_multi') {
+      final files = await picker.pickMultiImage(maxWidth: 1200, imageQuality: 95);
+      if (files.isNotEmpty && mounted) {
         setState(() {
-          _aiAttributes = result;
-
-          final detectedColors = (result['colors'] as List?)?.cast<String>() ?? const [];
-          if (detectedColors.isNotEmpty) {
-            _selectedColors = List<String>.from(detectedColors);
+          for (final f in files) {
+            if (_slots.length >= _kMaxGarmentImages) break;
+            _slots.add(_GarmentImageSlot.local(f));
           }
-
-          final detectedCategory = (result['category'] as String?) ?? '';
-          const allowedCats = ['top', 'bottom', 'shoes', 'outerwear', 'headwear', 'accessory'];
-          if (allowedCats.contains(detectedCategory)) {
-            _selectedCategory = detectedCategory;
-          }
-
-          final detectedName = (result['name'] as String?)?.trim() ?? '';
-          if (detectedName.isNotEmpty && _nameController.text.trim().isEmpty) {
-            _nameController.text = detectedName;
-          }
-
-          final detectedBrand = (result['brand'] as String?)?.trim() ?? '';
-          if (detectedBrand.isNotEmpty && _brandController.text.trim().isEmpty) {
-            _brandController.text = detectedBrand;
-          }
-
-          _aiAnalyzing = false;
         });
-      } catch (e) {
-        if (mounted) setState(() => _aiAnalyzing = false);
+        await _runAiOnPendingLocals();
       }
     }
   }
@@ -153,8 +246,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         backgroundColor: AppColors.surface,
-        icon: const Icon(Icons.image_not_supported_outlined,
-            color: AppColors.error, size: 36),
+        icon: const Icon(Icons.image_not_supported_outlined, color: AppColors.error, size: 36),
         title: const Text(
           'Image non reconnue',
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
@@ -174,7 +266,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               foregroundColor: AppColors.accent,
               textStyle: const TextStyle(fontWeight: FontWeight.w600),
             ),
-            child: const Text('Choisir une autre photo'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -193,22 +285,24 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     });
 
     final uid = ref.read(authServiceProvider).uid;
-    Uint8List? imageBytes;
-    String? imageName;
-    if (_imageFile != null) {
-      imageBytes = await _imageFile!.readAsBytes();
-      imageName = _imageFile!.name;
+
+    final imageBytesList = <Uint8List>[];
+    final imageNames = <String>[];
+    for (final s in _slots) {
+      if (s.file != null) {
+        imageBytesList.add(await s.file!.readAsBytes());
+        imageNames.add(s.file!.name);
+      }
     }
 
+    final needUpload = imageBytesList.isNotEmpty;
+
     try {
-      // Vérifier que le backend est accessible avant d'essayer l'upload
-      if (imageBytes != null && imageName != null) {
+      if (needUpload) {
         try {
           final api = ref.read(apiServiceProvider);
           final healthUrl = api.baseUrl.replaceAll('/api/v1', '/health');
-          final testResponse = await http.get(
-            Uri.parse(healthUrl),
-          ).timeout(const Duration(seconds: 5));
+          final testResponse = await http.get(Uri.parse(healthUrl)).timeout(const Duration(seconds: 5));
           if (testResponse.statusCode != 200) {
             throw Exception('Backend non disponible');
           }
@@ -221,45 +315,48 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         }
       }
 
-      // Extra attributs IA à stocker sur le vêtement
       final styleTags = (_aiAttributes?['style_tags'] as List?)?.cast<String>() ?? const [];
       final formality = (_aiAttributes?['formality'] as String?) ?? '';
       final season = (_aiAttributes?['season'] as String?) ?? '';
       final pattern = (_aiAttributes?['pattern'] as String?) ?? '';
       final material = (_aiAttributes?['material'] as String?) ?? '';
 
-      final success = widget.garment == null
-          ? await ref.read(garmentNotifierProvider.notifier).addGarment(
-                userId: uid,
-                name: name,
-                brand: _brandController.text.trim(),
-                colors: _selectedColors,
-                category: _selectedCategory,
-                styleTags: styleTags,
-                formality: formality,
-                season: season,
-                pattern: pattern,
-                material: material,
-                imageBytes: imageBytes,
-                imageName: imageName,
-                removeBackground: _removeBackground,
-              )
-          : await ref.read(garmentNotifierProvider.notifier).updateGarment(
-                uid: uid,
-                garmentId: widget.garment!.id,
-                name: name,
-                brand: _brandController.text.trim(),
-                colors: _selectedColors,
-                category: _selectedCategory,
-                imageBytes: imageBytes,
-                imageName: imageName,
-                removeBackground: _removeBackground,
-              );
+      final bool success;
+      if (widget.garment == null) {
+        success = await ref.read(garmentNotifierProvider.notifier).addGarment(
+              userId: uid,
+              name: name,
+              brand: _brandController.text.trim(),
+              colors: _selectedColors,
+              category: _selectedCategory,
+              styleTags: styleTags,
+              formality: formality,
+              season: season,
+              pattern: pattern,
+              material: material,
+              imageBytesList: imageBytesList,
+              imageNames: imageNames,
+              removeBackground: _removeBackground,
+            );
+      } else {
+        final keptUrls = _slots.where((s) => s.networkUrl != null).map((s) => s.networkUrl!).toList();
+        success = await ref.read(garmentNotifierProvider.notifier).updateGarment(
+              uid: uid,
+              garmentId: widget.garment!.id,
+              name: name,
+              brand: _brandController.text.trim(),
+              colors: _selectedColors,
+              category: _selectedCategory,
+              keptImageUrls: keptUrls,
+              newImageBytesList: imageBytesList,
+              newImageNames: imageNames,
+              removeBackground: _removeBackground,
+            );
+      }
 
       if (mounted) {
         setState(() => _loading = false);
         if (success) {
-          // Attendre un peu pour que Firestore se synchronise avant de fermer
           await Future.delayed(const Duration(milliseconds: 300));
           if (mounted) {
             Navigator.pop(context);
@@ -281,17 +378,20 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             );
           }
         } else {
-          // Récupérer le message d'erreur depuis le state du provider
           final errorState = ref.read(garmentNotifierProvider);
           String errorMessage = 'Erreur lors de l\'enregistrement.';
           if (errorState.hasError) {
             final error = errorState.error.toString();
             if (error.contains('Timeout')) {
-              errorMessage = 'Le traitement de l\'image prend trop de temps (rembg). Vérifie que le backend est démarré et patiente.';
-            } else if (error.contains('connexion') || error.contains('serveur') || error.contains('localhost')) {
+              errorMessage =
+                  'Le traitement d\'une image prend trop de temps. Vérifie que le backend est démarré et patiente.';
+            } else if (error.contains('connexion') ||
+                error.contains('serveur') ||
+                error.contains('localhost')) {
               errorMessage = 'Impossible de contacter le serveur. Réessaie dans un instant.';
             } else if (error.contains('FileNotFoundError') || error.contains('serviceAccountKey')) {
-              errorMessage = 'Configuration Firebase manquante. Vérifie le fichier serviceAccountKey.json dans backend/';
+              errorMessage =
+                  'Configuration Firebase manquante. Vérifie le fichier serviceAccountKey.json dans backend/';
             } else {
               errorMessage = error
                   .replaceAll('Exception: ', '')
@@ -308,7 +408,9 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         setState(() {
           _loading = false;
           final errorStr = e.toString();
-          if (errorStr.contains('localhost') || errorStr.contains('connection') || errorStr.contains('connexion')) {
+          if (errorStr.contains('localhost') ||
+              errorStr.contains('connection') ||
+              errorStr.contains('connexion')) {
             _error = 'Le serveur est inaccessible. Réessaie dans un instant.';
           } else {
             _error = errorStr.replaceAll('Exception: ', '').replaceAll('Error: ', '');
@@ -316,6 +418,140 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         });
       }
     }
+  }
+
+  Widget _buildPhotoPreview() {
+    if (_slots.isEmpty) {
+      return GestureDetector(
+        onTap: _openPickSources,
+        child: Container(
+          height: 200,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.divider, width: 1.5),
+          ),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_a_photo_outlined, size: 40, color: AppColors.textHint),
+              SizedBox(height: 8),
+              Text('Ajouter une ou plusieurs photos', style: AppTextStyles.caption),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.divider, width: 1.5),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          PageView.builder(
+            controller: _previewController,
+            itemCount: _slots.length,
+            onPageChanged: (i) => setState(() {
+              _previewPage = i;
+            }),
+            itemBuilder: (context, i) {
+              final s = _slots[i];
+              if (s.networkUrl != null) {
+                return CachedNetworkImage(
+                  imageUrl: s.networkUrl!,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(
+                    color: AppColors.surfaceVariant,
+                    child: const Center(
+                      child: SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  ),
+                );
+              }
+              return PlatformImage(file: s.file!, fit: BoxFit.cover);
+            },
+          ),
+          if (_aiAnalyzing)
+            Container(
+              color: AppColors.graphite.withOpacity(0.55),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.white),
+                  ),
+                  SizedBox(height: 14),
+                  Text(
+                    'Analyse des images par l’IA…',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (!_aiAnalyzing && _slots.length > 1)
+            Positioned(
+              bottom: 10,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_slots.length, (i) {
+                  final sel = i == _previewPage;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: sel ? 18 : 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: sel ? AppColors.white : AppColors.white.withOpacity(0.45),
+                      borderRadius: BorderRadius.circular(4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.graphite.withOpacity(0.35),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+            ),
+          if (!_aiAnalyzing)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () => _removeSlotAt(_previewPage),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close, size: 16, color: AppColors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -329,7 +565,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Indicateur de glissement
             Container(
               width: 40,
               height: 4,
@@ -339,7 +574,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            // Titre
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -363,92 +597,23 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        height: 200,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: AppColors.divider, width: 1.5),
+                    _buildPhotoPreview(),
+                    const SizedBox(height: 10),
+                    if (_slots.length < _kMaxGarmentImages)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: _aiAnalyzing ? null : _openPickSources,
+                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 20),
+                          label: Text(
+                            _slots.isEmpty
+                                ? 'Ajouter des photos'
+                                : 'Ajouter d’autres photos (${_slots.length}/$_kMaxGarmentImages)',
+                          ),
+                          style: TextButton.styleFrom(foregroundColor: AppColors.accent),
                         ),
-                        clipBehavior: Clip.antiAlias,
-                        child: _imageFile != null
-                            ? Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  PlatformImage(file: _imageFile!, fit: BoxFit.cover),
-                                  if (_aiAnalyzing)
-                                    Container(
-                                      color: AppColors.graphite.withOpacity(0.55),
-                                      child: const Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          SizedBox(
-                                            width: 36,
-                                            height: 36,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 3,
-                                              color: AppColors.white,
-                                            ),
-                                          ),
-                                          SizedBox(height: 14),
-                                          Text(
-                                            'Analyse de l’image par l’IA…',
-                                            style: TextStyle(
-                                              color: AppColors.white,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  if (!_aiAnalyzing)
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: GestureDetector(
-                                        onTap: () => setState(() => _imageFile = null),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: const BoxDecoration(
-                                            color: AppColors.error,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(Icons.close, size: 16, color: AppColors.white),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              )
-                            : widget.garment?.imageUrl.isNotEmpty == true
-                                ? CachedNetworkImage(
-                                    imageUrl: widget.garment!.imageUrl,
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) => Container(
-                                      color: AppColors.surfaceVariant,
-                                      child: const Center(
-                                        child: SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                : const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.add_a_photo_outlined, size: 40, color: AppColors.textHint),
-                                      SizedBox(height: 8),
-                                      Text('Ajouter une photo', style: AppTextStyles.caption),
-                                    ],
-                                  ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 4),
                     SwitchListTile.adaptive(
                       value: _removeBackground,
                       onChanged: (value) {
@@ -477,7 +642,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                         style: AppTextStyles.bodySecondary,
                       ),
                       subtitle: const Text(
-                        'Détecte automatiquement couleurs, catégorie, style, matière. Décoche pour saisir à la main.',
+                        'Analyse chaque nouvelle photo pour couleurs, catégorie, etc.',
                         style: TextStyle(fontSize: 12, color: AppColors.textHint),
                       ),
                     ),
