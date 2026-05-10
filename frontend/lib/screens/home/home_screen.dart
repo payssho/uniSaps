@@ -548,12 +548,12 @@ class _NavProfileBubble extends StatelessWidget {
                       top: -4,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 1),
+                            horizontal: 5, vertical: 2),
                         constraints:
-                            const BoxConstraints(minWidth: 16, minHeight: 16),
+                            const BoxConstraints(minWidth: 17, minHeight: 17),
                         decoration: BoxDecoration(
-                          color: AppColors.accent,
-                          borderRadius: BorderRadius.circular(8),
+                          color: AppColors.notificationBadge,
+                          borderRadius: BorderRadius.circular(9),
                           border:
                               Border.all(color: AppColors.surface, width: 1.5),
                         ),
@@ -562,7 +562,7 @@ class _NavProfileBubble extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: AppColors.white,
-                            fontSize: 9,
+                            fontSize: 10,
                             fontWeight: FontWeight.w800,
                             height: 1,
                           ),

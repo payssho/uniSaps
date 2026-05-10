@@ -82,6 +82,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final user = ref.watch(currentUserProvider).valueOrNull;
     final requestCount = ref.watch(receivedRequestsCountProvider);
 
+    ref.listen<int>(receivedRequestsCountProvider, (prev, next) {
+      if (!widget.embeddedInMainNav || next <= 0) return;
+      if (_tabController.index == 3) return;
+      if (prev != null && prev > 0) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _tabController.animateTo(3);
+      });
+    });
+
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -902,13 +911,35 @@ class _ProfileTabRailState extends State<_ProfileTabRail> {
                     if (showBadge)
                       Positioned(
                         top: -4,
-                        right: -8,
+                        right: -12,
                         child: Container(
-                          width: 9,
-                          height: 9,
-                          decoration: const BoxDecoration(
-                            color: AppColors.accent,
-                            shape: BoxShape.circle,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 2,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.notificationBadge,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.surface,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            pendingRequests > 99
+                                ? '99+'
+                                : '${pendingRequests}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              height: 1.05,
+                            ),
                           ),
                         ),
                       ),
@@ -1592,41 +1623,6 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.divider),
-            ),
-            child: SwitchListTile.adaptive(
-              title: const Text(
-                'Compte prive',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-              ),
-              subtitle: Text(
-                widget.user.isPrivate
-                    ? 'Seuls tes amis voient ton contenu'
-                    : 'Tout le monde peut voir ton contenu',
-                style: AppTextStyles.caption,
-              ),
-              secondary: Icon(
-                widget.user.isPrivate ? Icons.lock_outline : Icons.public,
-                color: widget.user.isPrivate
-                    ? AppColors.accent
-                    : AppColors.textHint,
-              ),
-              value: widget.user.isPrivate,
-              activeColor: AppColors.accent,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              onChanged: (val) {
-                ref
-                    .read(friendshipNotifierProvider.notifier)
-                    .togglePrivacy(val);
-              },
-            ),
-          ),
-          const SizedBox(height: 24),
           requestsAsync.when(
             data: (requests) {
               if (requests.isEmpty) return const SizedBox.shrink();
@@ -1635,14 +1631,14 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                 children: [
                   Row(
                     children: [
-                      const Text('Demandes recues',
+                      const Text('Demandes reçues',
                           style: AppTextStyles.heading3),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.accent,
+                          color: AppColors.notificationBadge,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -1714,13 +1710,49 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                           ],
                         ),
                       )),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                 ],
               );
             },
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
           ),
+          const SizedBox(height: 24),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: SwitchListTile.adaptive(
+              title: const Text(
+                'Compte prive',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              ),
+              subtitle: Text(
+                widget.user.isPrivate
+                    ? 'Seuls tes amis voient ton contenu'
+                    : 'Tout le monde peut voir ton contenu',
+                style: AppTextStyles.caption,
+              ),
+              secondary: Icon(
+                widget.user.isPrivate ? Icons.lock_outline : Icons.public,
+                color: widget.user.isPrivate
+                    ? AppColors.accent
+                    : AppColors.textHint,
+              ),
+              value: widget.user.isPrivate,
+              activeColor: AppColors.accent,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+              onChanged: (val) {
+                ref
+                    .read(friendshipNotifierProvider.notifier)
+                    .togglePrivacy(val);
+              },
+            ),
+          ),
+          const SizedBox(height: 24),
           Row(
             children: [
               Text(

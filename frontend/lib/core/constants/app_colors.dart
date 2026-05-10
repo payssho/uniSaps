@@ -38,6 +38,9 @@ class AppColors {
   static const warning = yaleBlue;
   static const error = graphite;
 
+  /// Pastille type notification (demandes d’amis, alertes).
+  static const notificationBadge = Color(0xFFE53935);
+
   static const shimmerBase = Color(0xFFE3E4E9);
   static const shimmerHighlight = white;
 
