@@ -13,6 +13,7 @@ import '../../providers/friendship_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/post_card.dart';
+import '../../widgets/premium_avatar_ring.dart';
 import '../../core/constants/categories.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
@@ -323,17 +324,21 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
               const SizedBox(width: 8),
             ],
           ),
-          CircleAvatar(
-            radius: 44,
-            backgroundColor: AppColors.surfaceVariant,
-            backgroundImage:
-                user.profilePhotoUrl.isNotEmpty ? CachedNetworkImageProvider(user.profilePhotoUrl) : null,
-            child: user.profilePhotoUrl.isEmpty
-                ? Text(
-                    user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppColors.textHint),
-                  )
-                : null,
+          PremiumAvatarRing(
+            isPremium: user.isPremium,
+            padding: 4,
+            child: CircleAvatar(
+              radius: 44,
+              backgroundColor: AppColors.surfaceVariant,
+              backgroundImage:
+                  user.profilePhotoUrl.isNotEmpty ? CachedNetworkImageProvider(user.profilePhotoUrl) : null,
+              child: user.profilePhotoUrl.isEmpty
+                  ? Text(
+                      user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppColors.textHint),
+                    )
+                  : null,
+            ),
           ),
           const SizedBox(height: 12),
           Text(

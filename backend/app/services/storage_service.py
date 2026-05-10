@@ -65,7 +65,10 @@ def upload_bytes(
         processed,
         content_type=f"image/{extension}",
     )
-    blob.make_public()
+    # Ne pas appeler blob.make_public() : avec « Accès uniforme » au bucket (recommandé
+    # par Firebase/GCP), les ACL objet sont interdites → 403 Forbidden sur make_public.
+    # Pour que les URLs public_url soient lisibles sans auth, donne au bucket IAM
+    # lecture anonyme (ex. rôle Lecteur d’objets pour allUsers) ou utilise des règles Storage.
     return blob.public_url
 
 

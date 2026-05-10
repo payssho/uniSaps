@@ -19,6 +19,7 @@ import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/weather_provider.dart';
 import '../../services/weather_service.dart';
+import '../../widgets/premium_upgrade_dialog.dart';
 import '../creations/creation_screen.dart';
 
 /// Suggestions biblio IA (persistées pendant la session pour l’état vide + la feuille).
@@ -74,6 +75,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
     final outfitsAsync = ref.watch(outfitsProvider(uid));
     final garmentsAsync = ref.watch(garmentsProvider(uid));
     final user = ref.watch(currentUserProvider).valueOrNull;
+    final isPremium = ref.watch(isPremiumProvider);
 
     final dailyOutfitId = user?.dailyOutfitId ?? '';
     final streak = user?.currentStreak ?? 0;
@@ -206,11 +208,17 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                 children: [
                   FloatingActionButton.small(
                     heroTag: 'outfits_ai_sheet',
-                    tooltip: 'Suggestions IA',
-                    backgroundColor: AppColors.secondary,
+                    tooltip: isPremium ? 'Suggestions IA' : 'UniSaps+ requis',
+                    backgroundColor: isPremium
+                        ? AppColors.secondary
+                        : AppColors.textHint.withValues(alpha: 0.38),
                     foregroundColor: AppColors.white,
                     elevation: 6,
                     onPressed: () {
+                      if (!isPremium) {
+                        showPremiumUpgradeDialog(context);
+                        return;
+                      }
                       final u = ref.read(authServiceProvider).uid;
                       final gAsync = ref.read(garmentsProvider(u));
                       final g = gAsync.valueOrNull;

@@ -54,6 +54,7 @@ void main() {
       'likes': 12,
       'liked_by': ['uid-2', 'uid-3'],
       'created_at': '2026-01-01T00:00:00.000Z',
+      'author_is_premium': false,
     };
 
     test('valeurs par défaut correctes', () {
@@ -78,6 +79,7 @@ void main() {
       expect(post.garmentRefs, hasLength(2));
       expect(post.garmentRefs[0].name, 'T-Shirt');
       expect(post.garmentRefs[1].brand, 'Levi\'s');
+      expect(post.authorIsPremium, false);
     });
 
     test('fromMap gère garment_refs null → liste vide', () {
@@ -111,6 +113,7 @@ void main() {
       expect(map['liked_by'], ['uid-2', 'uid-3']);
       expect(map['garment_refs'], isA<List>());
       expect((map['garment_refs'] as List).length, 2);
+      expect(map['author_is_premium'], false);
     });
 
     test('fromMap → toMap → fromMap est idempotent', () {

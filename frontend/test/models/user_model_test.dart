@@ -92,6 +92,7 @@ void main() {
       'is_new_user': false,
       'is_private': true,
       'friends': ['uid-2', 'uid-3'],
+      'account_tier': 'free',
     };
 
     test('valeurs par défaut correctes', () {
@@ -120,6 +121,8 @@ void main() {
       expect(user.isPrivate, true);
       expect(user.friends, ['uid-2', 'uid-3']);
       expect(user.tutorialSeen.dressing, true);
+      expect(user.accountTier, 'free');
+      expect(user.isPremium, false);
     });
 
     test('fromMap gère les champs manquants', () {
@@ -145,6 +148,7 @@ void main() {
       expect(map['is_new_user'], false);
       expect(map['friends'], ['uid-2', 'uid-3']);
       expect(map['tutorial_seen'], isA<Map>());
+      expect(map['account_tier'], 'free');
     });
 
     test('fromMap → toMap est idempotent', () {
@@ -168,6 +172,11 @@ void main() {
       const user = UserModel(friends: ['uid-2', 'uid-3']);
       expect(user.isFriendWith('uid-2'), true);
       expect(user.isFriendWith('uid-99'), false);
+    });
+
+    test('premium lit account_tier premium', () {
+      final user = UserModel.fromMap({'account_tier': 'premium'});
+      expect(user.isPremium, true);
     });
 
     test('isFriendWith retourne false pour liste vide', () {

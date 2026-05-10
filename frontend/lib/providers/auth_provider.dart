@@ -24,6 +24,11 @@ final currentUserProvider = StreamProvider<UserModel?>((ref) {
   );
 });
 
+/// Abonnement UniSaps+ (champ Firestore `account_tier` = `premium`).
+final isPremiumProvider = Provider<bool>((ref) {
+  return ref.watch(currentUserProvider).valueOrNull?.isPremium ?? false;
+});
+
 class AuthNotifier extends StateNotifier<AsyncValue<void>> {
   final AuthService _authService;
   final FirestoreService _firestoreService;

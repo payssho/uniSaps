@@ -17,6 +17,7 @@ import '../../providers/friendship_provider.dart';
 import '../home/home_screen.dart';
 import 'search_users_screen.dart';
 import 'user_profile_screen.dart';
+import '../../widgets/premium_avatar_ring.dart';
 
 class InspirationScreen extends ConsumerStatefulWidget {
   const InspirationScreen({super.key});
@@ -1397,26 +1398,30 @@ class _InspoPostCardState extends State<_InspoPostCard>
                     borderRadius: BorderRadius.circular(22),
                     child: Padding(
                       padding: const EdgeInsets.all(4),
-                      child: CircleAvatar(
-                        radius: 22,
-                        backgroundColor: AppColors.surfaceVariant
-                            .withValues(alpha: 0.95),
-                        backgroundImage: widget.post.userPhotoUrl.isNotEmpty
-                            ? CachedNetworkImageProvider(
-                                widget.post.userPhotoUrl,
-                              )
-                            : null,
-                        child: widget.post.userPhotoUrl.isEmpty
-                            ? Text(
-                                widget.post.username.isNotEmpty
-                                    ? widget.post.username[0].toUpperCase()
-                                    : '?',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textHint,
-                                ),
-                              )
-                            : null,
+                      child: PremiumAvatarRing(
+                        isPremium: widget.post.authorIsPremium,
+                        padding: 3,
+                        child: CircleAvatar(
+                          radius: 22,
+                          backgroundColor: AppColors.surfaceVariant
+                              .withValues(alpha: 0.95),
+                          backgroundImage: widget.post.userPhotoUrl.isNotEmpty
+                              ? CachedNetworkImageProvider(
+                                  widget.post.userPhotoUrl,
+                                )
+                              : null,
+                          child: widget.post.userPhotoUrl.isEmpty
+                              ? Text(
+                                  widget.post.username.isNotEmpty
+                                      ? widget.post.username[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textHint,
+                                  ),
+                                )
+                              : null,
+                        ),
                       ),
                     ),
                   ),

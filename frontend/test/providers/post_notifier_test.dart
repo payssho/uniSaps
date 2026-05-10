@@ -96,6 +96,17 @@ void main() {
   // ── createPostFromDaily ────────────────────────────────────────────────────
 
   group('createPostFromDaily', () {
+    test('succès → post contient author_is_premium si user premium', () async {
+      final user = fakeUser(uid: 'uid-1', accountTier: 'premium')
+          .copyWith(dailyPhotoUrl: 'https://daily.url/photo.jpg');
+      await n().createPostFromDaily(
+        user: user,
+        outfit: fakeOutfit(),
+        garments: [],
+      );
+      expect(fakeDb.posts.first.authorIsPremium, true);
+    });
+
     test('succès avec dailyPhotoUrl → retourne ok', () async {
       final user =
           fakeUser(uid: 'uid-1').copyWith(dailyPhotoUrl: 'https://daily.url/photo.jpg');

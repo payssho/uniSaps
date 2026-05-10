@@ -13,6 +13,7 @@ import '../providers/garment_provider.dart';
 import '../widgets/platform_image.dart';
 import '../widgets/brand_selector.dart';
 import '../widgets/multi_color_selector.dart';
+import '../widgets/premium_upgrade_dialog.dart';
 
 const int _kMaxGarmentImages = 8;
 
@@ -43,6 +44,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   final List<_GarmentImageSlot> _slots = [];
   final Set<String> _analyzedPaths = {};
   bool _primaryAiApplied = false;
+  /// Une seule analyse IA par ouverture de la feuille (première photo locale traitée).
+  bool _garmentAiAnalysisConsumed = false;
 
   late final PageController _previewController;
   int _previewPage = 0;
@@ -74,6 +77,15 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       }
       _primaryAiApplied = true;
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || widget.garment != null) return;
+      final premium = ref.read(isPremiumProvider);
+      setState(() {
+        _useAiAnalysis = premium;
+        if (!premium) _removeBackground = false;
+      });
+    });
   }
 
   @override
@@ -135,32 +147,43 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   }
 
   Future<void> _runAiOnPendingLocals() async {
+    if (!ref.read(isPremiumProvider)) return;
     if (!_useAiAnalysis) return;
+    if (_garmentAiAnalysisConsumed) return;
+
+    _GarmentImageSlot? target;
+    for (final slot in _slots) {
+      if (slot.file == null) continue;
+      final path = slot.file!.path;
+      if (_analyzedPaths.contains(path)) continue;
+      target = slot;
+      break;
+    }
+    if (target == null) return;
+
+    final path = target.file!.path;
+
     setState(() => _aiAnalyzing = true);
     final api = ref.read(apiServiceProvider);
     try {
-      for (final slot in List<_GarmentImageSlot>.from(_slots)) {
-        if (slot.file == null) continue;
-        final path = slot.file!.path;
-        if (_analyzedPaths.contains(path)) continue;
+      final bytes = await target.file!.readAsBytes();
+      final result = await api.analyzeGarmentImage(bytes, target.file!.name);
+      if (!mounted) return;
 
-        final bytes = await slot.file!.readAsBytes();
-        final result = await api.analyzeGarmentImage(bytes, slot.file!.name);
-        if (!mounted) return;
+      _garmentAiAnalysisConsumed = true;
 
-        if (result['is_garment'] == false) {
-          setState(() {
-            _slots.removeWhere((s) => s.file?.path == path);
-          });
-          await _showNotGarmentDialog();
-          continue;
-        }
-
-        _analyzedPaths.add(path);
-        _mergeAiIntoForm(result);
+      if (result['is_garment'] == false) {
+        setState(() {
+          _slots.removeWhere((s) => s.file?.path == path);
+        });
+        await _showNotGarmentDialog();
+        return;
       }
+
+      _analyzedPaths.add(path);
+      _mergeAiIntoForm(result);
     } catch (_) {
-      // une image peut échouer sans bloquer le reste
+      _garmentAiAnalysisConsumed = true;
     } finally {
       if (mounted) setState(() => _aiAnalyzing = false);
     }
@@ -217,7 +240,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     if (choice == null || !mounted) return;
 
     final picker = ImagePicker();
-    final remain = _kMaxGarmentImages - _slots.length;
 
     if (choice == 'camera') {
       final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 1200, imageQuality: 95);
@@ -286,6 +308,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
 
     final uid = ref.read(authServiceProvider).uid;
 
+    final premium = ref.read(isPremiumProvider);
     final imageBytesList = <Uint8List>[];
     final imageNames = <String>[];
     for (final s in _slots) {
@@ -336,7 +359,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               material: material,
               imageBytesList: imageBytesList,
               imageNames: imageNames,
-              removeBackground: _removeBackground,
+              removeBackground: premium && _removeBackground,
             );
       } else {
         final keptUrls = _slots.where((s) => s.networkUrl != null).map((s) => s.networkUrl!).toList();
@@ -350,7 +373,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               keptImageUrls: keptUrls,
               newImageBytesList: imageBytesList,
               newImageNames: imageNames,
-              removeBackground: _removeBackground,
+              removeBackground: premium && _removeBackground,
             );
       }
 
@@ -554,6 +577,61 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     );
   }
 
+  Widget _buildAiSwitchSection(BuildContext context, bool isPremium) {
+    final tiles = Column(
+      children: [
+        SwitchListTile.adaptive(
+          value: _removeBackground,
+          onChanged: !isPremium || _aiAnalyzing
+              ? null
+              : (value) => setState(() => _removeBackground = value),
+          contentPadding: EdgeInsets.zero,
+          title: const Text(
+            'Supprimer l’arrière-plan',
+            style: AppTextStyles.bodySecondary,
+          ),
+          subtitle: const Text(
+            'Utilise l’IA pour isoler le vêtement. Décoche si tu veux garder le fond.',
+            style: TextStyle(fontSize: 12, color: AppColors.textHint),
+          ),
+        ),
+        SwitchListTile.adaptive(
+          value: _useAiAnalysis,
+          onChanged: !isPremium || _aiAnalyzing
+              ? null
+              : (value) => setState(() => _useAiAnalysis = value),
+          contentPadding: EdgeInsets.zero,
+          title: const Text(
+            'Pré-remplir avec l’IA',
+            style: AppTextStyles.bodySecondary,
+          ),
+          subtitle: const Text(
+            'Une seule analyse par ajout : la première photo (couleurs, catégorie, etc.).',
+            style: TextStyle(fontSize: 12, color: AppColors.textHint),
+          ),
+        ),
+      ],
+    );
+
+    if (isPremium) return tiles;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Opacity(opacity: 0.52, child: AbsorbPointer(child: tiles)),
+        Positioned.fill(
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => showPremiumUpgradeDialog(context),
+              child: const SizedBox.expand(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -614,38 +692,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                         ),
                       ),
                     const SizedBox(height: 4),
-                    SwitchListTile.adaptive(
-                      value: _removeBackground,
-                      onChanged: (value) {
-                        setState(() => _removeBackground = value);
-                      },
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Supprimer l’arrière-plan',
-                        style: AppTextStyles.bodySecondary,
-                      ),
-                      subtitle: const Text(
-                        'Utilise l’IA pour isoler le vêtement. Décoche si tu veux garder le fond.',
-                        style: TextStyle(fontSize: 12, color: AppColors.textHint),
-                      ),
-                    ),
-                    SwitchListTile.adaptive(
-                      value: _useAiAnalysis,
-                      onChanged: _aiAnalyzing
-                          ? null
-                          : (value) {
-                              setState(() => _useAiAnalysis = value);
-                            },
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text(
-                        'Pré-remplir avec l’IA',
-                        style: AppTextStyles.bodySecondary,
-                      ),
-                      subtitle: const Text(
-                        'Analyse chaque nouvelle photo pour couleurs, catégorie, etc.',
-                        style: TextStyle(fontSize: 12, color: AppColors.textHint),
-                      ),
-                    ),
+                    _buildAiSwitchSection(context, ref.watch(isPremiumProvider)),
                     const SizedBox(height: 24),
                     TextField(
                       controller: _nameController,

@@ -26,6 +26,8 @@ class PostModel {
   final int likes;
   final List<String> likedBy;
   final String createdAt;
+  /// Dénormalisé : statut premium de l’auteur au moment du post.
+  final bool authorIsPremium;
 
   const PostModel({
     this.id = '',
@@ -39,6 +41,7 @@ class PostModel {
     this.likes = 0,
     this.likedBy = const [],
     this.createdAt = '',
+    this.authorIsPremium = false,
   });
 
   factory PostModel.fromMap(Map<String, dynamic> map, {String? docId}) {
@@ -57,6 +60,7 @@ class PostModel {
       likes: map['likes'] ?? 0,
       likedBy: List<String>.from(map['liked_by'] ?? []),
       createdAt: map['created_at'] ?? '',
+      authorIsPremium: map['author_is_premium'] == true,
     );
   }
 
@@ -71,6 +75,7 @@ class PostModel {
         'likes': likes,
         'liked_by': likedBy,
         'created_at': createdAt,
+        'author_is_premium': authorIsPremium,
       };
 
   bool isLikedBy(String uid) => likedBy.contains(uid);

@@ -44,6 +44,7 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
     String caption = '',
     String outfitId = '',
     List<GarmentRef> garmentRefs = const [],
+    bool authorIsPremium = false,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -57,6 +58,7 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
         garmentRefs: garmentRefs,
         caption: caption,
         createdAt: DateTime.now().toIso8601String(),
+        authorIsPremium: authorIsPremium,
       );
       await _db.addPost(post);
       state = const AsyncValue.data(null);
@@ -104,6 +106,7 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
         garmentRefs: refs,
         caption: caption,
         createdAt: DateTime.now().toUtc().toIso8601String(),
+        authorIsPremium: user.isPremium,
       );
       await _db.addPost(post);
       state = const AsyncValue.data(null);

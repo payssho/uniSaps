@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
 import '../models/post_model.dart';
+import 'premium_avatar_ring.dart';
 
 class PostCard extends StatelessWidget {
   final PostModel post;
@@ -49,18 +50,22 @@ class PostCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: AppColors.surfaceVariant,
-                      backgroundImage: post.userPhotoUrl.isNotEmpty
-                          ? CachedNetworkImageProvider(post.userPhotoUrl)
-                          : null,
-                      child: post.userPhotoUrl.isEmpty
-                          ? Text(
-                              post.username.isNotEmpty ? post.username[0].toUpperCase() : '?',
-                              style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textHint),
-                            )
-                          : null,
+                    PremiumAvatarRing(
+                      isPremium: post.authorIsPremium,
+                      padding: 2.5,
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: AppColors.surfaceVariant,
+                        backgroundImage: post.userPhotoUrl.isNotEmpty
+                            ? CachedNetworkImageProvider(post.userPhotoUrl)
+                            : null,
+                        child: post.userPhotoUrl.isEmpty
+                            ? Text(
+                                post.username.isNotEmpty ? post.username[0].toUpperCase() : '?',
+                                style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textHint),
+                              )
+                            : null,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(

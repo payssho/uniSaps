@@ -64,6 +64,8 @@ class UserModel {
   final bool isNewUser;
   final bool isPrivate;
   final List<String> friends;
+  /// `free` ou `premium` (Firestore: `account_tier`).
+  final String accountTier;
 
   const UserModel({
     this.uid = '',
@@ -81,7 +83,12 @@ class UserModel {
     this.isNewUser = true,
     this.isPrivate = false,
     this.friends = const [],
+    this.accountTier = 'free',
   });
+
+  bool get isPremium =>
+      accountTier.toLowerCase() == 'premium' ||
+      accountTier.toLowerCase() == 'paid';
 
   bool isFriendWith(String uid) => friends.contains(uid);
 
@@ -104,6 +111,7 @@ class UserModel {
       isNewUser: map['is_new_user'] ?? true,
       isPrivate: map['is_private'] ?? false,
       friends: List<String>.from(map['friends'] ?? []),
+      accountTier: map['account_tier'] as String? ?? 'free',
     );
   }
 
@@ -123,6 +131,7 @@ class UserModel {
         'is_new_user': isNewUser,
         'is_private': isPrivate,
         'friends': friends,
+        'account_tier': accountTier,
       };
 
   UserModel copyWith({
@@ -141,6 +150,7 @@ class UserModel {
     bool? isNewUser,
     bool? isPrivate,
     List<String>? friends,
+    String? accountTier,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -158,6 +168,7 @@ class UserModel {
       isNewUser: isNewUser ?? this.isNewUser,
       isPrivate: isPrivate ?? this.isPrivate,
       friends: friends ?? this.friends,
+      accountTier: accountTier ?? this.accountTier,
     );
   }
 }

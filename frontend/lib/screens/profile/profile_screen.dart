@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../core/constants/premium_unlock.dart';
 import '../../models/user_model.dart';
 import '../../models/garment_model.dart';
 import '../../models/outfit_model.dart';
@@ -12,6 +13,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/friendship_provider.dart';
 import '../../widgets/stat_card.dart';
+import '../../widgets/premium_avatar_ring.dart';
 import '../inspiration/user_profile_screen.dart';
 import '../inspiration/search_users_screen.dart';
 
@@ -266,6 +268,27 @@ class _ProfileHero extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          if (user.isPremium)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 5,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFFFE082),
+                      AppColors.accent.withValues(alpha: 0.95),
+                      const Color(0xFFE65100),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -325,7 +348,31 @@ class _ProfileHero extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
+                    user.isPremium
+                        ? PremiumAvatarRing(
+                            isPremium: true,
+                            padding: 4,
+                            child: CircleAvatar(
+                              radius: 42,
+                              backgroundColor: AppColors.surfaceVariant,
+                              backgroundImage:
+                                  user.profilePhotoUrl.isNotEmpty
+                                      ? CachedNetworkImageProvider(
+                                          user.profilePhotoUrl)
+                                      : null,
+                              child: user.profilePhotoUrl.isEmpty
+                                  ? Text(
+                                      initials,
+                                      style: const TextStyle(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.textHint,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                          )
+                        : Container(
                       padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
@@ -382,6 +429,58 @@ class _ProfileHero extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              if (user.isPremium)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 6, top: 2),
+                                  child: Tooltip(
+                                    message: 'Compte UniSaps+',
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            const Color(0xFFFFB300),
+                                            AppColors.accent
+                                                .withValues(alpha: 0.95),
+                                          ],
+                                        ),
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.accent
+                                                .withValues(alpha: 0.22),
+                                            blurRadius: 6,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.workspace_premium_rounded,
+                                            size: 14,
+                                            color: Colors.white,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            'UniSaps+',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 11,
+                                              letterSpacing: 0.2,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               if (user.isPrivate) ...[
                                 const SizedBox(width: 4),
                                 Tooltip(
@@ -1801,6 +1900,77 @@ class _InfosTab extends ConsumerStatefulWidget {
 
 class _InfosTabState extends ConsumerState<_InfosTab> {
   bool _deletingAccount = false;
+  bool _premiumApplying = false;
+  final TextEditingController _premiumCodeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _premiumCodeController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _applyPremiumCode() async {
+    final code = _premiumCodeController.text.trim();
+    if (!isPremiumUnlockCodeValid(code)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Code incorrect.'),
+          backgroundColor: AppColors.warning,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _premiumApplying = true);
+    try {
+      await ref.read(firestoreServiceProvider).updateUser(widget.user.uid, {
+        'account_tier': 'premium',
+      });
+      if (!mounted) return;
+      _premiumCodeController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.workspace_premium_rounded,
+                  color: AppColors.white, size: 22),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'UniSaps+ activé ! Profite des fonctionnalités IA.',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur : $e'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _premiumApplying = false);
+    }
+  }
 
   Future<void> _showDeleteAccountDialog() async {
     final passwordController = TextEditingController();
@@ -1933,6 +2103,71 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
           _InfoRow(
               label: 'Compte',
               value: widget.user.isPrivate ? 'Prive' : 'Public'),
+          _InfoRow(
+            label: 'UniSaps+',
+            value: widget.user.isPremium ? 'Actif' : 'Gratuit',
+          ),
+          if (!widget.user.isPremium) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Code d’activation',
+                style: AppTextStyles.bodySecondary.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _premiumCodeController,
+              textCapitalization: TextCapitalization.characters,
+              autocorrect: false,
+              obscureText: true,
+              decoration: InputDecoration(
+                hintText: 'Entre ton code UniSaps+',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: AppColors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _premiumApplying ? null : _applyPremiumCode,
+                child: _premiumApplying
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.white,
+                        ),
+                      )
+                    : const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.workspace_premium_outlined, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Activer UniSaps+',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ],
           const SizedBox(height: 32),
           SizedBox(
             width: double.infinity,

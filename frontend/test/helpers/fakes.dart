@@ -464,6 +464,7 @@ UserModel fakeUser({
   String dailyOutfitId = '',
   int currentStreak = 0,
   List<String> friends = const [],
+  String accountTier = 'free',
 }) =>
     UserModel(
       uid: uid,
@@ -474,6 +475,7 @@ UserModel fakeUser({
       dailyOutfitId: dailyOutfitId,
       currentStreak: currentStreak,
       friends: friends,
+      accountTier: accountTier,
     );
 
 OutfitModel fakeOutfit({
@@ -514,6 +516,7 @@ PostModel fakePost({
   String id = 'post-1',
   String userId = 'uid-1',
   List<String> likedBy = const [],
+  bool authorIsPremium = false,
 }) =>
     PostModel(
       id: id,
@@ -523,4 +526,5 @@ PostModel fakePost({
       likedBy: likedBy,
       likes: likedBy.length,
       createdAt: '2026-01-01T00:00:00.000Z',
+      authorIsPremium: authorIsPremium,
     );
