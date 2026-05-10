@@ -20,6 +20,7 @@ import '../../providers/outfit_provider.dart';
 import '../../providers/weather_provider.dart';
 import '../../services/weather_service.dart';
 import '../../widgets/premium_upgrade_dialog.dart';
+import '../../widgets/storage_aware_cached_image.dart';
 import '../creations/creation_screen.dart';
 
 /// Suggestions biblio IA (persistées pendant la session pour l’état vide + la feuille).
@@ -1123,51 +1124,117 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                         ),
                       ),
                     ),
-                    ...suggestions.map((s) {
-                      final items = s.entries
+                    ...suggestions.asMap().entries.map((entry) {
+                      final lookIndex = entry.key;
+                      final s = entry.value;
+                      final pairs = s.entries
                           .where((e) =>
                               e.value.isNotEmpty &&
                               widget.garmentCache.containsKey(e.value))
-                          .map((e) => widget.garmentCache[e.value]!)
-                          .toList();
+                          .map((e) => MapEntry(e.key, widget.garmentCache[e.value]!))
+                          .toList()
+                        ..sort((a, b) {
+                          final ia = categoryKeys.indexOf(a.key);
+                          final ib = categoryKeys.indexOf(b.key);
+                          if (ia < 0 && ib < 0) {
+                            return a.key.compareTo(b.key);
+                          }
+                          if (ia < 0) return 1;
+                          if (ib < 0) return -1;
+                          return ia.compareTo(ib);
+                        });
                       return Container(
-                        margin: const EdgeInsets.only(top: 12),
-                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(top: 14),
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceVariant,
-                          borderRadius: BorderRadius.circular(14),
-                          border:
-                              Border.all(color: AppColors.divider.withOpacity(0.6)),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppColors.divider.withOpacity(0.55),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.graphite.withValues(alpha: 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Wrap(
-                              spacing: 4,
-                              runSpacing: 4,
-                              children: items
-                                  .map((g) => Chip(
-                                        avatar: g.imageUrl.isNotEmpty
-                                            ? CircleAvatar(
-                                                backgroundImage:
-                                                    NetworkImage(g.imageUrl))
-                                            : null,
-                                        label: Text(g.name,
-                                            style:
-                                                const TextStyle(fontSize: 11)),
-                                        visualDensity: VisualDensity.compact,
-                                      ))
-                                  .toList(),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.layers_outlined,
+                                  size: 18,
+                                  color: AppColors.accent.withValues(alpha: 0.9),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Look ${lookIndex + 1}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  '${pairs.length} pièce${pairs.length > 1 ? 's' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textHint.withValues(alpha: 0.95),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 10),
-                            OutlinedButton(
-                              onPressed: () =>
-                                  widget.onPickSuggestion(s),
-                              style: OutlinedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
+                            const SizedBox(height: 12),
+                            if (pairs.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: Text(
+                                  'Aucune pièce reconnue dans ton dressing pour cette suggestion.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary.withValues(alpha: 0.9),
+                                  ),
+                                ),
+                              )
+                            else
+                              SizedBox(
+                                height: 228,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  itemCount: pairs.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(width: 10),
+                                  itemBuilder: (ctx, i) {
+                                    return _SuggestionPieceCard(
+                                      slotKey: pairs[i].key,
+                                      garment: pairs[i].value,
+                                    );
+                                  },
+                                ),
                               ),
-                              child: const Text('Choisir ce look'),
+                            const SizedBox(height: 14),
+                            OutlinedButton.icon(
+                              onPressed: () => widget.onPickSuggestion(s),
+                              icon: const Icon(Icons.check_rounded, size: 20),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                foregroundColor: AppColors.accent,
+                                side: BorderSide(
+                                  color: AppColors.accent.withValues(alpha: 0.65),
+                                ),
+                              ),
+                              label: const Text(
+                                'Choisir ce look',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
                             ),
                           ],
                         ),
@@ -1178,6 +1245,131 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Carte pièce pour une suggestion IA : photo lisible + rôle + nom + marque.
+class _SuggestionPieceCard extends StatelessWidget {
+  final String slotKey;
+  final GarmentModel garment;
+
+  const _SuggestionPieceCard({
+    required this.slotKey,
+    required this.garment,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final thumbUrl = garment.imageUrls.isNotEmpty
+        ? garment.imageUrls.first
+        : garment.imageUrl;
+
+    return SizedBox(
+      width: 118,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.divider.withValues(alpha: 0.65),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.graphite.withValues(alpha: 0.07),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(13),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AspectRatio(
+                aspectRatio: 1,
+                child: thumbUrl.isNotEmpty
+                    ? StorageAwareCachedImage(
+                        imageUrl: thumbUrl,
+                        fit: BoxFit.cover,
+                        loadingWidget: Container(
+                          color: AppColors.surfaceVariant,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 26,
+                              height: 26,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (_, __) => ColoredBox(
+                          color: AppColors.surfaceVariant,
+                          child: Icon(
+                            categoryIcon(garment.category),
+                            size: 40,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                      )
+                    : ColoredBox(
+                        color: AppColors.surfaceVariant,
+                        child: Icon(
+                          categoryIcon(garment.category),
+                          size: 40,
+                          color: AppColors.textHint,
+                        ),
+                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      categoryLabel(slotKey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                        color: AppColors.accent.withValues(alpha: 0.95),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      garment.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    if (garment.brand.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        garment.brand,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color:
+                              AppColors.textSecondary.withValues(alpha: 0.95),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
