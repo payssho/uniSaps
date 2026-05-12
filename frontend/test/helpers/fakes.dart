@@ -372,7 +372,7 @@ class FakeAuthService extends Fake implements AuthService {
   Future<void> signOut() async {}
 
   @override
-  Future<String?> getIdToken() async => 'fake-token';
+  Future<String?> getIdToken({bool forceRefresh = false}) async => 'fake-token';
 }
 
 // ────────────────────────────────────────────────────────────────────────────

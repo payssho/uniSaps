@@ -10,8 +10,11 @@ class ApiService {
   ApiService({required this.baseUrl, required AuthService authService})
       : _authService = authService;
 
-  Future<Map<String, String>> _headers({bool isMultipart = false}) async {
-    final token = await _authService.getIdToken();
+  Future<Map<String, String>> _headers({
+    bool isMultipart = false,
+    bool forceRefreshToken = false,
+  }) async {
+    final token = await _authService.getIdToken(forceRefresh: forceRefreshToken);
     return {
       if (!isMultipart) 'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
@@ -51,24 +54,29 @@ class ApiService {
   /// des attributs structurés (couleurs, catégorie, style, etc.).
   Future<Map<String, dynamic>> analyzeGarmentImage(
       Uint8List imageBytes, String filename) async {
-    final token = await _authService.getIdToken();
-    if (token == null) {
-      throw Exception('Utilisateur non authentifié');
+    Future<http.Response> postAnalyze({required bool refreshToken}) async {
+      final token = await _authService.getIdToken(forceRefresh: refreshToken);
+      if (token == null) {
+        throw Exception('Utilisateur non authentifié');
+      }
+      final uri = Uri.parse('$baseUrl/ai/analyze-garment');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          imageBytes,
+          filename: filename,
+        ),
+      );
+      final streamed = await request.send();
+      return http.Response.fromStream(streamed);
     }
 
-    final uri = Uri.parse('$baseUrl/ai/analyze-garment');
-    final request = http.MultipartRequest('POST', uri);
-    request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        imageBytes,
-        filename: filename,
-      ),
-    );
-
-    final streamed = await request.send();
-    final resp = await http.Response.fromStream(streamed);
+    var resp = await postAnalyze(refreshToken: false);
+    if (resp.statusCode == 401 || resp.statusCode == 403) {
+      resp = await postAnalyze(refreshToken: true);
+    }
     if (resp.statusCode != 200) {
       throw Exception('Erreur analyse IA: ${resp.statusCode} ${resp.body}');
     }
@@ -85,42 +93,47 @@ class ApiService {
     required String folder,
     bool removeBackground = false,
   }) async {
-    final token = await _authService.getIdToken();
-    if (token == null) {
-      throw Exception('Utilisateur non authentifié');
-    }
-
-    final uri = Uri.parse('$baseUrl/upload/image').replace(
-      queryParameters: {
-        'folder': folder,
-        'remove_bg': removeBackground.toString(),
-      },
-    );
-    final request = http.MultipartRequest('POST', uri);
-    request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(
-      http.MultipartFile.fromBytes(
-        'file',
-        imageBytes,
-        filename: filename,
-      ),
-    );
-
-    try {
-      // Timeout de 60 secondes pour permettre à rembg de traiter l'image
+    Future<http.Response> postUpload({required bool refreshToken}) async {
+      final token = await _authService.getIdToken(forceRefresh: refreshToken);
+      if (token == null) {
+        throw Exception('Utilisateur non authentifié');
+      }
+      final uri = Uri.parse('$baseUrl/upload/image').replace(
+        queryParameters: {
+          'folder': folder,
+          'remove_bg': removeBackground.toString(),
+        },
+      );
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          imageBytes,
+          filename: filename,
+        ),
+      );
       final streamedResponse = await request.send().timeout(
         const Duration(seconds: 60),
         onTimeout: () {
-          throw Exception('Timeout: Le traitement de l\'image prend trop de temps. Vérifie que le backend est démarré et que rembg fonctionne correctement.');
+          throw Exception(
+            'Timeout: Le traitement de l\'image prend trop de temps. Vérifie que le backend est démarré et que rembg fonctionne correctement.',
+          );
         },
       );
-      
-      final response = await http.Response.fromStream(streamedResponse).timeout(
+      return http.Response.fromStream(streamedResponse).timeout(
         const Duration(seconds: 10),
         onTimeout: () {
           throw Exception('Timeout: Impossible de recevoir la réponse du serveur.');
         },
       );
+    }
+
+    try {
+      var response = await postUpload(refreshToken: false);
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        response = await postUpload(refreshToken: true);
+      }
 
       if (response.statusCode != 200) {
         final errorBody = response.body;
@@ -144,7 +157,9 @@ class ApiService {
       }
       return data['url'] as String;
     } on http.ClientException {
-      throw Exception('Erreur de connexion: Impossible de contacter le serveur. Vérifie que le backend est démarré sur $baseUrl');
+      throw Exception(
+        'Erreur de connexion: Impossible de contacter le serveur. Vérifie que le backend est démarré sur $baseUrl',
+      );
     } catch (e) {
       if (e.toString().contains('Timeout')) {
         rethrow;

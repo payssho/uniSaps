@@ -7,6 +7,7 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
+import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/garment_provider.dart';
 import '../widgets/platform_image.dart';
@@ -78,13 +79,15 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       _primaryAiApplied = true;
     }
 
+    // Ne pas lier _useAiAnalysis au tier ici : tant que le doc Firestore n'est pas
+    // chargé, isPremium est faux → l'IA était ignorée en ~1 s sans message.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || widget.garment != null) return;
-      final premium = ref.read(isPremiumProvider);
-      setState(() {
-        _useAiAnalysis = premium;
-        if (!premium) _removeBackground = false;
-      });
+      final user = ref.read(currentUserProvider).valueOrNull;
+      if (user == null) return;
+      if (!user.isPremium) {
+        setState(() => _removeBackground = false);
+      }
     });
   }
 
@@ -167,7 +170,14 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     final api = ref.read(apiServiceProvider);
     try {
       final bytes = await target.file!.readAsBytes();
-      final result = await api.analyzeGarmentImage(bytes, target.file!.name);
+      Map<String, dynamic> result;
+      try {
+        result = await api.analyzeGarmentImage(bytes, target.file!.name);
+      } catch (_) {
+        await Future.delayed(const Duration(milliseconds: 700));
+        if (!mounted) return;
+        result = await api.analyzeGarmentImage(bytes, target.file!.name);
+      }
       if (!mounted) return;
 
       _garmentAiAnalysisConsumed = true;
@@ -183,7 +193,18 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       _analyzedPaths.add(path);
       _mergeAiIntoForm(result);
     } catch (_) {
-      _garmentAiAnalysisConsumed = true;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Analyse IA indisponible. Vérifie ta connexion et réessaie dans un instant.',
+            ),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _aiAnalyzing = false);
     }
@@ -242,13 +263,13 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     final picker = ImagePicker();
 
     if (choice == 'camera') {
-      final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 1200, imageQuality: 95);
+      final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 1200, imageQuality: 82);
       if (picked != null && mounted) {
         setState(() => _slots.add(_GarmentImageSlot.local(picked)));
         await _runAiOnPendingLocals();
       }
     } else if (choice == 'gallery_multi') {
-      final files = await picker.pickMultiImage(maxWidth: 1200, imageQuality: 95);
+      final files = await picker.pickMultiImage(maxWidth: 1200, imageQuality: 82);
       if (files.isNotEmpty && mounted) {
         setState(() {
           for (final f in files) {
@@ -415,6 +436,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             } else if (error.contains('FileNotFoundError') || error.contains('serviceAccountKey')) {
               errorMessage =
                   'Configuration Firebase manquante. Vérifie le fichier serviceAccountKey.json dans backend/';
+            } else if (error.contains('403') ||
+                error.contains('Forbidden') ||
+                error.contains('401')) {
+              errorMessage =
+                  'Session ou accès refusé par le serveur. Ferme puis rouvre l’app, ou déconnecte-toi et reconnecte-toi, puis réessaie.';
             } else {
               errorMessage = error
                   .replaceAll('Exception: ', '')
@@ -639,6 +665,14 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<UserModel?>>(currentUserProvider, (prev, next) {
+      if (!mounted || widget.garment != null) return;
+      final user = next.valueOrNull;
+      if (user != null && !user.isPremium && _removeBackground) {
+        setState(() => _removeBackground = false);
+      }
+    });
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,

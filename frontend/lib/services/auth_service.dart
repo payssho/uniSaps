@@ -31,8 +31,9 @@ class AuthService {
     await _auth.sendPasswordResetEmail(email: email.trim());
   }
 
-  Future<String?> getIdToken() async {
-    return _auth.currentUser?.getIdToken();
+  /// [forceRefresh] force Firebase à émettre un jeton à jour (utile après un 401/403).
+  Future<String?> getIdToken({bool forceRefresh = false}) async {
+    return _auth.currentUser?.getIdToken(forceRefresh);
   }
 
   /// Ré-authentifie puis supprime le compte Firebase Auth.
