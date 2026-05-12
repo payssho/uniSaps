@@ -1,4 +1,5 @@
 """Firebase Storage helpers for image upload / delete."""
+import time
 import uuid
 from io import BytesIO
 from PIL import Image, ImageOps
@@ -58,18 +59,37 @@ def upload_bytes(
 
     filename = f"{folder}/{user_id}/{uuid.uuid4().hex}.{extension}"
     bucket = get_storage_bucket()
-    blob = bucket.blob(filename)
-    # Cache 1 an côté navigateur = moins de bande passante (coûts Firebase)
-    blob.cache_control = "public, max-age=31536000"
-    blob.upload_from_string(
-        processed,
-        content_type=f"image/{extension}",
-    )
-    # Ne pas appeler blob.make_public() : avec « Accès uniforme » au bucket (recommandé
-    # par Firebase/GCP), les ACL objet sont interdites → 403 Forbidden sur make_public.
-    # Pour que les URLs public_url soient lisibles sans auth, donne au bucket IAM
-    # lecture anonyme (ex. rôle Lecteur d’objets pour allUsers) ou utilise des règles Storage.
-    return blob.public_url
+    # GCS attend en général image/jpeg, pas image/jpg (MIME non standard).
+    mime = "image/jpeg" if extension in ("jpg", "jpeg") else f"image/{extension}"
+
+    for attempt in range(3):
+        blob = bucket.blob(filename)
+        blob.cache_control = "public, max-age=31536000"
+        try:
+            blob.upload_from_string(processed, content_type=mime)
+            return blob.public_url
+        except Exception as e:
+            err = str(e).lower()
+            transient = any(
+                token in err
+                for token in (
+                    "403",
+                    "forbidden",
+                    "429",
+                    "503",
+                    "502",
+                    "500",
+                    "timeout",
+                    "unavailable",
+                    "deadline exceeded",
+                    "connection reset",
+                    "broken pipe",
+                )
+            )
+            if attempt < 2 and transient:
+                time.sleep(0.65 * (attempt + 1))
+                continue
+            raise
 
 
 def delete_image(url: str):

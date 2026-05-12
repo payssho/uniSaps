@@ -99,6 +99,29 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     super.dispose();
   }
 
+  /// Réponses « vides » du backend (Gemini indisponible, quota, parse raté) — déclenche un second essai.
+  bool _isVacuousGarmentAnalysis(Map<String, dynamic> r) {
+    if (r['is_garment'] == false) return false;
+    const allowedCats = {'top', 'bottom', 'shoes', 'outerwear', 'headwear', 'accessory'};
+    final cat = ((r['category'] as String?) ?? '').trim().toLowerCase();
+    final name = ((r['name'] as String?) ?? '').trim();
+    final colors = (r['colors'] as List?) ?? const [];
+    return name.isEmpty && !allowedCats.contains(cat) && colors.isEmpty;
+  }
+
+  /// Attend le document Firestore pour que [isPremiumProvider] reflète le tier réel (évite sortie IA en ~0 s).
+  Future<void> _waitForFirestoreUser() async {
+    final expectedUid = ref.read(authServiceProvider).uid;
+    if (expectedUid.isEmpty) return;
+    const step = Duration(milliseconds: 80);
+    final deadline = DateTime.now().add(const Duration(seconds: 8));
+    while (mounted && DateTime.now().isBefore(deadline)) {
+      final u = ref.read(currentUserProvider).valueOrNull;
+      if (u != null && u.uid == expectedUid) return;
+      await Future.delayed(step);
+    }
+  }
+
   List<String> _mergeColorLists(List<String> a, List<String> b) {
     final seen = a.map((e) => e.toLowerCase()).toSet();
     final out = List<String>.from(a);
@@ -150,9 +173,12 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   }
 
   Future<void> _runAiOnPendingLocals() async {
-    if (!ref.read(isPremiumProvider)) return;
     if (!_useAiAnalysis) return;
     if (_garmentAiAnalysisConsumed) return;
+
+    await _waitForFirestoreUser();
+    if (!mounted) return;
+    if (!ref.read(isPremiumProvider)) return;
 
     _GarmentImageSlot? target;
     for (final slot in _slots) {
@@ -173,16 +199,25 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       Map<String, dynamic> result;
       try {
         result = await api.analyzeGarmentImage(bytes, target.file!.name);
+        if (_isVacuousGarmentAnalysis(result) && mounted) {
+          await Future.delayed(const Duration(milliseconds: 600));
+          if (!mounted) return;
+          result = await api.analyzeGarmentImage(bytes, target.file!.name);
+        }
       } catch (_) {
         await Future.delayed(const Duration(milliseconds: 700));
         if (!mounted) return;
         result = await api.analyzeGarmentImage(bytes, target.file!.name);
+        if (_isVacuousGarmentAnalysis(result) && mounted) {
+          await Future.delayed(const Duration(milliseconds: 600));
+          if (!mounted) return;
+          result = await api.analyzeGarmentImage(bytes, target.file!.name);
+        }
       }
       if (!mounted) return;
 
-      _garmentAiAnalysisConsumed = true;
-
       if (result['is_garment'] == false) {
+        _garmentAiAnalysisConsumed = true;
         setState(() {
           _slots.removeWhere((s) => s.file?.path == path);
         });
@@ -190,6 +225,21 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         return;
       }
 
+      if (_isVacuousGarmentAnalysis(result) && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'L’IA n’a pas pu décrire cette photo (service saturé ou image peu lisible). '
+              'Tu peux remplir les champs manuellement ou réessayer avec une autre photo.',
+            ),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+
+      _garmentAiAnalysisConsumed = true;
       _analyzedPaths.add(path);
       _mergeAiIntoForm(result);
     } catch (_) {

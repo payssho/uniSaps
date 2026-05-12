@@ -114,7 +114,7 @@ class ApiService {
         ),
       );
       final streamedResponse = await request.send().timeout(
-        const Duration(seconds: 60),
+        const Duration(seconds: 90),
         onTimeout: () {
           throw Exception(
             'Timeout: Le traitement de l\'image prend trop de temps. Vérifie que le backend est démarré et que rembg fonctionne correctement.',
@@ -122,40 +122,66 @@ class ApiService {
         },
       );
       return http.Response.fromStream(streamedResponse).timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: 90),
         onTimeout: () {
           throw Exception('Timeout: Impossible de recevoir la réponse du serveur.');
         },
       );
     }
 
+    bool _shouldRetryUpload(int code) =>
+        code == 401 ||
+        code == 403 ||
+        code == 408 ||
+        code == 429 ||
+        code == 500 ||
+        code == 502 ||
+        code == 503;
+
     try {
-      var response = await postUpload(refreshToken: false);
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        response = await postUpload(refreshToken: true);
-      }
-
-      if (response.statusCode != 200) {
-        final errorBody = response.body;
-        String errorMessage = 'Erreur upload: ${response.statusCode}';
+      http.Response? response;
+      for (var attempt = 0; attempt < 3; attempt++) {
+        final refreshFirst = attempt > 0;
         try {
-          final errorData = jsonDecode(errorBody);
-          if (errorData is Map && errorData.containsKey('detail')) {
-            errorMessage = errorData['detail'] as String;
-          } else {
-            errorMessage = errorBody;
+          response = await postUpload(refreshToken: refreshFirst);
+        } catch (e) {
+          if (attempt < 2) {
+            await Future.delayed(Duration(milliseconds: 350 * (attempt + 1)));
+            continue;
           }
-        } catch (_) {
-          errorMessage = errorBody.isNotEmpty ? errorBody : errorMessage;
+          rethrow;
         }
-        throw Exception(errorMessage);
+        if (response.statusCode == 401 || response.statusCode == 403) {
+          response = await postUpload(refreshToken: true);
+        }
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data['url'] == null) {
+            throw Exception('Réponse invalide du serveur: URL manquante');
+          }
+          return data['url'] as String;
+        }
+        if (_shouldRetryUpload(response.statusCode) && attempt < 2) {
+          await Future.delayed(Duration(milliseconds: 450 * (attempt + 1)));
+          continue;
+        }
+        break;
       }
 
-      final data = jsonDecode(response.body);
-      if (data['url'] == null) {
-        throw Exception('Réponse invalide du serveur: URL manquante');
+      final failed = response!;
+      final errorBody = failed.body;
+      String errorMessage = 'Erreur upload: ${failed.statusCode}';
+      try {
+        final errorData = jsonDecode(errorBody);
+        if (errorData is Map && errorData.containsKey('detail')) {
+          errorMessage = errorData['detail'] as String;
+        } else {
+          errorMessage = errorBody;
+        }
+      } catch (_) {
+        errorMessage = errorBody.isNotEmpty ? errorBody : errorMessage;
       }
-      return data['url'] as String;
+      throw Exception(errorMessage);
     } on http.ClientException {
       throw Exception(
         'Erreur de connexion: Impossible de contacter le serveur. Vérifie que le backend est démarré sur $baseUrl',
