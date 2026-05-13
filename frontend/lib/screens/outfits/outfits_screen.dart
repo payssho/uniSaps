@@ -22,6 +22,7 @@ import '../../services/weather_service.dart';
 import '../../widgets/premium_upgrade_dialog.dart';
 import '../../widgets/storage_aware_cached_image.dart';
 import '../creations/creation_screen.dart';
+import '../weather/weather_detail_sheet.dart';
 
 /// Suggestions biblio IA (persistées pendant la session pour l’état vide + la feuille).
 final biblioAiSuggestionsProvider =
@@ -632,52 +633,60 @@ class _CompactWeatherPill extends StatelessWidget {
     final avgC = (w.tempMin + w.tempMax) / 2.0;
     final colors = _browseHeroGradient(tags, avgC);
 
-    return Container(
-      height: 36,
-      constraints: const BoxConstraints(minWidth: 88),
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: colors,
+    return Semantics(
+      label: 'Météo du jour, $avg°',
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => WeatherDetailSheet.show(context),
+          child: Container(
+            height: 36,
+            constraints: const BoxConstraints(minWidth: 88),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: colors,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.first.withOpacity(0.28),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                  spreadRadius: -2,
+                ),
+              ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(visual.icon, color: AppColors.white, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  '$avg°',
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.expand_more_rounded,
+                  size: 16,
+                  color: AppColors.white.withOpacity(0.92),
+                ),
+              ],
+            ),
+          ),
         ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: colors.first.withOpacity(0.28),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-            spreadRadius: -2,
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(visual.icon, color: AppColors.white, size: 18),
-          const SizedBox(width: 8),
-          Text(
-            '$avg°',
-            style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              height: 1,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Tooltip(
-            message: fetch.usedFallbackLocation ? 'Paris (approx.)' : 'Ta position',
-            child: Icon(
-              Icons.place_outlined,
-              size: 12,
-              color: AppColors.white.withOpacity(0.82),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1006,12 +1015,12 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius:
-              BorderRadius.vertical(top: Radius.circular(22)),
+              const BorderRadius.vertical(top: Radius.circular(22)),
           boxShadow: [
             BoxShadow(
               color: AppColors.graphite.withValues(alpha: 0.15),
               blurRadius: 20,
-              offset: Offset(0, -6),
+              offset: const Offset(0, -6),
             ),
           ],
         ),
@@ -1484,9 +1493,9 @@ class _OutfitPhotoCard extends StatelessWidget {
                     color: AppColors.success.withOpacity(0.92),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       Icon(Icons.auto_awesome, size: 13, color: AppColors.white),
                       SizedBox(width: 4),
                       Text(
@@ -1518,7 +1527,7 @@ class _OutfitPhotoCard extends StatelessWidget {
                   children: [
                     Icon(Icons.touch_app_rounded,
                         size: 14, color: AppColors.white.withOpacity(0.7)),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text('Détails',
                         style: TextStyle(
                             color: AppColors.white.withOpacity(0.7),
@@ -1647,9 +1656,9 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
                       color: AppColors.success.withOpacity(0.95),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
+                      children: [
                         Icon(Icons.wb_sunny_outlined,
                             size: 12, color: AppColors.white),
                         SizedBox(width: 3),
@@ -1896,7 +1905,7 @@ class _DailyOutfitView extends StatelessWidget {
           child: Center(
             child: TextButton.icon(
               onPressed: onAddFit,
-              icon: Icon(Icons.add, size: 18),
+              icon: const Icon(Icons.add, size: 18),
               label: const Text(
                 'Ajouter un fit à la bibliothèque',
                 style: TextStyle(fontWeight: FontWeight.w600),
