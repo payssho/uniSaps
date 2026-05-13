@@ -1,9 +1,15 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/categories.dart';
+import '../services/firebase_storage_display_url.dart';
 import 'storage_aware_cached_image.dart';
 
 /// Affiche une ou plusieurs photos de vêtement avec défilement et indicateurs.
+///
+/// Précharge toutes les images du vêtement au premier build pour que swiper
+/// soit instantané : `CachedNetworkImage` met les bytes en cache disque +
+/// mémoire et `allowImplicitScrolling` garde les pages voisines vivantes.
 class GarmentPhotoCarousel extends StatefulWidget {
   final List<String> imageUrls;
   final String category;
@@ -23,6 +29,7 @@ class GarmentPhotoCarousel extends StatefulWidget {
 class _GarmentPhotoCarouselState extends State<GarmentPhotoCarousel> {
   late PageController _controller;
   int _page = 0;
+  bool _prefetched = false;
 
   @override
   void initState() {
@@ -33,10 +40,39 @@ class _GarmentPhotoCarouselState extends State<GarmentPhotoCarousel> {
   @override
   void didUpdateWidget(covariant GarmentPhotoCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.imageUrls.length != widget.imageUrls.length && _page >= widget.imageUrls.length) {
+    if (oldWidget.imageUrls.length != widget.imageUrls.length &&
+        _page >= widget.imageUrls.length) {
       _page = (widget.imageUrls.length - 1).clamp(0, 1 << 30);
       if (_controller.hasClients) {
         _controller.jumpToPage(_page);
+      }
+    }
+    if (oldWidget.imageUrls.join('|') != widget.imageUrls.join('|')) {
+      _prefetched = false;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_prefetched) {
+      _prefetched = true;
+      _prefetchAll();
+    }
+  }
+
+  Future<void> _prefetchAll() async {
+    for (final raw in _urls) {
+      try {
+        final url = await resolveFirebaseStorageDisplayUrl(raw);
+        if (!mounted) return;
+        await precacheImage(
+          CachedNetworkImageProvider(url),
+          context,
+          onError: (_, __) {},
+        );
+      } catch (_) {
+        // On ignore : l'erreur sera affichée par CachedNetworkImage lui-même.
       }
     }
   }
@@ -72,6 +108,7 @@ class _GarmentPhotoCarouselState extends State<GarmentPhotoCarousel> {
           PageView.builder(
             controller: _controller,
             itemCount: _urls.length,
+            allowImplicitScrolling: true,
             onPageChanged: (i) => setState(() => _page = i),
             itemBuilder: (context, i) {
               return StorageAwareCachedImage(

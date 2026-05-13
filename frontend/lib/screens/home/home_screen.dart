@@ -17,6 +17,15 @@ import '../profile/profile_screen.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 0);
 
+/// Profil accessible seulement avec au moins un vêtement et un outfit (aligné sur la barre d’onglets).
+final mainNavProfileTabUnlockedProvider = Provider<bool>((ref) {
+  final uid = ref.watch(authServiceProvider).uid;
+  if (uid.isEmpty) return false;
+  final hasG = ref.watch(garmentsProvider(uid)).valueOrNull?.isNotEmpty ?? false;
+  final hasO = ref.watch(outfitsProvider(uid)).valueOrNull?.isNotEmpty ?? false;
+  return hasG && hasO;
+});
+
 final tutorialStepProvider = StateProvider<int?>((ref) => null);
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -32,12 +41,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _tutorialStarted = false;
   int _currentTab = 0;
 
-  static const _lockMessages = [
-    '',
-    'Ajoute un vêtement à ton dressing pour débloquer cette section',
-    'Crée ton premier outfit pour débloquer cette section',
-    '',
-  ];
+  /// Message affiché quand l’utilisateur tente d’ouvrir un onglet verrouillé.
+  String _lockMessage(int index, bool hasGarments, bool hasOutfits) {
+    switch (index) {
+      case 1:
+        return 'Ajoute un vêtement à ton dressing pour débloquer cette section';
+      case 2:
+        return 'Crée ton premier outfit pour débloquer cette section';
+      case 3:
+        if (!hasGarments) {
+          return 'Ajoute un vêtement à ton dressing pour débloquer le profil';
+        }
+        return 'Crée ton premier outfit pour débloquer le profil';
+      default:
+        return '';
+    }
+  }
 
   @override
   void initState() {
@@ -86,9 +105,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final hasGarments = garmentsAsync?.valueOrNull?.isNotEmpty ?? false;
     final hasOutfits = outfitsAsync?.valueOrNull?.isNotEmpty ?? false;
 
+    ref.listen<bool>(mainNavProfileTabUnlockedProvider, (prev, next) {
+      if (next == true) return;
+      if (_currentTab != 3) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_pageController.hasClients) return;
+        _pageController.jumpToPage(0);
+        setState(() => _currentTab = 0);
+        ref.read(selectedTabProvider.notifier).state = 0;
+      });
+    });
+
     // Listen to selectedTabProvider for programmatic tab changes (e.g. from InspirationScreen)
     ref.listen(selectedTabProvider, (prev, next) {
-      if (next != _currentTab && next >= 0 && next < 4) {
+      if (next == _currentTab || next < 0 || next >= 4) return;
+      final unlocked = [
+        true,
+        hasGarments,
+        hasOutfits,
+        hasGarments && hasOutfits,
+      ];
+      if (unlocked[next]) {
         _goToTab(next);
       }
     });
@@ -115,8 +152,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final requestCount = ref.watch(receivedRequestsCountProvider);
 
-    // Tabs: 0=Dressing, 1=Outfits, 2=Inspo, 3=Profil
-    final tabUnlocked = [true, hasGarments, hasOutfits, true];
+    // Tabs: 0=Dressing, 1=Outfits, 2=Inspo, 3=Profil (profil = dressing + au moins 1 outfit)
+    final tabUnlocked = [
+      true,
+      hasGarments,
+      hasOutfits,
+      hasGarments && hasOutfits,
+    ];
 
     void onTabTap(int index) {
       if (tabUnlocked[index]) {
@@ -131,8 +173,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   const Icon(Icons.lock_outline, color: AppColors.white, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(_lockMessages[index],
-                        style: const TextStyle(fontSize: 13)),
+                    child: Text(
+                      _lockMessage(index, hasGarments, hasOutfits),
+                      style: const TextStyle(fontSize: 13),
+                    ),
                   ),
                 ],
               ),
@@ -181,7 +225,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  _lockMessages[index],
+                                  _lockMessage(
+                                    index,
+                                    hasGarments,
+                                    hasOutfits,
+                                  ),
                                   style: const TextStyle(fontSize: 13),
                                 ),
                               ),
@@ -200,12 +248,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ref.read(selectedTabProvider.notifier).state = index;
                   }
                 },
-                children: [
-                  _KeepAlive(child: const DressingScreen()),
-                  _KeepAlive(child: const OutfitsScreen()),
-                  _KeepAlive(child: const InspirationScreen()),
+                children: const [
+                  _KeepAlive(child: DressingScreen()),
+                  _KeepAlive(child: OutfitsScreen()),
+                  _KeepAlive(child: InspirationScreen()),
                   _KeepAlive(
-                      child: const ProfileScreen(embeddedInMainNav: true)),
+                      child: ProfileScreen(embeddedInMainNav: true)),
                 ],
               ),
               if (user != null)

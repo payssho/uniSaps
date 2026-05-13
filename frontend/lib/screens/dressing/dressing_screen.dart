@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -7,6 +8,7 @@ import '../../core/constants/categories.dart';
 import '../../models/garment_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
+import '../../services/firebase_storage_display_url.dart';
 import '../../widgets/garment_card.dart';
 import '../../widgets/category_chip.dart';
 import '../../widgets/garment_detail_sheet.dart';
@@ -21,11 +23,40 @@ class DressingScreen extends ConsumerStatefulWidget {
 
 class _DressingScreenState extends ConsumerState<DressingScreen> {
   String _selectedCategory = '';
+  final Set<String> _prefetchedUrls = <String>{};
+
+  void _prefetchGarmentImages(List<GarmentModel> garments) {
+    if (!mounted) return;
+    for (final g in garments) {
+      final urls = g.imageUrls.isNotEmpty
+          ? g.imageUrls
+          : (g.imageUrl.isNotEmpty ? [g.imageUrl] : const <String>[]);
+      for (final raw in urls) {
+        final trimmed = raw.trim();
+        if (trimmed.isEmpty) continue;
+        if (!_prefetchedUrls.add(trimmed)) continue;
+        // ignore: discarded_futures
+        () async {
+          try {
+            final resolved = await resolveFirebaseStorageDisplayUrl(trimmed);
+            if (!mounted) return;
+            await precacheImage(
+              CachedNetworkImageProvider(resolved),
+              context,
+              onError: (_, __) {},
+            );
+          } catch (_) {}
+        }();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final uid = ref.watch(authServiceProvider).uid;
     final garmentsAsync = ref.watch(garmentsProvider(uid));
+
+    garmentsAsync.whenData(_prefetchGarmentImages);
 
     return Scaffold(
       body: SafeArea(
