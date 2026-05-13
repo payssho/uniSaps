@@ -142,13 +142,13 @@ class _WeatherDetailContent extends StatelessWidget {
           onRefresh: onRefresh,
         ),
         const SizedBox(height: 16),
-        _SunArcCard(weather: weather),
-        const SizedBox(height: 14),
         _HourlyTimelineCard(weather: weather),
         const SizedBox(height: 14),
         _StatsCard(weather: weather),
         const SizedBox(height: 14),
         _RainSummaryCard(weather: weather),
+        const SizedBox(height: 14),
+        _SunArcCard(weather: weather),
         const SizedBox(height: 24),
         _FooterMeta(weather: weather, fetch: fetch),
         const SizedBox(height: 28),
@@ -529,13 +529,46 @@ class _TimeLabel extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Timeline 24 h
 // ---------------------------------------------------------------------------
-class _HourlyTimelineCard extends StatelessWidget {
+class _HourlyTimelineCard extends StatefulWidget {
   final DailyWeatherSummary weather;
   const _HourlyTimelineCard({required this.weather});
 
   @override
+  State<_HourlyTimelineCard> createState() => _HourlyTimelineCardState();
+}
+
+class _HourlyTimelineCardState extends State<_HourlyTimelineCard> {
+  static const double _kPillWidth = 60;
+  static const double _kPillSpacing = 6;
+  static const double _kListHPad = 2;
+
+  final ScrollController _controller = ScrollController();
+  bool _centered = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _centerOnNow(int nowIndex, int total) {
+    if (_centered || !_controller.hasClients) return;
+    _centered = true;
+    final viewport = _controller.position.viewportDimension;
+    final pillStride = _kPillWidth + _kPillSpacing;
+    final targetCenter = _kListHPad + pillStride * nowIndex + _kPillWidth / 2;
+    final offset = (targetCenter - viewport / 2)
+        .clamp(0.0, _controller.position.maxScrollExtent);
+    _controller.animateTo(
+      offset,
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final hours = _todayHours(weather);
+    final hours = _todayHours(widget.weather);
     if (hours.isEmpty) {
       return _SectionCard(
         child: Column(
@@ -554,10 +587,22 @@ class _HourlyTimelineCard extends StatelessWidget {
     }
 
     final now = DateTime.now();
-    final tempMin =
-        hours.map((e) => e.temperatureC).reduce(math.min);
-    final tempMax =
-        hours.map((e) => e.temperatureC).reduce(math.max);
+    final tempMin = hours.map((e) => e.temperatureC).reduce(math.min);
+    final tempMax = hours.map((e) => e.temperatureC).reduce(math.max);
+
+    int nowIndex = hours.indexWhere((p) =>
+        p.time.hour == now.hour &&
+        p.time.day == now.day &&
+        p.time.month == now.month);
+    if (nowIndex < 0) {
+      nowIndex = hours.indexWhere((p) => !p.time.isBefore(now));
+      if (nowIndex < 0) nowIndex = hours.length - 1;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _centerOnNow(nowIndex, hours.length);
+    });
 
     return _SectionCard(
       child: Column(
@@ -571,23 +616,26 @@ class _HourlyTimelineCard extends StatelessWidget {
           SizedBox(
             height: 168,
             child: ListView.separated(
+              controller: _controller,
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 2),
+              padding: const EdgeInsets.symmetric(horizontal: _kListHPad),
               itemBuilder: (_, i) {
                 final p = hours[i];
-                final isNow = p.time.hour == now.hour &&
-                    p.time.day == now.day &&
-                    p.time.month == now.month;
+                final isNow = i == nowIndex;
                 final t = (tempMax == tempMin)
                     ? 0.5
                     : (p.temperatureC - tempMin) / (tempMax - tempMin);
-                return _HourPillar(
-                  point: p,
-                  normalized: t.clamp(0.0, 1.0),
-                  isNow: isNow,
+                return SizedBox(
+                  width: _kPillWidth,
+                  child: _HourPillar(
+                    point: p,
+                    normalized: t.clamp(0.0, 1.0),
+                    isNow: isNow,
+                  ),
                 );
               },
-              separatorBuilder: (_, __) => const SizedBox(width: 6),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(width: _kPillSpacing),
               itemCount: hours.length,
             ),
           ),
@@ -616,7 +664,6 @@ class _HourPillar extends StatelessWidget {
     final hour = point.time.hour.toString().padLeft(2, '0');
 
     return Container(
-      width: 60,
       decoration: BoxDecoration(
         color: isNow ? AppColors.accent.withOpacity(0.10) : Colors.transparent,
         borderRadius: BorderRadius.circular(14),

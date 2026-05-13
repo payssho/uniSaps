@@ -17,15 +17,6 @@ import '../profile/profile_screen.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 0);
 
-/// Profil accessible seulement avec au moins un vêtement et un outfit (aligné sur la barre d’onglets).
-final mainNavProfileTabUnlockedProvider = Provider<bool>((ref) {
-  final uid = ref.watch(authServiceProvider).uid;
-  if (uid.isEmpty) return false;
-  final hasG = ref.watch(garmentsProvider(uid)).valueOrNull?.isNotEmpty ?? false;
-  final hasO = ref.watch(outfitsProvider(uid)).valueOrNull?.isNotEmpty ?? false;
-  return hasG && hasO;
-});
-
 final tutorialStepProvider = StateProvider<int?>((ref) => null);
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -48,11 +39,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return 'Ajoute un vêtement à ton dressing pour débloquer cette section';
       case 2:
         return 'Crée ton premier outfit pour débloquer cette section';
-      case 3:
-        if (!hasGarments) {
-          return 'Ajoute un vêtement à ton dressing pour débloquer le profil';
-        }
-        return 'Crée ton premier outfit pour débloquer le profil';
       default:
         return '';
     }
@@ -82,11 +68,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   void _goToTab(int index) {
     if (index == _currentTab) return;
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
-    );
+    // Si l'onglet cible n'est pas adjacent, on saute directement pour éviter
+    // que les pages intermédiaires (ex. Inspo entre Outfits et Profil) flashent.
+    final distance = (index - _currentTab).abs();
+    if (distance > 1) {
+      _pageController.jumpToPage(index);
+    } else {
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+      );
+    }
   }
 
   @override
@@ -105,26 +98,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final hasGarments = garmentsAsync?.valueOrNull?.isNotEmpty ?? false;
     final hasOutfits = outfitsAsync?.valueOrNull?.isNotEmpty ?? false;
 
-    ref.listen<bool>(mainNavProfileTabUnlockedProvider, (prev, next) {
-      if (next == true) return;
-      if (_currentTab != 3) return;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_pageController.hasClients) return;
-        _pageController.jumpToPage(0);
-        setState(() => _currentTab = 0);
-        ref.read(selectedTabProvider.notifier).state = 0;
-      });
-    });
-
     // Listen to selectedTabProvider for programmatic tab changes (e.g. from InspirationScreen)
     ref.listen(selectedTabProvider, (prev, next) {
       if (next == _currentTab || next < 0 || next >= 4) return;
-      final unlocked = [
-        true,
-        hasGarments,
-        hasOutfits,
-        hasGarments && hasOutfits,
-      ];
+      final unlocked = [true, hasGarments, hasOutfits, true];
       if (unlocked[next]) {
         _goToTab(next);
       }
@@ -152,13 +129,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     final requestCount = ref.watch(receivedRequestsCountProvider);
 
-    // Tabs: 0=Dressing, 1=Outfits, 2=Inspo, 3=Profil (profil = dressing + au moins 1 outfit)
-    final tabUnlocked = [
-      true,
-      hasGarments,
-      hasOutfits,
-      hasGarments && hasOutfits,
-    ];
+    // Tabs: 0=Dressing, 1=Outfits, 2=Inspo, 3=Profil (toujours déverrouillé)
+    final tabUnlocked = [true, hasGarments, hasOutfits, true];
 
     void onTabTap(int index) {
       if (tabUnlocked[index]) {
