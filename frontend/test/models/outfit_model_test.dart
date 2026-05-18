@@ -121,6 +121,26 @@ void main() {
       expect(o.garmentIds, isEmpty);
     });
 
+    test('garmentIds éclate les IDs multiples séparés par des virgules', () {
+      final o = OutfitModel.fromMap({
+        'garments': {
+          'top': ' a , b,c ',
+          'accessory': 'watch-1,watch-2',
+          'bottom': 'pant-1',
+        },
+      });
+      expect(
+        o.garmentIds,
+        containsAll(['a', 'b', 'c', 'watch-1', 'watch-2', 'pant-1']),
+      );
+      expect(o.garmentIds, hasLength(6));
+    });
+
+    test('parseGarmentSlotValue ignore les entrées vides', () {
+      expect(OutfitModel.parseGarmentSlotValue(''), isEmpty);
+      expect(OutfitModel.parseGarmentSlotValue('x,, y '), ['x', 'y']);
+    });
+
     // ── copyWith ─────────────────────────────────────────────────────────────
 
     test('copyWith ne modifie que les champs spécifiés', () {

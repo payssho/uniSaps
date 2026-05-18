@@ -7,6 +7,7 @@ import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
 import '../../core/constants/weather_catalog.dart';
 import '../../models/garment_model.dart';
+import '../../models/outfit_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/garment_provider.dart';
@@ -53,6 +54,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   final _nameController = TextEditingController();
   final Map<String, String> _selected = {};
   final Map<String, GarmentModel> _selectedGarments = {};
+  final List<GarmentModel> _torsoLayers = [];
+  final List<GarmentModel> _wristAccessories = [];
   bool _saving = false;
   String? _referencePhotoUrl;
   bool _uploadingPhoto = false;
@@ -65,6 +68,12 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
 
   bool _weatherDropdownOpen = false;
   bool _seasonDropdownOpen = false;
+
+  static bool _isMultiZone(String zoneKey) =>
+      zoneKey == 'torso' || zoneKey == 'wrist';
+
+  int get _pieceCount =>
+      _selected.length + _torsoLayers.length + _wristAccessories.length;
 
   @override
   void dispose() {
@@ -156,6 +165,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   }
 
   Future<void> _pickGarment(String zoneKey, String categoryKey) async {
+    if (_isMultiZone(zoneKey)) {
+      await _pickMultiGarment(zoneKey, categoryKey);
+    } else {
+      await _pickSingleGarment(zoneKey, categoryKey);
+    }
+  }
+
+  Future<void> _pickSingleGarment(String zoneKey, String categoryKey) async {
     final uid = ref.read(authServiceProvider).uid;
     final garments = await ref
         .read(firestoreServiceProvider)
@@ -312,6 +329,198 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
     }
   }
 
+  Future<void> _pickMultiGarment(String zoneKey, String categoryKey) async {
+    final uid = ref.read(authServiceProvider).uid;
+    final garments = await ref
+        .read(firestoreServiceProvider)
+        .getGarments(uid, category: categoryKey);
+    if (!mounted) return;
+
+    final existing = zoneKey == 'torso'
+        ? _torsoLayers.map((g) => g.id).toSet()
+        : _wristAccessories.map((g) => g.id).toSet();
+
+    final picked = await showModalBottomSheet<GarmentModel>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.6),
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 12),
+              decoration: BoxDecoration(
+                color: AppColors.textHint.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(categoryLabel(categoryKey),
+                  style: AppTextStyles.heading3),
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'Tu peux ajouter plusieurs pièces — l\'ordre suit celui de la liste (la première est la plus près du corps).',
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: AppColors.textHint.withOpacity(0.95),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: garments.isEmpty
+                  ? const Center(
+                      child: Text('Aucun vêtement dans cette catégorie',
+                          style: AppTextStyles.bodySecondary))
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 0.78,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: garments.length,
+                      itemBuilder: (_, i) {
+                        final g = garments[i];
+                        final isSelected = existing.contains(g.id);
+                        return GestureDetector(
+                          onTap: () => Navigator.pop(context, g),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.accent
+                                    : AppColors.divider,
+                                width: isSelected ? 2.5 : 1,
+                              ),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Stack(
+                              children: [
+                                Column(
+                                  children: [
+                                    Expanded(
+                                      child: g.imageUrl.isNotEmpty
+                                          ? StorageAwareCachedImage(
+                                              imageUrl: g.imageUrl,
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                              loadingWidget: Container(
+                                                color: AppColors.surfaceVariant,
+                                                child: const Center(
+                                                  child: SizedBox(
+                                                    width: 22,
+                                                    height: 22,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                            strokeWidth: 2),
+                                                  ),
+                                                ),
+                                              ),
+                                              errorWidget: (_, __) =>
+                                                  Container(
+                                                color:
+                                                    AppColors.surfaceVariant,
+                                                child: Icon(
+                                                  categoryIcon(categoryKey),
+                                                  color: AppColors.textHint,
+                                                ),
+                                              ),
+                                            )
+                                          : Container(
+                                              color:
+                                                  AppColors.surfaceVariant,
+                                              child: Icon(
+                                                  categoryIcon(categoryKey),
+                                                  color:
+                                                      AppColors.textHint),
+                                            ),
+                                    ),
+                                    Padding(
+                                      padding:
+                                          const EdgeInsets.all(5),
+                                      child: Text(g.name,
+                                          style: const TextStyle(
+                                              fontSize: 10),
+                                          maxLines: 1,
+                                          overflow:
+                                              TextOverflow.ellipsis),
+                                    ),
+                                  ],
+                                ),
+                                if (isSelected)
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: Container(
+                                      padding:
+                                          const EdgeInsets.all(2),
+                                      decoration:
+                                          const BoxDecoration(
+                                        color: AppColors.accent,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                          Icons.check,
+                                          size: 12,
+                                          color: AppColors.white),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (picked != null && mounted) {
+      if (existing.contains(picked.id)) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            SnackBar(
+              content: const Text('Cette pièce est déjà dans la liste.'),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        return;
+      }
+      setState(() {
+        if (zoneKey == 'torso') {
+          _torsoLayers.add(picked);
+        } else {
+          _wristAccessories.add(picked);
+        }
+      });
+    }
+  }
+
   Future<void> _save() async {
     if (_referencePhotoUrl == null || _referencePhotoUrl!.isEmpty) {
       ScaffoldMessenger.of(context)
@@ -348,7 +557,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         );
       return;
     }
-    if (_selected.isEmpty) {
+    if (_pieceCount == 0) {
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
         ..showSnackBar(
@@ -370,18 +579,13 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
     });
 
     final uid = ref.read(authServiceProvider).uid;
-    final garments = <String, String>{
-      'headwear': '',
-      'top': '',
-      'outerwear': '',
-      'bottom': '',
-      'shoes': '',
-      'accessory': '',
-    };
+    final garments = Map<String, String>.from(OutfitModel.defaultGarments);
     for (final e in _selected.entries) {
-      final cat = bodyZones[e.key] ?? e.key;
-      garments[cat] = e.value;
+      final cat = bodyZones[e.key];
+      if (cat != null) garments[cat] = e.value;
     }
+    garments['top'] = _torsoLayers.map((g) => g.id).join(',');
+    garments['accessory'] = _wristAccessories.map((g) => g.id).join(',');
 
     final id = await ref.read(outfitNotifierProvider.notifier).createOutfit(
           userId: uid,
@@ -441,6 +645,273 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         .join(', ');
   }
 
+  Widget _zoneTile({
+    required String zoneKey,
+    required String label,
+    required IconData zoneIcon,
+    required String catKey,
+  }) {
+    if (_isMultiZone(zoneKey)) {
+      final layers = zoneKey == 'torso' ? _torsoLayers : _wristAccessories;
+      final subtitle = zoneKey == 'torso'
+          ? 'Plusieurs couches : à gauche, la plus près du corps.'
+          : 'Ajoute autant d\'accessoires que tu veux.';
+      final title =
+          zoneKey == 'torso' ? 'Hauts (superposition)' : 'Accessoires';
+      final hasAny = layers.isNotEmpty;
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Material(
+          color: hasAny ? AppColors.surface : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: hasAny
+                    ? AppColors.accent.withOpacity(0.2)
+                    : Colors.transparent,
+                width: 1,
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child:
+                          Icon(zoneIcon, size: 20, color: AppColors.textHint),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 11,
+                              height: 1.3,
+                              color: AppColors.textHint.withOpacity(0.95),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Material(
+                      color: AppColors.accent.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => _pickGarment(zoneKey, catKey),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.add_rounded,
+                                  size: 18, color: AppColors.accent),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Ajouter',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.accent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (hasAny) ...[
+                  const SizedBox(height: 12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (final e in layers.asMap().entries)
+                          Padding(
+                            padding: EdgeInsets.only(
+                              right: e.key == layers.length - 1 ? 0 : 8,
+                            ),
+                            child: _CreationLayerChip(
+                              garment: e.value,
+                              categoryKey: catKey,
+                              onRemove: () => setState(() {
+                                if (zoneKey == 'torso') {
+                                  _torsoLayers.removeAt(e.key);
+                                } else {
+                                  _wristAccessories.removeAt(e.key);
+                                }
+                              }),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final garment = _selectedGarments[zoneKey];
+    final hasGarment = garment != null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Material(
+        color: hasGarment ? AppColors.surface : AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _pickGarment(zoneKey, catKey),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: hasGarment
+                    ? AppColors.accent.withOpacity(0.2)
+                    : Colors.transparent,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                if (hasGarment && garment.imageUrl.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: StorageAwareCachedImage(
+                        imageUrl: garment.imageUrl,
+                        fit: BoxFit.cover,
+                        width: 44,
+                        height: 44,
+                        loadingWidget: Container(
+                          color: AppColors.surfaceVariant,
+                          child: const Center(
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (_, __) => Container(
+                          color: AppColors.surfaceVariant,
+                          child: Icon(
+                            categoryIcon(catKey),
+                            size: 22,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: hasGarment
+                          ? AppColors.surfaceVariant
+                          : AppColors.surface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(zoneIcon,
+                        size: 20, color: AppColors.textHint),
+                  ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hasGarment ? garment.name : label,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: hasGarment
+                              ? FontWeight.w600
+                              : FontWeight.w500,
+                          color: hasGarment
+                              ? AppColors.textPrimary
+                              : AppColors.textHint,
+                        ),
+                      ),
+                      if (hasGarment && garment.brand.isNotEmpty)
+                        Text(
+                          garment.brand,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (hasGarment)
+                  GestureDetector(
+                    onTap: () => setState(() {
+                      _selected.remove(zoneKey);
+                      _selectedGarments.remove(zoneKey);
+                    }),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.08),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close_rounded,
+                          size: 14, color: AppColors.error),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.add_rounded,
+                        size: 14, color: AppColors.accent),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final zones = [
@@ -454,7 +925,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
 
     final hasPhoto =
         _referencePhotoUrl != null && _referencePhotoUrl!.isNotEmpty;
-    final selectedCount = _selected.length;
+    final pieceCount = _pieceCount;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -660,17 +1131,17 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: selectedCount > 0
+                      color: pieceCount > 0
                           ? AppColors.accent.withOpacity(0.1)
                           : AppColors.surfaceVariant,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '$selectedCount/6',
+                      '$pieceCount',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: selectedCount > 0
+                        color: pieceCount > 0
                             ? AppColors.accent
                             : AppColors.textHint,
                       ),
@@ -685,151 +1156,20 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
               final i = entry.key;
               final z = entry.value;
               final (zoneKey, label, icon, catKey) = z;
-              final garment = _selectedGarments[zoneKey];
-              final hasGarment = garment != null;
-
-              return Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: Material(
-                  color: hasGarment ? AppColors.surface : AppColors.surfaceVariant,
-                  borderRadius: BorderRadius.circular(16),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => _pickGarment(zoneKey, catKey),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: hasGarment
-                              ? AppColors.accent.withOpacity(0.2)
-                              : Colors.transparent,
-                          width: 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          if (hasGarment && garment.imageUrl.isNotEmpty)
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: SizedBox(
-                                width: 44,
-                                height: 44,
-                                child: StorageAwareCachedImage(
-                                  imageUrl: garment.imageUrl,
-                                  fit: BoxFit.cover,
-                                  width: 44,
-                                  height: 44,
-                                  loadingWidget: Container(
-                                    color: AppColors.surfaceVariant,
-                                    child: const Center(
-                                      child: SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2),
-                                      ),
-                                    ),
-                                  ),
-                                  errorWidget: (_, __) => Container(
-                                    color: AppColors.surfaceVariant,
-                                    child: Icon(
-                                      categoryIcon(catKey),
-                                      size: 22,
-                                      color: AppColors.textHint,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            )
-                          else
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: hasGarment
-                                    ? AppColors.surfaceVariant
-                                    : AppColors.surface,
-                                borderRadius:
-                                    BorderRadius.circular(10),
-                              ),
-                              child: Icon(icon,
-                                  size: 20,
-                                  color: AppColors.textHint),
-                            ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  hasGarment ? garment.name : label,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: hasGarment
-                                        ? FontWeight.w600
-                                        : FontWeight.w500,
-                                    color: hasGarment
-                                        ? AppColors.textPrimary
-                                        : AppColors.textHint,
-                                  ),
-                                ),
-                                if (hasGarment &&
-                                    garment.brand.isNotEmpty)
-                                  Text(garment.brand,
-                                      style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors
-                                              .textSecondary)),
-                              ],
-                            ),
-                          ),
-                          if (hasGarment)
-                            GestureDetector(
-                              onTap: () => setState(() {
-                                _selected.remove(zoneKey);
-                                _selectedGarments.remove(zoneKey);
-                              }),
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.error
-                                      .withOpacity(0.08),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.close_rounded,
-                                    size: 14,
-                                    color: AppColors.error),
-                              ),
-                            )
-                          else
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: AppColors.accent
-                                    .withOpacity(0.1),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.add_rounded,
-                                  size: 14,
-                                  color: AppColors.accent),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+              return _zoneTile(
+                zoneKey: zoneKey,
+                label: label,
+                zoneIcon: icon,
+                catKey: catKey,
               )
                   .animate()
                   .fadeIn(duration: 300.ms, delay: (50 * i).ms)
                   .slideX(
-                      begin: 0.04,
-                      end: 0,
-                      duration: 300.ms,
-                      delay: (50 * i).ms);
+                    begin: 0.04,
+                    end: 0,
+                    duration: 300.ms,
+                    delay: (50 * i).ms,
+                  );
             }),
 
             Padding(
@@ -887,6 +1227,106 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Pastille pièce dans les zones multi-sélection (création d'outfit).
+class _CreationLayerChip extends StatelessWidget {
+  final GarmentModel garment;
+  final String categoryKey;
+  final VoidCallback onRemove;
+
+  const _CreationLayerChip({
+    required this.garment,
+    required this.categoryKey,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surfaceVariant,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(6, 6, 0, 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.divider.withOpacity(0.8)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: garment.imageUrl.isNotEmpty
+                      ? StorageAwareCachedImage(
+                          imageUrl: garment.imageUrl,
+                          fit: BoxFit.cover,
+                          width: 36,
+                          height: 36,
+                          loadingWidget: Container(
+                            color: AppColors.surface,
+                            child: const Center(
+                              child: SizedBox(
+                                width: 14,
+                                height: 14,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          ),
+                          errorWidget: (_, __) => Container(
+                            color: AppColors.surface,
+                            child: Icon(
+                              categoryIcon(categoryKey),
+                              size: 18,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: AppColors.surface,
+                          child: Icon(
+                            categoryIcon(categoryKey),
+                            size: 18,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 108),
+                child: Text(
+                  garment.name,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints:
+                    const BoxConstraints(minWidth: 32, minHeight: 32),
+                icon: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: AppColors.error.withOpacity(0.85),
+                ),
+                onPressed: onRemove,
+              ),
+            ],
+          ),
+        ),
     );
   }
 }

@@ -78,8 +78,24 @@ class OutfitModel {
         'weather_tags': weatherTags,
       };
 
-  List<String> get garmentIds =>
-      garments.values.where((v) => v.isNotEmpty).toList();
+  /// Une entrée Firestore peut contenir plusieurs IDs séparés par des virgules
+  /// (ex. plusieurs hauts ou accessoires superposés).
+  static List<String> parseGarmentSlotValue(String raw) {
+    if (raw.isEmpty) return const [];
+    return raw
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  List<String> get garmentIds {
+    final ids = <String>[];
+    for (final v in garments.values) {
+      ids.addAll(parseGarmentSlotValue(v));
+    }
+    return ids;
+  }
 
   OutfitModel copyWith({
     String? id,

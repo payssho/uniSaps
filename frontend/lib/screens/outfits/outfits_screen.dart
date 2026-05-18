@@ -1729,8 +1729,8 @@ class _FallbackOutfitVisual extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final garmentImages = outfit.garments.values
-        .where((id) => id.isNotEmpty && garmentCache.containsKey(id))
+    final garmentImages = outfit.garmentIds
+        .where((id) => garmentCache.containsKey(id))
         .map((id) => garmentCache[id]!)
         .where((g) => g.imageUrl.isNotEmpty)
         .take(4)

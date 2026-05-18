@@ -420,8 +420,13 @@ def suggest_outfit(
         cutoff = (datetime.now() - timedelta(days=7)).isoformat()
         for o in existing_outfits:
             if o.get("last_worn", "") > cutoff:
-                gids = [v for v in o.get("garments", {}).values() if v]
-                recently_worn.update(gids)
+                for v in o.get("garments", {}).values():
+                    if not v:
+                        continue
+                    for part in str(v).split(","):
+                        pid = part.strip()
+                        if pid:
+                            recently_worn.add(pid)
 
     suggestion: dict[str, str] = {c: "" for c in ALL_CATS}
 
