@@ -1,4 +1,4 @@
-# uniSaps — client Flutter
+# uniSaps - client Flutter
 
 Application mobile **uniSaps** (gestion de garde-robe, outfit du jour, feed inspiration).
 
@@ -20,7 +20,7 @@ flutter analyze --no-fatal-infos --no-fatal-warnings
 flutter test
 ```
 
-Build release Android : voir [README racine — Build APK](../README.md#build-apk-release).
+Build release Android : voir [README racine - Build APK](../README.md#build-apk-release).
 
 ## Structure `lib/`
 
@@ -38,7 +38,7 @@ Point d’entrée : `main.dart` → `app.dart` (`MaterialApp.router` + `Provider
 ## Navigation
 
 - Routes : `lib/core/routes/app_router.dart` (`/login`, `/signup`, `/onboarding`, `/home`)
-- Shell principal : `HomeScreen` — 4 onglets (Dressing, Outfits, Inspo, Profil)
+- Shell principal : `HomeScreen` - 4 onglets (Dressing, Outfits, Inspo, Profil)
 
 ## Firebase
 
@@ -78,8 +78,8 @@ CI : workflow `Tests Flutter` à la racine du dépôt (`.github/workflows/flutte
 
 ## Assets
 
-- `assets/data/brand.json` — liste de marques
-- `assets/images/unisaps_logo.png` — logo
+- `assets/data/brand.json` - liste de marques
+- `assets/images/unisaps_logo.png` - logo
 
 ## Version
 

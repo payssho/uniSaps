@@ -168,10 +168,10 @@ flutter test
 
 Structure des tests :
 
-- `test/models/` — sérialisation des modèles
-- `test/providers/` — notifiers Riverpod (fakes Firestore / Storage / API)
-- `test/services/` — services métier (marques, couleurs)
-- `test/helpers/fakes.dart` — doubles de test partagés
+- `test/models/` - sérialisation des modèles
+- `test/providers/` - notifiers Riverpod (fakes Firestore / Storage / API)
+- `test/services/` - services métier (marques, couleurs)
+- `test/helpers/fakes.dart` - doubles de test partagés
 
 ## Build APK (release)
 
@@ -258,4 +258,4 @@ Tous les endpoints (sauf `/health`) exigent `Authorization: Bearer <Firebase ID 
 
 ## Branches en cours
 
-- **`feat--android-home-widgets`** : widgets d’écran d’accueil Android (outfit du jour, choix rapide, inspi) — non mergé sur `main` à ce jour.
+- **`feat--android-home-widgets`** : widgets d’écran d’accueil Android (outfit du jour, choix rapide, inspi) - non mergé sur `main` à ce jour.
