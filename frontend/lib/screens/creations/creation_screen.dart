@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
@@ -11,6 +10,7 @@ import '../../models/garment_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/garment_provider.dart';
+import '../../widgets/storage_aware_cached_image.dart';
 
 IconData _creationWeatherIcon(String id) {
   switch (id) {
@@ -227,10 +227,31 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                   children: [
                                     Expanded(
                                       child: g.imageUrl.isNotEmpty
-                                          ? CachedNetworkImage(
+                                          ? StorageAwareCachedImage(
                                               imageUrl: g.imageUrl,
                                               fit: BoxFit.cover,
                                               width: double.infinity,
+                                              loadingWidget: Container(
+                                                color: AppColors.surfaceVariant,
+                                                child: const Center(
+                                                  child: SizedBox(
+                                                    width: 22,
+                                                    height: 22,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                            strokeWidth: 2),
+                                                  ),
+                                                ),
+                                              ),
+                                              errorWidget: (_, __) =>
+                                                  Container(
+                                                color:
+                                                    AppColors.surfaceVariant,
+                                                child: Icon(
+                                                  categoryIcon(categoryKey),
+                                                  color: AppColors.textHint,
+                                                ),
+                                              ),
                                             )
                                           : Container(
                                               color:
@@ -515,14 +536,19 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                         ? Stack(
                             fit: StackFit.expand,
                             children: [
-                              CachedNetworkImage(
+                              StorageAwareCachedImage(
                                 imageUrl: _referencePhotoUrl!,
                                 fit: BoxFit.cover,
-                                placeholder: (_, __) => Container(
+                                loadingWidget: Container(
                                   color: AppColors.surfaceVariant,
                                   child: const Center(
                                       child: CircularProgressIndicator(
                                           strokeWidth: 2)),
+                                ),
+                                errorWidget: (_, __) => Container(
+                                  color: AppColors.surfaceVariant,
+                                  child: Icon(Icons.broken_image_outlined,
+                                      color: AppColors.textHint.withOpacity(0.6)),
                                 ),
                               ),
                               Positioned(
@@ -688,11 +714,34 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                           if (hasGarment && garment.imageUrl.isNotEmpty)
                             ClipRRect(
                               borderRadius: BorderRadius.circular(10),
-                              child: CachedNetworkImage(
-                                imageUrl: garment.imageUrl,
+                              child: SizedBox(
                                 width: 44,
                                 height: 44,
-                                fit: BoxFit.cover,
+                                child: StorageAwareCachedImage(
+                                  imageUrl: garment.imageUrl,
+                                  fit: BoxFit.cover,
+                                  width: 44,
+                                  height: 44,
+                                  loadingWidget: Container(
+                                    color: AppColors.surfaceVariant,
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (_, __) => Container(
+                                    color: AppColors.surfaceVariant,
+                                    child: Icon(
+                                      categoryIcon(catKey),
+                                      size: 22,
+                                      color: AppColors.textHint,
+                                    ),
+                                  ),
+                                ),
                               ),
                             )
                           else

@@ -227,14 +227,14 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
 
       if (_isVacuousGarmentAnalysis(result) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
+          const SnackBar(
+            content: Text(
               'L’IA n’a pas pu décrire cette photo (service saturé ou image peu lisible). '
               'Tu peux remplir les champs manuellement ou réessayer avec une autre photo.',
             ),
             behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 5),
+            margin: EdgeInsets.all(16),
+            duration: Duration(seconds: 5),
           ),
         );
       }
@@ -250,8 +250,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               'Analyse IA indisponible. Vérifie ta connexion et réessaie dans un instant.',
             ),
             behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 4),
+            margin: EdgeInsets.all(16),
+            duration: Duration(seconds: 4),
           ),
         );
       }
@@ -486,17 +486,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             } else if (error.contains('FileNotFoundError') || error.contains('serviceAccountKey')) {
               errorMessage =
                   'Configuration Firebase manquante. Vérifie le fichier serviceAccountKey.json dans backend/';
-            } else if (error.contains('Storage Admin') ||
-                error.contains('Storage Object') ||
-                error.contains('compte de service')) {
-              errorMessage =
-                  'Le serveur n\'a pas les droits pour enregistrer les images (Firebase Storage).';
             } else if (error.contains('403') ||
                 error.contains('Forbidden') ||
-                error.contains('401') ||
-                error.contains('503')) {
+                error.contains('401')) {
               errorMessage =
-                  'Firebase Storage inaccessible (403/503). Dans Google Cloud Console → IAM, le compte de service Vercel doit avoir le rôle "Storage Admin".';
+                  'Session ou accès refusé par le serveur. Ferme puis rouvre l’app, ou déconnecte-toi et reconnecte-toi, puis réessaie.';
             } else {
               errorMessage = error
                   .replaceAll('Exception: ', '')

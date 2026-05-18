@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:geolocator/geolocator.dart';
@@ -27,21 +28,51 @@ class WeatherService {
   final http.Client _client;
 
   Future<Position?> _tryPosition({bool highAccuracy = false}) async {
-    var perm = await Geolocator.checkPermission();
-    if (perm == LocationPermission.denied) {
-      perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.denied) return null;
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+        if (perm == LocationPermission.denied) return null;
+      }
+      if (perm == LocationPermission.deniedForever) return null;
+      final enabled = await Geolocator.isLocationServiceEnabled();
+      if (!enabled) return null;
+      // 1) Position « last known » : instantanée si l'OS l'a déjà en cache.
+      try {
+        final last = await Geolocator.getLastKnownPosition();
+        if (last != null) {
+          // On lance quand même un GPS frais en tâche de fond — sans bloquer.
+          unawaited(_warmupCurrentPosition(highAccuracy));
+          return last;
+        }
+      } catch (_) {}
+      // 2) Sinon on tente un fix GPS, mais avec un timeout court.
+      return await Geolocator.getCurrentPosition(
+        locationSettings: LocationSettings(
+          accuracy: highAccuracy
+              ? LocationAccuracy.high
+              : LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 6),
+        ),
+      ).timeout(const Duration(seconds: 7), onTimeout: () {
+        throw TimeoutException('GPS timeout');
+      });
+    } catch (_) {
+      return null;
     }
-    if (perm == LocationPermission.deniedForever) return null;
-    final enabled = await Geolocator.isLocationServiceEnabled();
-    if (!enabled) return null;
-    return Geolocator.getCurrentPosition(
-      locationSettings: LocationSettings(
-        accuracy: highAccuracy
-            ? LocationAccuracy.high
-            : LocationAccuracy.medium,
-      ),
-    );
+  }
+
+  Future<void> _warmupCurrentPosition(bool highAccuracy) async {
+    try {
+      await Geolocator.getCurrentPosition(
+        locationSettings: LocationSettings(
+          accuracy: highAccuracy
+              ? LocationAccuracy.high
+              : LocationAccuracy.medium,
+          timeLimit: const Duration(seconds: 10),
+        ),
+      ).timeout(const Duration(seconds: 11));
+    } catch (_) {}
   }
 
   Future<String> _reverseGeocode(double lat, double lon) async {

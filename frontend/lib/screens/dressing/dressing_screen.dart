@@ -8,6 +8,7 @@ import '../../core/constants/categories.dart';
 import '../../models/garment_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
+import '../../services/color_service.dart';
 import '../../services/firebase_storage_display_url.dart';
 import '../../widgets/garment_card.dart';
 import '../../widgets/category_chip.dart';
@@ -24,6 +25,26 @@ class DressingScreen extends ConsumerStatefulWidget {
 class _DressingScreenState extends ConsumerState<DressingScreen> {
   String _selectedCategory = '';
   final Set<String> _prefetchedUrls = <String>{};
+  final TextEditingController _nameFilterController = TextEditingController();
+  String _nameFilter = '';
+  String _brandFilter = '';
+  String _colorFilter = '';
+
+  @override
+  void dispose() {
+    _nameFilterController.dispose();
+    super.dispose();
+  }
+
+  void _setCategory(String key) {
+    setState(() {
+      _selectedCategory = key;
+      _nameFilter = '';
+      _nameFilterController.clear();
+      _brandFilter = '';
+      _colorFilter = '';
+    });
+  }
 
   void _prefetchGarmentImages(List<GarmentModel> garments) {
     if (!mounted) return;
@@ -80,7 +101,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                       label: 'Tout',
                       icon: Icons.grid_view_rounded,
                       selected: _selectedCategory.isEmpty,
-                      onTap: () => setState(() => _selectedCategory = ''),
+                      onTap: () => _setCategory(''),
                     ),
                     const SizedBox(width: 8),
                     ...categories.map((cat) => Padding(
@@ -89,29 +110,62 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                             label: cat.label,
                             icon: cat.icon,
                             selected: _selectedCategory == cat.key,
-                            onTap: () => setState(() => _selectedCategory = cat.key),
+                            onTap: () => _setCategory(cat.key),
                           ),
                         )),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              if (_selectedCategory.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                _CategoryFiltersBar(
+                  nameController: _nameFilterController,
+                  brandFilter: _brandFilter,
+                  colorFilter: _colorFilter,
+                  garmentsForOptions: garmentsAsync.valueOrNull
+                          ?.where((g) => g.category == _selectedCategory)
+                          .toList() ??
+                      const [],
+                  onNameChanged: (v) => setState(() => _nameFilter = v),
+                  onBrandChanged: (v) => setState(() => _brandFilter = v ?? ''),
+                  onColorChanged: (v) => setState(() => _colorFilter = v ?? ''),
+                ),
+              ],
+              const SizedBox(height: 12),
               Expanded(
                 child: garmentsAsync.when(
                   data: (garments) {
-                    final filtered = _selectedCategory.isEmpty
+                    final byCat = _selectedCategory.isEmpty
                         ? garments
-                        : garments.where((g) => g.category == _selectedCategory).toList();
+                        : garments
+                            .where((g) => g.category == _selectedCategory)
+                            .toList();
+                    final filtered = _applyLocalFilters(byCat);
                     if (filtered.isEmpty) {
+                      final noFilters = _nameFilter.trim().isEmpty &&
+                          _brandFilter.isEmpty &&
+                          _colorFilter.isEmpty;
+                      final hasItemsInCat = byCat.isNotEmpty;
                       return Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.checkroom, size: 72, color: AppColors.textHint.withOpacity(0.3)),
                             const SizedBox(height: 20),
-                            const Text('Aucun vetement', style: AppTextStyles.bodySecondary),
+                            Text(
+                              hasItemsInCat && !noFilters
+                                  ? 'Aucun résultat'
+                                  : 'Aucun vetement',
+                              style: AppTextStyles.bodySecondary,
+                            ),
                             const SizedBox(height: 6),
-                            const Text('Ajoute ton premier vetement !', style: AppTextStyles.caption),
+                            Text(
+                              hasItemsInCat && !noFilters
+                                  ? 'Essaie un autre nom, marque ou couleur.'
+                                  : 'Ajoute ton premier vetement !',
+                              style: AppTextStyles.caption,
+                              textAlign: TextAlign.center,
+                            ),
                           ],
                         ),
                       );
@@ -133,14 +187,14 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                         )
                             .animate()
                             .fadeIn(
-                              duration: 350.ms,
-                              delay: (50 * i).ms,
+                              duration: 90.ms,
+                              delay: (10 * i).ms,
                             )
                             .slideY(
-                              begin: 0.08,
+                              begin: 0.03,
                               end: 0,
-                              duration: 350.ms,
-                              delay: (50 * i).ms,
+                              duration: 90.ms,
+                              delay: (10 * i).ms,
                               curve: Curves.easeOut,
                             );
                       },
@@ -166,6 +220,35 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
         ),
       ),
     );
+  }
+
+  List<GarmentModel> _applyLocalFilters(List<GarmentModel> list) {
+    if (_selectedCategory.isEmpty) return list;
+
+    final brandLc = _brandFilter.trim().toLowerCase();
+    final brandExists = brandLc.isNotEmpty &&
+        list.any((x) => x.brand.trim().toLowerCase() == brandLc);
+
+    final colorLc = _colorFilter.trim().toLowerCase();
+    final colorExists = colorLc.isNotEmpty &&
+        list.any((x) =>
+            x.colors.any((c) => c.trim().toLowerCase() == colorLc));
+
+    return list.where((g) {
+      final q = _nameFilter.trim().toLowerCase();
+      if (q.isNotEmpty && !g.name.toLowerCase().contains(q)) {
+        return false;
+      }
+      if (brandExists &&
+          g.brand.trim().toLowerCase() != brandLc) {
+        return false;
+      }
+      if (colorExists &&
+          !g.colors.any((c) => c.trim().toLowerCase() == colorLc)) {
+        return false;
+      }
+      return true;
+    }).toList();
   }
 
   void _showGarmentDetails(GarmentModel garment) {
@@ -314,6 +397,189 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                 const SizedBox(height: 8),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Petite barre de filtres : nom (texte), marque et couleur (menus).
+class _CategoryFiltersBar extends StatelessWidget {
+  final TextEditingController nameController;
+  final String brandFilter;
+  final String colorFilter;
+  final List<GarmentModel> garmentsForOptions;
+  final ValueChanged<String> onNameChanged;
+  final ValueChanged<String?> onBrandChanged;
+  final ValueChanged<String?> onColorChanged;
+
+  const _CategoryFiltersBar({
+    required this.nameController,
+    required this.brandFilter,
+    required this.colorFilter,
+    required this.garmentsForOptions,
+    required this.onNameChanged,
+    required this.onBrandChanged,
+    required this.onColorChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final brands = garmentsForOptions
+        .map((g) => g.brand.trim())
+        .where((b) => b.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final colors = <String>{};
+    for (final g in garmentsForOptions) {
+      for (final c in g.colors) {
+        final t = c.trim();
+        if (t.isNotEmpty) colors.add(t);
+      }
+    }
+    final colorList = colors.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
+    final safeBrand = brandFilter.isNotEmpty && !brands.contains(brandFilter)
+        ? ''
+        : brandFilter;
+    final safeColor = colorFilter.isNotEmpty && !colorList.contains(colorFilter)
+        ? ''
+        : colorFilter;
+
+    const denseStyle = TextStyle(fontSize: 12);
+    const hintStyle = TextStyle(fontSize: 11, color: AppColors.textHint);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        elevation: 0,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.divider.withOpacity(0.55)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                flex: 5,
+                child: TextField(
+                  controller: nameController,
+                  style: denseStyle,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    hintText: 'Nom',
+                    hintStyle: hintStyle,
+                    prefixIcon: Icon(Icons.search_rounded,
+                        size: 16, color: AppColors.textHint.withOpacity(0.85)),
+                    prefixIconConstraints:
+                        const BoxConstraints(minWidth: 30, maxHeight: 28),
+                    filled: true,
+                    fillColor: AppColors.canvas,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onChanged: onNameChanged,
+                ),
+              ),
+              const SizedBox(width: 6),
+              SizedBox(
+                width: 92,
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: safeBrand.isEmpty ? '' : safeBrand,
+                    isDense: true,
+                    iconSize: 18,
+                    isExpanded: true,
+                    items: [
+                      const DropdownMenuItem(
+                          value: '', child: Text('— Marque', style: denseStyle)),
+                      ...brands.map(
+                        (b) => DropdownMenuItem(
+                          value: b,
+                          child: Text(
+                            b,
+                            style: denseStyle,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: onBrandChanged,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 92,
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: safeColor.isEmpty ? '' : safeColor,
+                    isDense: true,
+                    iconSize: 18,
+                    isExpanded: true,
+                    items: [
+                      const DropdownMenuItem(
+                          value: '', child: Text('— Couleur', style: denseStyle)),
+                      ...colorList.map(
+                        (c) {
+                          final swatch = ColorService.getColors()
+                              .firstWhere(
+                                (opt) =>
+                                    opt.name.toLowerCase() ==
+                                    c.toLowerCase(),
+                                orElse: () => ColorOption(
+                                  name: c,
+                                  color: AppColors.textHint,
+                                ),
+                              )
+                              .color;
+                          return DropdownMenuItem(
+                            value: c,
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: swatch,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.divider,
+                                      width: 0.8,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    c,
+                                    style: denseStyle,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                    onChanged: onColorChanged,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
