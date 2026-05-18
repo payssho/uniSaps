@@ -54,7 +54,14 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
     refreshListenable: notifier,
-    redirect: notifier.redirect,
+    redirect: (context, state) {
+      final uri = state.uri;
+      // Filet de sécurité si une URI custom arrive encore comme « location » (widgets, liens).
+      if (uri.scheme == 'unisaps') {
+        return '/home';
+      }
+      return notifier.redirect(context, state);
+    },
     routes: [
       GoRoute(
         path: '/login',

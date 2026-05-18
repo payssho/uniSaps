@@ -486,11 +486,25 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             } else if (error.contains('FileNotFoundError') || error.contains('serviceAccountKey')) {
               errorMessage =
                   'Configuration Firebase manquante. Vérifie le fichier serviceAccountKey.json dans backend/';
-            } else if (error.contains('403') ||
-                error.contains('Forbidden') ||
+            } else if (error.contains('compte de service Firebase') ||
+                error.contains('Storage Admin') ||
+                error.contains('Storage Object Creator') ||
+                (error.contains('Firebase Storage') &&
+                    (error.contains('droits') ||
+                        error.contains('écriture')))) {
+              // Le backend renvoie souvent du 503 avec « 403 » dans le détail GCS : ce n’est pas une session expirée.
+              errorMessage =
+                  'Le serveur n’a pas les droits pour enregistrer l’image sur Firebase Storage. '
+                  'Dans Google Cloud Console → IAM, attribue au compte de service du backend '
+                  '(clef utilisée par l’API, ex. serviceAccountKey.json) le rôle '
+                  '« Storage Object Creator » ou « Storage Admin », puis réessaie.';
+            } else if (error.contains('Token Firebase invalide') ||
                 error.contains('401')) {
               errorMessage =
-                  'Session ou accès refusé par le serveur. Ferme puis rouvre l’app, ou déconnecte-toi et reconnecte-toi, puis réessaie.';
+                  'Session expirée ou jeton invalide. Déconnecte-toi, reconnecte-toi, puis réessaie.';
+            } else if (error.contains('403') || error.contains('Forbidden')) {
+              errorMessage =
+                  'Accès refusé par le serveur. Si tu viens de te connecter, réessaie dans quelques secondes ; sinon préviens le support.';
             } else {
               errorMessage = error
                   .replaceAll('Exception: ', '')
