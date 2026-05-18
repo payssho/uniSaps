@@ -32,7 +32,6 @@ class _RouterNotifier extends ChangeNotifier {
         loc == '/login' || loc == '/signup' || loc.startsWith('/creator');
     final isOnboarding = loc == '/onboarding';
     final isCreatorOnboarding = loc == '/creator/onboarding';
-    final isCreatorHome = loc == '/creator/home';
     final isCreatorCheckout = loc == '/creator/checkout';
 
     if (authLoading) return null;
@@ -50,15 +49,29 @@ class _RouterNotifier extends ChangeNotifier {
     final user = currentUser.valueOrNull;
 
     if (user?.isCreator == true) {
-      if (!user!.isCreatorSubscriptionActive &&
+      final u = user!;
+      if (!u.isCreatorSubscriptionActive &&
           !isCreatorCheckout &&
           loc != '/creator') {
         return '/creator/checkout';
       }
-      if (user.isNewUser && !isCreatorOnboarding) {
-        return '/creator/onboarding';
+      // Nouveau créateur : forcer l’onboarding marque, mais rester sur cette route
+      // (évite la boucle onboarding ↔ home car `isOnAuthPage` inclut tout `/creator/*`).
+      if (u.isNewUser) {
+        if (!isCreatorOnboarding) {
+          return '/creator/onboarding';
+        }
+        return null;
       }
-      if (isOnAuthPage || isOnboarding || loc == '/home') {
+      if (loc == '/creator/onboarding') {
+        return '/creator/home';
+      }
+      if (loc == '/login' ||
+          loc == '/signup' ||
+          isOnboarding ||
+          loc == '/home' ||
+          loc == '/creator' ||
+          loc == '/creator/checkout') {
         return '/creator/home';
       }
       return null;
