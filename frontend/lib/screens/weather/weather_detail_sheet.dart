@@ -801,7 +801,7 @@ class _StatsCard extends StatelessWidget {
                 child: _StatTile(
                   icon: Icons.thermostat_rounded,
                   label: 'Ressenti',
-                  value: apparent != null ? '$apparent°' : '—',
+                  value: apparent != null ? '$apparent°' : '-',
                 ),
               ),
               const SizedBox(width: 10),
@@ -809,7 +809,7 @@ class _StatsCard extends StatelessWidget {
                 child: _StatTile(
                   icon: Icons.air_rounded,
                   label: 'Vent',
-                  value: wind != null ? '$wind km/h' : '—',
+                  value: wind != null ? '$wind km/h' : '-',
                 ),
               ),
               const SizedBox(width: 10),
@@ -817,7 +817,7 @@ class _StatsCard extends StatelessWidget {
                 child: _StatTile(
                   icon: Icons.water_drop_outlined,
                   label: 'Humidité',
-                  value: humidity != null ? '$humidity %' : '—',
+                  value: humidity != null ? '$humidity %' : '-',
                 ),
               ),
             ],
@@ -961,8 +961,8 @@ class _FooterMeta extends StatelessWidget {
           Flexible(
             child: Text(
               fetch.usedFallbackLocation
-                  ? 'Position approximative — mis à jour à $updated'
-                  : 'Données Open-Meteo — mis à jour à $updated',
+                  ? 'Position approximative - mis à jour à $updated'
+                  : 'Données Open-Meteo - mis à jour à $updated',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 11,

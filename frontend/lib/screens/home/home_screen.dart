@@ -191,7 +191,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     : const PageScrollPhysics(),
                 onPageChanged: (index) {
                   if (index < tabUnlocked.length && !tabUnlocked[index]) {
-                    // Onglet verrouillé — on rebondit vers la page courante
+                    // Onglet verrouillé - on rebondit vers la page courante
                     Future.microtask(() {
                       if (_pageController.hasClients) {
                         _pageController.animateToPage(
@@ -330,7 +330,7 @@ class _KeepAliveState extends State<_KeepAlive>
 }
 
 // ---------------------------------------------------------------------------
-// Search friends (Inspo tab — top-right overlay)
+// Search friends (Inspo tab - top-right overlay)
 // ---------------------------------------------------------------------------
 class _SearchFriendsButton extends StatelessWidget {
   @override

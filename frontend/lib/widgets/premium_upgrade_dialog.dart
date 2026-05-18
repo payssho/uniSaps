@@ -37,7 +37,7 @@ Future<void> showPremiumUpgradeDialog(BuildContext context) {
       ),
       content: const Text(
         'L’analyse IA des photos de vêtements et les suggestions d’outfits par IA sont réservées aux abonnés UniSaps+. '
-        'Le paiement pourra être ajouté plus tard — pour l’instant, contacte l’équipe ou modifie ton statut dans Firestore pour tester.',
+        'Le paiement pourra être ajouté plus tard - pour l’instant, contacte l’équipe ou modifie ton statut dans Firestore pour tester.',
         style: TextStyle(
           height: 1.45,
           fontSize: 15,

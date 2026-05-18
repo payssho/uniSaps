@@ -26,7 +26,7 @@ class SeasonKeys {
     }
   }
 
-  /// Saison calendaire (hémisphère nord — France par défaut).
+  /// Saison calendaire (hémisphère nord - France par défaut).
   static String forLocalDate(DateTime d) {
     final m = d.month;
     if (m == 12 || m <= 2) return winter;
@@ -173,7 +173,7 @@ class WeatherTagKeys {
     } else if ((code >= 71 && code <= 77) || code == 85 || code == 86) {
       tags.add(snow);
     }
-    // Orages / grêle — intervalles officiels mélangés : on prend 95+
+    // Orages / grêle - intervalles officiels mélangés : on prend 95+
     if (code >= 95) {
       tags.add(thunderstorm);
       tags.add(rain);

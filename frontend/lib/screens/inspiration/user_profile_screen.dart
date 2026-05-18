@@ -90,7 +90,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
               }
             }
           } catch (_) {
-            // Index Firestore potentiellement manquant — on reste à RelationshipStatus.none
+            // Index Firestore potentiellement manquant - on reste à RelationshipStatus.none
           }
         }
       }
@@ -106,7 +106,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
           garments = await db.getGarments(user.uid);
           outfits = await db.getOutfits(user.uid);
         } catch (_) {
-          // Contenu inaccessible — on affiche le profil vide
+          // Contenu inaccessible - on affiche le profil vide
         }
       }
 
@@ -502,7 +502,7 @@ class _StatBadge extends StatelessWidget {
   }
 }
 
-/// Liste des amis d’un profil (tap sur le compteur « Amis ») — ajout possible depuis chaque ligne.
+/// Liste des amis d’un profil (tap sur le compteur « Amis ») - ajout possible depuis chaque ligne.
 class _ProfileFriendsSheet extends ConsumerStatefulWidget {
   final UserModel profileUser;
   final bool showAddActions;

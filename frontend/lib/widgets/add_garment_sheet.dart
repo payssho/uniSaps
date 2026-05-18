@@ -99,7 +99,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     super.dispose();
   }
 
-  /// Réponses « vides » du backend (Gemini indisponible, quota, parse raté) — déclenche un second essai.
+  /// Réponses « vides » du backend (Gemini indisponible, quota, parse raté) - déclenche un second essai.
   bool _isVacuousGarmentAnalysis(Map<String, dynamic> r) {
     if (r['is_garment'] == false) return false;
     const allowedCats = {'top', 'bottom', 'shoes', 'outerwear', 'headwear', 'accessory'};
@@ -299,7 +299,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Galerie — plusieurs photos'),
+                  title: const Text('Galerie - plusieurs photos'),
                   onTap: () => Navigator.pop(context, 'gallery_multi'),
                 ),
               ],

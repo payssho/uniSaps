@@ -697,7 +697,7 @@ class _CompactWeatherPill extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Swipe Mode — Tinder-style photo cards
+// Swipe Mode - Tinder-style photo cards
 // ---------------------------------------------------------------------------
 class _SwipeMode extends StatefulWidget {
   final List<OutfitModel> outfits;
@@ -874,7 +874,7 @@ class _SwipeModeState extends State<_SwipeMode> {
 }
 
 // ---------------------------------------------------------------------------
-// Biblio Mode — Grille outfits (IA via FAB + bottom sheet)
+// Biblio Mode - Grille outfits (IA via FAB + bottom sheet)
 // ---------------------------------------------------------------------------
 class _BiblioMode extends ConsumerWidget {
   final List<OutfitModel> outfits;

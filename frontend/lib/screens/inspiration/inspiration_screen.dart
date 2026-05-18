@@ -131,7 +131,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
             ),
           ),
 
-          // Bouton Publier — masqué si déjà posté aujourd'hui
+          // Bouton Publier - masqué si déjà posté aujourd'hui
           if (!hasPostedToday)
             Positioned(
               bottom: 24,

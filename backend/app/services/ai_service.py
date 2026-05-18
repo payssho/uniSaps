@@ -487,7 +487,7 @@ def suggest_multiple(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Vision (analyse d'une photo de vêtement) — Google Gemini SDK (tier gratuit)
+# Vision (analyse d'une photo de vêtement) - Google Gemini SDK (tier gratuit)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> Dict[str, Any]:
@@ -511,7 +511,7 @@ def analyze_garment_image(image_bytes: bytes, filename: str = "garment.jpg") -> 
     api_key = os.getenv("GEMINI_API_KEY") or GEMINI_API_KEY
     if not api_key:
         logger.warning(
-            "[analyze_garment_image] GEMINI_API_KEY is not set — falling back to empty result."
+            "[analyze_garment_image] GEMINI_API_KEY is not set - falling back to empty result."
         )
         return {
             "is_garment": True,

@@ -57,7 +57,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   String? _referencePhotoUrl;
   bool _uploadingPhoto = false;
 
-  /// Optionnel — vide = toutes saisons pour les suggestions météo.
+  /// Optionnel - vide = toutes saisons pour les suggestions météo.
   final Set<String> _selectedSeasonKeys = {};
 
   /// Presets temps simples (`WeatherTagKeys.creationSimpleWeatherIds`), optionnel.

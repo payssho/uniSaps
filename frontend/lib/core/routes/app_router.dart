@@ -8,7 +8,7 @@ import '../../screens/auth/onboarding_screen.dart';
 import '../../screens/home/home_screen.dart';
 
 /// Notifier qui écoute les changements d'auth et de user pour déclencher
-/// une réévaluation des redirects GoRouter — sans recréer le router.
+/// une réévaluation des redirects GoRouter - sans recréer le router.
 class _RouterNotifier extends ChangeNotifier {
   final Ref _ref;
 
