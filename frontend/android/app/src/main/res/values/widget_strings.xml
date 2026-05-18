@@ -1,21 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="widget_daily_outfit_label">Outfit du jour</string>
-    <string name="widget_pick_outfit_label">Choisir mon outfit</string>
-    <string name="widget_inspi_label">Inspi du jour</string>
+    <string name="widget_outfit_carousel_label">Tenues · défilé</string>
+    <string name="widget_dressing_carousel_label">Dressing · défilé</string>
+    <string name="widget_today_pick_label">Météo · choix du jour</string>
 
     <string name="widget_login">Ouvre uniSaps pour te connecter</string>
-    <string name="widget_daily_title">Outfit du jour</string>
-    <string name="widget_no_outfit_title">Pas encore choisi</string>
-    <string name="widget_no_outfit_subtitle">Tape pour choisir ton look</string>
-    <string name="widget_streak_format">🔥 %d jours</string>
+    <string name="widget_carousel_outfits_title">Mes tenues</string>
+    <string name="widget_carousel_outfits_empty">Ajoute des outfits pour les voir ici</string>
+    <string name="widget_carousel_dressing_title">Mon dressing</string>
+    <string name="widget_carousel_dressing_empty">Ajoute des pièces à ton dressing</string>
+    <string name="widget_carousel_preview_placeholder">Photos après ouverture de l\'app</string>
 
-    <string name="widget_pick_choose_title">Choisis ton look</string>
-    <string name="widget_pick_choose_subtitle">Swipe pour décider</string>
-    <string name="widget_pick_change_title">Outfit du jour</string>
-    <string name="widget_suitable_count">%d looks adaptés</string>
-
-    <string name="widget_inspi_title">Inspi du jour</string>
-    <string name="widget_inspi_empty_title">Aucune inspi</string>
-    <string name="widget_inspi_empty_subtitle">Ajoute des amis pour voir leurs looks</string>
+    <string name="widget_today_headline">Aujourd\'hui</string>
+    <string name="widget_today_weather_fallback">Météo</string>
+    <string name="widget_today_suitable">%d looks compatibles</string>
+    <string name="widget_today_suitable_zero">Ouvre l\'app pour charger les tenues</string>
+    <string name="widget_today_hint_swipe">Toucher → mode swipe (comme Tinder)</string>
+    <string name="widget_today_hint_change">Tenue déjà choisie · toucher pour changer en swipe</string>
 </resources>

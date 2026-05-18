@@ -49,40 +49,45 @@
         </activity>
 
         <receiver
-            android:name=".widgets.DailyOutfitWidgetProvider"
+            android:name=".widgets.OutfitCarouselWidgetProvider"
             android:exported="true"
-            android:label="@string/widget_daily_outfit_label">
+            android:label="@string/widget_outfit_carousel_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/daily_outfit_widget_info" />
+                android:resource="@xml/outfit_carousel_widget_info" />
         </receiver>
 
         <receiver
-            android:name=".widgets.PickOutfitWidgetProvider"
+            android:name=".widgets.DressingCarouselWidgetProvider"
             android:exported="true"
-            android:label="@string/widget_pick_outfit_label">
+            android:label="@string/widget_dressing_carousel_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/pick_outfit_widget_info" />
+                android:resource="@xml/dressing_carousel_widget_info" />
         </receiver>
 
         <receiver
-            android:name=".widgets.InspiWidgetProvider"
+            android:name=".widgets.TodayPickWidgetProvider"
             android:exported="true"
-            android:label="@string/widget_inspi_label">
+            android:label="@string/widget_today_pick_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/inspi_widget_info" />
+                android:resource="@xml/today_pick_widget_info" />
         </receiver>
+
+        <service
+            android:name=".widgets.CarouselRemoteViewsService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
 
         <meta-data
             android:name="flutterEmbedding"

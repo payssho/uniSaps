@@ -20,14 +20,18 @@ object WidgetDataHelper {
     const val KEY_HAS_CHOSEN = "has_chosen_outfit_today"
     const val KEY_OUTFIT_NAME = "daily_outfit_name"
     const val KEY_STREAK = "current_streak"
-    const val KEY_DAILY_PHOTO = "daily_photo_path"
-    const val KEY_GARMENT_THUMBS = "garment_thumb_paths"
     const val KEY_WEATHER_TEMP = "weather_temp"
     const val KEY_WEATHER_LABEL = "weather_label"
     const val KEY_SUITABLE_COUNT = "suitable_outfits_count"
-    const val KEY_INSPI_IMAGE = "inspi_image_path"
-    const val KEY_INSPI_USERNAME = "inspi_username"
-    const val KEY_INSPI_HAS = "inspi_has_content"
+
+    const val KEY_OUTFIT_CAROUSEL_PATHS = "outfit_carousel_paths"
+    const val KEY_OUTFIT_CAROUSEL_NAMES = "outfit_carousel_names"
+    const val KEY_GARMENT_CAROUSEL_PATHS = "garment_carousel_paths"
+    const val KEY_GARMENT_CAROUSEL_NAMES = "garment_carousel_names"
+
+    /** Widget « choix du jour » : tenues compatibles (swipe / contexte météo). */
+    const val KEY_SUITABLE_PICK_CAROUSEL_PATHS = "suitable_pick_carousel_paths"
+    const val KEY_SUITABLE_PICK_CAROUSEL_NAMES = "suitable_pick_carousel_names"
 
     fun isLoggedIn(data: SharedPreferences): Boolean {
         return !data.getString(KEY_AUTH_UID, "").isNullOrEmpty()
@@ -45,17 +49,30 @@ object WidgetDataHelper {
         )
     }
 
+    fun outfitCarouselPaths(data: SharedPreferences): List<String> {
+        val raw = data.getString(KEY_OUTFIT_CAROUSEL_PATHS, "") ?: ""
+        if (raw.isEmpty()) return emptyList()
+        return raw.split("|").filter { it.isNotEmpty() }
+    }
+
+    fun garmentCarouselPaths(data: SharedPreferences): List<String> {
+        val raw = data.getString(KEY_GARMENT_CAROUSEL_PATHS, "") ?: ""
+        if (raw.isEmpty()) return emptyList()
+        return raw.split("|").filter { it.isNotEmpty() }
+    }
+
+    fun suitablePickCarouselPaths(data: SharedPreferences): List<String> {
+        val raw = data.getString(KEY_SUITABLE_PICK_CAROUSEL_PATHS, "") ?: ""
+        if (raw.isEmpty()) return emptyList()
+        return raw.split("|").filter { it.isNotEmpty() }
+    }
+
     fun setImageFromPath(views: RemoteViews, viewId: Int, path: String?) {
         if (path.isNullOrEmpty()) {
             views.setViewVisibility(viewId, View.GONE)
             return
         }
-        val file = File(path)
-        if (!file.exists()) {
-            views.setViewVisibility(viewId, View.GONE)
-            return
-        }
-        val bmp = decodeBitmapWithExifOrientation(file.absolutePath) ?: run {
+        val bmp = loadBitmapForWidget(path) ?: run {
             views.setViewVisibility(viewId, View.GONE)
             return
         }
@@ -63,12 +80,11 @@ object WidgetDataHelper {
         views.setImageViewBitmap(viewId, bmp)
     }
 
-    /**
-     * [BitmapFactory.decodeFile] ignore l’orientation EXIF : les JPEG portrait
-     * apparaissent couchés dans les RemoteViews. On applique la rotation/miroir attendue.
-     */
-    private fun decodeBitmapWithExifOrientation(path: String): Bitmap? {
-        val decoded = BitmapFactory.decodeFile(path) ?: return null
+    /** Décode une image locale avec orientation EXIF (widgets). */
+    fun loadBitmapForWidget(path: String): Bitmap? {
+        val file = File(path)
+        if (!file.exists()) return null
+        val decoded = BitmapFactory.decodeFile(file.absolutePath) ?: return null
         return applyExifOrientation(decoded, path)
     }
 
@@ -115,11 +131,5 @@ object WidgetDataHelper {
         } catch (_: OutOfMemoryError) {
             bitmap
         }
-    }
-
-    fun garmentThumbPaths(data: SharedPreferences): List<String> {
-        val raw = data.getString(KEY_GARMENT_THUMBS, "") ?: ""
-        if (raw.isEmpty()) return emptyList()
-        return raw.split("|").filter { it.isNotEmpty() }
     }
 }

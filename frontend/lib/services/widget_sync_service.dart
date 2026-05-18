@@ -7,10 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import '../models/outfit_model.dart';
-import '../models/post_model.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
-import '../providers/friendship_provider.dart';
 import '../providers/garment_provider.dart';
 import '../providers/outfit_provider.dart';
 import '../providers/post_provider.dart';
@@ -24,6 +22,8 @@ class WidgetSyncService {
   WidgetSyncService._();
 
   static bool _initialized = false;
+
+  static const int _carouselMaxItems = 12;
 
   static Future<void> _ensureInitialized() async {
     if (_initialized) return;
@@ -40,6 +40,10 @@ class WidgetSyncService {
   static bool _hasChosenOutfitToday(UserModel? user) {
     if (user == null) return false;
     return user.dailyOutfitId.isNotEmpty && user.dailyOutfitDate == _todayKey();
+  }
+
+  static String _sanitizeCarouselLabel(String s) {
+    return s.replaceAll('|', ' ').trim();
   }
 
   static Future<String> _cacheImage(String url, String fileName) async {
@@ -69,23 +73,6 @@ class WidgetSyncService {
     return '';
   }
 
-  static PostModel? _latestFriendPost(
-    List<PostModel> posts,
-    UserModel user,
-  ) {
-    final friendSet = {...user.friends};
-    final filtered = posts
-        .where((p) => friendSet.contains(p.userId) && p.userId != user.uid)
-        .toList();
-    if (filtered.isEmpty) return null;
-    filtered.sort((a, b) {
-      final da = DateTime.tryParse(a.createdAt) ?? DateTime(1970);
-      final db = DateTime.tryParse(b.createdAt) ?? DateTime(1970);
-      return db.compareTo(da);
-    });
-    return filtered.first;
-  }
-
   static Future<void> sync(WidgetRef ref) async {
     if (!Platform.isAndroid) return;
     await _ensureInitialized();
@@ -99,8 +86,6 @@ class WidgetSyncService {
     final user = ref.read(currentUserProvider).valueOrNull;
     final outfits = ref.read(outfitsProvider(uid)).valueOrNull ?? [];
     final garments = ref.read(garmentsProvider(uid)).valueOrNull ?? [];
-    final posts = ref.read(postsProvider).valueOrNull ?? [];
-    final friendsPosts = ref.read(friendsPostsProvider).valueOrNull ?? [];
     final hasPostedToday = ref.read(hasPostedTodayProvider);
 
     final hasChosen = _hasChosenOutfitToday(user);
@@ -116,34 +101,67 @@ class WidgetSyncService {
 
     final garmentById = {for (final g in garments) g.id: g};
 
-    String dailyPhotoPath = '';
-    if (user != null && user.dailyPhotoUrl.isNotEmpty) {
-      dailyPhotoPath = await _cacheImage(
-        user.dailyPhotoUrl,
-        'daily_photo_${user.uid}',
-      );
-    } else if (dailyOutfit != null && dailyOutfit.referencePhotoUrl.isNotEmpty) {
-      dailyPhotoPath = await _cacheImage(
-        dailyOutfit.referencePhotoUrl,
-        'daily_ref_${dailyOutfit.id}',
-      );
+    final outfitPaths = <String>[];
+    final outfitNames = <String>[];
+    for (final o in outfits.take(_carouselMaxItems)) {
+      String? url;
+      if (o.referencePhotoUrl.isNotEmpty) {
+        url = o.referencePhotoUrl;
+      } else {
+        for (final gid in o.garmentIds) {
+          final g = garmentById[gid];
+          if (g != null && g.imageUrl.isNotEmpty) {
+            url = g.imageUrl;
+            break;
+          }
+        }
+      }
+      if (url == null || url.isEmpty) continue;
+      final p = await _cacheImage(url, 'wc_${o.id}');
+      if (p.isEmpty) continue;
+      outfitPaths.add(p);
+      outfitNames.add(_sanitizeCarouselLabel(
+          o.name.isEmpty ? 'Tenue' : o.name));
     }
 
-    final thumbPaths = <String>[];
-    if (dailyOutfit != null) {
-      var i = 0;
-      for (final gid in dailyOutfit.garmentIds.take(4)) {
-        final g = garmentById[gid];
-        if (g == null || g.imageUrl.isEmpty) continue;
-        final p = await _cacheImage(g.imageUrl, 'garment_${gid}_$i');
-        if (p.isNotEmpty) thumbPaths.add(p);
-        i++;
-      }
+    final garmentPaths = <String>[];
+    final garmentNames = <String>[];
+    for (final g in garments.take(_carouselMaxItems)) {
+      if (g.imageUrl.isEmpty) continue;
+      final p = await _cacheImage(g.imageUrl, 'gc_${g.id}');
+      if (p.isEmpty) continue;
+      garmentPaths.add(p);
+      garmentNames.add(_sanitizeCarouselLabel(
+          g.name.isEmpty ? 'Pièce' : g.name));
     }
 
     final todayCtx = ref.read(todayOutfitContextProvider);
     final suitableCount =
         outfits.where((o) => todayCtx.isGoodPick(o)).length;
+
+    final suitablePickPaths = <String>[];
+    final suitablePickNames = <String>[];
+    for (final o
+        in outfits.where((x) => todayCtx.isGoodPick(x)).take(_carouselMaxItems)) {
+      String? url;
+      if (o.referencePhotoUrl.isNotEmpty) {
+        url = o.referencePhotoUrl;
+      } else {
+        for (final gid in o.garmentIds) {
+          final g = garmentById[gid];
+          if (g != null && g.imageUrl.isNotEmpty) {
+            url = g.imageUrl;
+            break;
+          }
+        }
+      }
+      if (url == null || url.isEmpty) continue;
+      final p = await _cacheImage(url, 'sp_${o.id}');
+      if (p.isEmpty) continue;
+      suitablePickPaths.add(p);
+      suitablePickNames.add(_sanitizeCarouselLabel(
+          o.name.isEmpty ? 'Tenue' : o.name));
+    }
 
     var weatherTemp = '';
     var weatherLabel = '';
@@ -161,21 +179,6 @@ class WidgetSyncService {
         weatherLabel = WeatherTagKeys.visualFor(tags).shortLabel;
       }
     });
-
-    var inspiPath = '';
-    var inspiUsername = '';
-    var inspiHasContent = false;
-    if (user != null) {
-      final inspiPost = _latestFriendPost(friendsPosts.isNotEmpty ? friendsPosts : posts, user);
-      if (inspiPost != null) {
-        inspiPath = await _cacheImage(
-          inspiPost.imageUrl,
-          'inspi_${inspiPost.id}',
-        );
-        inspiUsername = '@${inspiPost.username}';
-        inspiHasContent = inspiPath.isNotEmpty;
-      }
-    }
 
     await HomeWidget.saveWidgetData<String>(WidgetDataKeys.authUid, uid);
     await HomeWidget.saveWidgetData<bool>(
@@ -195,12 +198,28 @@ class WidgetSyncService {
       user?.currentStreak ?? 0,
     );
     await HomeWidget.saveWidgetData<String>(
-      WidgetDataKeys.dailyPhotoPath,
-      dailyPhotoPath,
+      WidgetDataKeys.outfitCarouselPaths,
+      outfitPaths.join('|'),
     );
     await HomeWidget.saveWidgetData<String>(
-      WidgetDataKeys.garmentThumbPaths,
-      thumbPaths.join('|'),
+      WidgetDataKeys.outfitCarouselNames,
+      outfitNames.join('|'),
+    );
+    await HomeWidget.saveWidgetData<String>(
+      WidgetDataKeys.garmentCarouselPaths,
+      garmentPaths.join('|'),
+    );
+    await HomeWidget.saveWidgetData<String>(
+      WidgetDataKeys.garmentCarouselNames,
+      garmentNames.join('|'),
+    );
+    await HomeWidget.saveWidgetData<String>(
+      WidgetDataKeys.suitablePickCarouselPaths,
+      suitablePickPaths.join('|'),
+    );
+    await HomeWidget.saveWidgetData<String>(
+      WidgetDataKeys.suitablePickCarouselNames,
+      suitablePickNames.join('|'),
     );
     await HomeWidget.saveWidgetData<String>(
       WidgetDataKeys.weatherTemp,
@@ -218,18 +237,6 @@ class WidgetSyncService {
       WidgetDataKeys.hasPostedToday,
       hasPostedToday,
     );
-    await HomeWidget.saveWidgetData<String>(
-      WidgetDataKeys.inspiImagePath,
-      inspiPath,
-    );
-    await HomeWidget.saveWidgetData<String>(
-      WidgetDataKeys.inspiUsername,
-      inspiUsername,
-    );
-    await HomeWidget.saveWidgetData<bool>(
-      WidgetDataKeys.inspiHasContent,
-      inspiHasContent,
-    );
 
     await _updateAllWidgets();
   }
@@ -241,19 +248,40 @@ class WidgetSyncService {
       false,
     );
     await HomeWidget.saveWidgetData<String>(WidgetDataKeys.dailyOutfitName, '');
-    await HomeWidget.saveWidgetData<String>(WidgetDataKeys.dailyPhotoPath, '');
     await HomeWidget.saveWidgetData<String>(
-      WidgetDataKeys.garmentThumbPaths,
+      WidgetDataKeys.outfitCarouselPaths,
       '',
     );
-    await HomeWidget.saveWidgetData<bool>(WidgetDataKeys.inspiHasContent, false);
+    await HomeWidget.saveWidgetData<String>(
+      WidgetDataKeys.outfitCarouselNames,
+      '',
+    );
+    await HomeWidget.saveWidgetData<String>(
+      WidgetDataKeys.garmentCarouselPaths,
+      '',
+    );
+    await HomeWidget.saveWidgetData<String>(
+      WidgetDataKeys.garmentCarouselNames,
+      '',
+    );
+    await HomeWidget.saveWidgetData<String>(
+      WidgetDataKeys.suitablePickCarouselPaths,
+      '',
+    );
+    await HomeWidget.saveWidgetData<String>(
+      WidgetDataKeys.suitablePickCarouselNames,
+      '',
+    );
+    await HomeWidget.saveWidgetData<String>(WidgetDataKeys.weatherTemp, '');
+    await HomeWidget.saveWidgetData<String>(WidgetDataKeys.weatherLabel, '');
+    await HomeWidget.saveWidgetData<int>(WidgetDataKeys.suitableOutfitsCount, 0);
     await _updateAllWidgets();
   }
 
   static const _qualifiedProviders = [
-    'com.unisaps.app.widgets.DailyOutfitWidgetProvider',
-    'com.unisaps.app.widgets.PickOutfitWidgetProvider',
-    'com.unisaps.app.widgets.InspiWidgetProvider',
+    'com.unisaps.app.widgets.OutfitCarouselWidgetProvider',
+    'com.unisaps.app.widgets.DressingCarouselWidgetProvider',
+    'com.unisaps.app.widgets.TodayPickWidgetProvider',
   ];
 
   static Future<void> _updateAllWidgets() async {
