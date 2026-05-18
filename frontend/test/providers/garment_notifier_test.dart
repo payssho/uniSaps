@@ -102,8 +102,8 @@ void main() {
         brand: 'H&M',
         colors: ['Kaki'],
         category: 'outerwear',
-        imageBytes: fakeBytes,
-        imageName: 'veste.jpg',
+        imageBytesList: [fakeBytes],
+        imageNames: ['veste.jpg'],
       );
       expect(fakeDb.garments['uid-1']!.first.imageUrl, 'https://cdn.url/garment.png');
     });
@@ -116,8 +116,8 @@ void main() {
         brand: 'H&M',
         colors: ['Kaki'],
         category: 'outerwear',
-        imageBytes: fakeBytes,
-        imageName: 'veste.jpg',
+        imageBytesList: [fakeBytes],
+        imageNames: ['veste.jpg'],
       );
       expect(ok, false);
     });
