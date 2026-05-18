@@ -143,6 +143,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         : const Text('Se connecter'),
                   ),
                 ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  onPressed: _loading ? null : () => context.push('/creator'),
+                  icon: const Icon(Icons.storefront_outlined, size: 18),
+                  label: const Text('Espace marque'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: BorderSide(color: AppColors.primary.withValues(alpha: 0.35)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

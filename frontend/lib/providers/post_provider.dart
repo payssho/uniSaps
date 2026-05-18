@@ -8,9 +8,38 @@ import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 import 'auth_provider.dart';
 import 'garment_provider.dart';
+import '../utils/feed_mix.dart';
 
 final postsProvider = StreamProvider<List<PostModel>>((ref) {
   return ref.watch(firestoreServiceProvider).postsStream();
+});
+
+/// Feed Explorer : organiques + sponsorisés actifs mélangés.
+final exploreFeedProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
+  final all = ref.watch(postsProvider);
+  final sponsored = ref.watch(_sponsoredActiveProvider);
+  return all.when(
+    data: (organicPosts) {
+      return sponsored.when(
+        data: (sponsoredPosts) {
+          final organic = organicPosts
+              .where((p) => p.isOrganic && !p.isSponsored)
+              .toList();
+          return AsyncValue.data(
+            mixExploreFeed(organic: organic, sponsoredActive: sponsoredPosts),
+          );
+        },
+        loading: () => const AsyncValue.loading(),
+        error: (e, st) => AsyncValue.error(e, st),
+      );
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (e, st) => AsyncValue.error(e, st),
+  );
+});
+
+final _sponsoredActiveProvider = StreamProvider<List<PostModel>>((ref) {
+  return ref.watch(firestoreServiceProvider).sponsoredActivePostsStream();
 });
 
 /// True si l'utilisateur courant a déjà posté aujourd'hui.
@@ -22,6 +51,7 @@ final hasPostedTodayProvider = Provider<bool>((ref) {
   final todayStart = DateTime(now.year, now.month, now.day);
   final todayEnd = todayStart.add(const Duration(days: 1));
   return posts.any((p) {
+    if (p.isSponsored || p.postKind == 'sponsored') return false;
     if (p.userId != uid) return false;
     final dt = DateTime.tryParse(p.createdAt)?.toLocal();
     if (dt == null) return false;

@@ -750,35 +750,19 @@ class _ExploreFeed extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final postsAsync = ref.watch(postsProvider);
+    final postsAsync = ref.watch(exploreFeedProvider);
 
     return postsAsync.when(
       data: (posts) {
-        final now = DateTime.now();
-        final todayStart = DateTime(now.year, now.month, now.day);
-        final todayEnd = todayStart.add(const Duration(days: 1));
-        final todayPosts = posts.where((p) {
-          final dt = DateTime.tryParse(p.createdAt)?.toLocal();
-          if (dt == null) return false;
-          return dt.isAfter(todayStart) && dt.isBefore(todayEnd);
-        }).toList();
-
-        // Mon post en premier
-        todayPosts.sort((a, b) {
-          if (a.userId == uid && b.userId != uid) return -1;
-          if (b.userId == uid && a.userId != uid) return 1;
-          return 0;
-        });
-
-        if (todayPosts.isEmpty) {
+        if (posts.isEmpty) {
           return const _EmptyFeedMessage(
             icon: Icons.explore_outlined,
-            title: 'Aucun post aujourd\'hui',
-            subtitle: 'Sois le premier à partager ton outfit du jour !',
+            title: 'Aucun post à explorer',
+            subtitle: 'Reviens plus tard pour découvrir de nouveaux looks.',
           );
         }
         return _ContinuousFeed(
-          posts: todayPosts,
+          posts: posts,
           uid: uid,
           onDoubleTap: onDoubleTap,
           onScrollStart: onScrollStart,

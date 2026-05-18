@@ -66,6 +66,14 @@ class UserModel {
   final List<String> friends;
   /// `free` ou `premium` (Firestore: `account_tier`).
   final String accountTier;
+  /// `user` (défaut) ou `creator` (marque).
+  final String accountType;
+  final String creatorBio;
+  final String creatorShopUrl;
+  final String creatorLogoUrl;
+  final String linkedUserUid;
+  final String creatorSubscriptionStatus;
+  final String creatorSubscriptionExpiresAt;
 
   const UserModel({
     this.uid = '',
@@ -84,11 +92,33 @@ class UserModel {
     this.isPrivate = false,
     this.friends = const [],
     this.accountTier = 'free',
+    this.accountType = 'user',
+    this.creatorBio = '',
+    this.creatorShopUrl = '',
+    this.creatorLogoUrl = '',
+    this.linkedUserUid = '',
+    this.creatorSubscriptionStatus = 'inactive',
+    this.creatorSubscriptionExpiresAt = '',
   });
 
   bool get isPremium =>
       accountTier.toLowerCase() == 'premium' ||
       accountTier.toLowerCase() == 'paid';
+
+  bool get isCreator => accountType == 'creator';
+
+  bool get isCreatorSubscriptionActive {
+    if (!isCreator) return false;
+    if (creatorSubscriptionStatus != 'active') return false;
+    if (creatorSubscriptionExpiresAt.isEmpty) return true;
+    final exp = DateTime.tryParse(creatorSubscriptionExpiresAt);
+    if (exp == null) return true;
+    return exp.isAfter(DateTime.now());
+  }
+
+  /// Photo affichée : logo marque pour les créateurs, sinon photo profil.
+  String get displayAvatarUrl =>
+      isCreator && creatorLogoUrl.isNotEmpty ? creatorLogoUrl : profilePhotoUrl;
 
   bool isFriendWith(String uid) => friends.contains(uid);
 
@@ -112,6 +142,15 @@ class UserModel {
       isPrivate: map['is_private'] ?? false,
       friends: List<String>.from(map['friends'] ?? []),
       accountTier: map['account_tier'] as String? ?? 'free',
+      accountType: map['account_type'] as String? ?? 'user',
+      creatorBio: map['creator_bio'] ?? '',
+      creatorShopUrl: map['creator_shop_url'] ?? '',
+      creatorLogoUrl: map['creator_logo_url'] ?? '',
+      linkedUserUid: map['linked_user_uid'] ?? '',
+      creatorSubscriptionStatus:
+          map['creator_subscription_status'] as String? ?? 'inactive',
+      creatorSubscriptionExpiresAt:
+          map['creator_subscription_expires_at'] ?? '',
     );
   }
 
@@ -132,6 +171,13 @@ class UserModel {
         'is_private': isPrivate,
         'friends': friends,
         'account_tier': accountTier,
+        'account_type': accountType,
+        'creator_bio': creatorBio,
+        'creator_shop_url': creatorShopUrl,
+        'creator_logo_url': creatorLogoUrl,
+        'linked_user_uid': linkedUserUid,
+        'creator_subscription_status': creatorSubscriptionStatus,
+        'creator_subscription_expires_at': creatorSubscriptionExpiresAt,
       };
 
   UserModel copyWith({
@@ -151,6 +197,13 @@ class UserModel {
     bool? isPrivate,
     List<String>? friends,
     String? accountTier,
+    String? accountType,
+    String? creatorBio,
+    String? creatorShopUrl,
+    String? creatorLogoUrl,
+    String? linkedUserUid,
+    String? creatorSubscriptionStatus,
+    String? creatorSubscriptionExpiresAt,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -169,6 +222,15 @@ class UserModel {
       isPrivate: isPrivate ?? this.isPrivate,
       friends: friends ?? this.friends,
       accountTier: accountTier ?? this.accountTier,
+      accountType: accountType ?? this.accountType,
+      creatorBio: creatorBio ?? this.creatorBio,
+      creatorShopUrl: creatorShopUrl ?? this.creatorShopUrl,
+      creatorLogoUrl: creatorLogoUrl ?? this.creatorLogoUrl,
+      linkedUserUid: linkedUserUid ?? this.linkedUserUid,
+      creatorSubscriptionStatus:
+          creatorSubscriptionStatus ?? this.creatorSubscriptionStatus,
+      creatorSubscriptionExpiresAt:
+          creatorSubscriptionExpiresAt ?? this.creatorSubscriptionExpiresAt,
     );
   }
 }

@@ -5,6 +5,7 @@ import '../models/garment_model.dart';
 import '../models/outfit_model.dart';
 import '../models/post_model.dart';
 import '../models/friend_request_model.dart';
+import '../models/collection_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -124,6 +125,34 @@ class FirestoreService {
     await _outfitCol(uid).doc(outfitId).delete();
   }
 
+  // ── Collections (compte créateur) ───────────────────────────────────
+
+  CollectionReference<Map<String, dynamic>> _collectionCol(String uid) =>
+      _db.collection('users').doc(uid).collection('collections');
+
+  Future<String> addCollection(CollectionModel collection) async {
+    final ref = await _collectionCol(collection.userId).add(collection.toMap());
+    return ref.id;
+  }
+
+  Future<List<CollectionModel>> getCollections(String uid) async {
+    final snap = await _collectionCol(uid)
+        .orderBy('created_at', descending: true)
+        .get();
+    return snap.docs
+        .map((d) => CollectionModel.fromMap(d.data(), docId: d.id))
+        .toList();
+  }
+
+  Stream<List<CollectionModel>> collectionsStream(String uid) {
+    return _collectionCol(uid)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => CollectionModel.fromMap(d.data(), docId: d.id))
+            .toList());
+  }
+
   // ── Posts ──────────────────────────────────────────────────────────
 
   final _postCol = FirebaseFirestore.instance.collection('posts');
@@ -150,6 +179,32 @@ class FirestoreService {
         .snapshots()
         .map((snap) =>
             snap.docs.map((d) => PostModel.fromMap(d.data(), docId: d.id)).toList());
+  }
+
+  Stream<List<PostModel>> sponsoredActivePostsStream({int limit = 30}) {
+    return postsStream(limit: 120).map((posts) {
+      final sponsored = posts
+          .where((p) => p.isSponsored && p.isActive)
+          .take(limit)
+          .toList();
+      return sponsored;
+    });
+  }
+
+  Stream<List<PostModel>> creatorPostsStream(String uid, {int limit = 80}) {
+    return _postCol
+        .where('user_id', isEqualTo: uid)
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => PostModel.fromMap(d.data(), docId: d.id))
+            .where((p) => p.postKind == 'sponsored' || p.isSponsored)
+            .toList());
+  }
+
+  Future<void> updatePost(String postId, Map<String, dynamic> data) async {
+    await _postCol.doc(postId).update(data);
   }
 
   Future<bool> toggleLike(String postId, String uid) async {

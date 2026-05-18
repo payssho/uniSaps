@@ -8,7 +8,9 @@ import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
 import '../models/user_model.dart';
+import '../models/collection_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/collection_provider.dart';
 import '../providers/garment_provider.dart';
 import '../widgets/platform_image.dart';
 import '../widgets/brand_selector.dart';
@@ -29,8 +31,15 @@ class _GarmentImageSlot {
 
 class AddGarmentSheet extends ConsumerStatefulWidget {
   final GarmentModel? garment;
+  final bool requireCollection;
+  final String? initialCollectionId;
 
-  const AddGarmentSheet({super.key, this.garment});
+  const AddGarmentSheet({
+    super.key,
+    this.garment,
+    this.requireCollection = false,
+    this.initialCollectionId,
+  });
 
   @override
   ConsumerState<AddGarmentSheet> createState() => _AddGarmentSheetState();
@@ -57,6 +66,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   bool _useAiAnalysis = true;
   bool _aiAnalyzing = false;
   Map<String, dynamic>? _aiAttributes;
+  String? _selectedCollectionId;
+  bool _creatingCollection = false;
+  final _newCollectionNameController = TextEditingController();
+  final _collectionStartController = TextEditingController();
+  final _collectionEndController = TextEditingController();
 
   @override
   void initState() {
@@ -66,6 +80,9 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     _brandController = TextEditingController(text: widget.garment?.brand ?? '');
     _selectedColors = List<String>.from(widget.garment?.colors ?? []);
     _selectedCategory = widget.garment?.category ?? 'top';
+    _selectedCollectionId = widget.garment?.collectionId.isNotEmpty == true
+        ? widget.garment!.collectionId
+        : widget.initialCollectionId;
 
     if (widget.garment != null) {
       final urls = widget.garment!.imageUrls.isNotEmpty
@@ -96,6 +113,9 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     _previewController.dispose();
     _nameController.dispose();
     _brandController.dispose();
+    _newCollectionNameController.dispose();
+    _collectionStartController.dispose();
+    _collectionEndController.dispose();
     super.dispose();
   }
 
@@ -372,12 +392,48 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       setState(() => _error = 'Le nom est obligatoire.');
       return;
     }
+    if (widget.requireCollection && widget.garment == null) {
+      if (_creatingCollection) {
+        final cName = _newCollectionNameController.text.trim();
+        if (cName.isEmpty) {
+          setState(() => _error = 'Le nom de la collection est obligatoire.');
+          return;
+        }
+      } else if (_selectedCollectionId == null || _selectedCollectionId!.isEmpty) {
+        setState(() => _error = 'Sélectionne une collection.');
+        return;
+      }
+    }
     setState(() {
       _error = null;
       _loading = true;
     });
 
     final uid = ref.read(authServiceProvider).uid;
+    var collectionId = _selectedCollectionId ?? '';
+    if (widget.requireCollection && widget.garment == null && _creatingCollection) {
+      final now = DateTime.now().toIso8601String().substring(0, 10);
+      final start = _collectionStartController.text.trim().isNotEmpty
+          ? _collectionStartController.text.trim()
+          : now;
+      final end = _collectionEndController.text.trim().isNotEmpty
+          ? _collectionEndController.text.trim()
+          : now;
+      final newId = await ref.read(collectionNotifierProvider.notifier).createCollection(
+            userId: uid,
+            name: _newCollectionNameController.text.trim(),
+            startDate: start,
+            endDate: end,
+          );
+      if (newId == null) {
+        setState(() {
+          _loading = false;
+          _error = 'Impossible de créer la collection.';
+        });
+        return;
+      }
+      collectionId = newId;
+    }
 
     final premium = ref.read(isPremiumProvider);
     final imageBytesList = <Uint8List>[];
@@ -431,6 +487,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               imageBytesList: imageBytesList,
               imageNames: imageNames,
               removeBackground: premium && _removeBackground,
+              collectionId: collectionId,
             );
       } else {
         final keptUrls = _slots.where((s) => s.networkUrl != null).map((s) => s.networkUrl!).toList();
@@ -523,6 +580,102 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         });
       }
     }
+  }
+
+  Widget _buildCollectionSection(String uid) {
+    final collectionsAsync = ref.watch(collectionsProvider(uid));
+    return collectionsAsync.when(
+      data: (collections) {
+        final sorted = List<CollectionModel>.from(collections)
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Collection', style: AppTextStyles.heading3),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(value: false, label: Text('Existante')),
+                      ButtonSegment(value: true, label: Text('Nouvelle')),
+                    ],
+                    selected: {_creatingCollection},
+                    onSelectionChanged: (s) {
+                      setState(() => _creatingCollection = s.first);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (!_creatingCollection)
+              DropdownButtonFormField<String>(
+                value: _selectedCollectionId?.isNotEmpty == true
+                    ? _selectedCollectionId
+                    : null,
+                decoration: const InputDecoration(
+                  hintText: 'Choisir une collection',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                ),
+                items: sorted
+                    .map(
+                      (c) => DropdownMenuItem(
+                        value: c.id,
+                        child: Text(c.name),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedCollectionId = v),
+              )
+            else ...[
+              TextField(
+                controller: _newCollectionNameController,
+                decoration: const InputDecoration(
+                  hintText: 'Nom de la collection',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _collectionStartController,
+                      decoration: const InputDecoration(
+                        labelText: 'Début (AAAA-MM-JJ)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _collectionEndController,
+                      decoration: const InputDecoration(
+                        labelText: 'Fin (AAAA-MM-JJ)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        );
+      },
+      loading: () => const LinearProgressIndicator(),
+      error: (e, _) => Text('Collections : $e', style: const TextStyle(color: AppColors.error)),
+    );
   }
 
   Widget _buildPhotoPreview() {
@@ -813,6 +966,10 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                         setState(() => _selectedColors = colors);
                       },
                     ),
+                    if (widget.requireCollection) ...[
+                      const SizedBox(height: 24),
+                      _buildCollectionSection(ref.watch(authServiceProvider).uid),
+                    ],
                     const SizedBox(height: 24),
                     const Text('Catégorie', style: AppTextStyles.heading3),
                     const SizedBox(height: 12),

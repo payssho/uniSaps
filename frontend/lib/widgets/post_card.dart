@@ -43,6 +43,28 @@ class PostCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (post.isSponsored)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                color: AppColors.primary.withValues(alpha: 0.08),
+                child: Row(
+                  children: [
+                    Icon(Icons.campaign_outlined,
+                        size: 14, color: AppColors.primary.withValues(alpha: 0.9)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Sponsorisé',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary.withValues(alpha: 0.95),
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             GestureDetector(
               onTap: onUserTap,
               behavior: HitTestBehavior.opaque,
@@ -88,9 +110,9 @@ class PostCard extends StatelessWidget {
                 ),
               ),
             ),
-            if (post.imageUrl.isNotEmpty)
+            if (post.displayImageUrl.isNotEmpty)
               CachedNetworkImage(
-                imageUrl: post.imageUrl,
+                imageUrl: post.displayImageUrl,
                 width: double.infinity,
                 height: 300,
                 fit: BoxFit.cover,

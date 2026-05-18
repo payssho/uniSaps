@@ -137,5 +137,25 @@ void main() {
       const post = PostModel(likedBy: []);
       expect(post.isLikedBy('anyone'), false);
     });
+
+    test('post sponsorisé actif', () {
+      final post = PostModel.fromMap({
+        'post_kind': 'sponsored',
+        'is_sponsored': true,
+        'is_active': true,
+        'preview_image_url': 'https://preview.jpg',
+        'collection_id': 'col-1',
+      });
+      expect(post.isSponsored, true);
+      expect(post.isActive, true);
+      expect(post.isOrganic, false);
+      expect(post.displayImageUrl, 'https://preview.jpg');
+      expect(post.collectionId, 'col-1');
+    });
+
+    test('isOrganic par défaut', () {
+      const post = PostModel();
+      expect(post.isOrganic, true);
+    });
   });
 }

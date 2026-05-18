@@ -29,6 +29,15 @@ final isPremiumProvider = Provider<bool>((ref) {
   return ref.watch(currentUserProvider).valueOrNull?.isPremium ?? false;
 });
 
+final isCreatorAccountProvider = Provider<bool>((ref) {
+  return ref.watch(currentUserProvider).valueOrNull?.isCreator ?? false;
+});
+
+final isCreatorSubscriptionActiveProvider = Provider<bool>((ref) {
+  return ref.watch(currentUserProvider).valueOrNull?.isCreatorSubscriptionActive ??
+      false;
+});
+
 class AuthNotifier extends StateNotifier<AsyncValue<void>> {
   final AuthService _authService;
   final FirestoreService _firestoreService;
@@ -63,6 +72,80 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
     } catch (e) {
       state = AsyncValue.error(e.toString(), StackTrace.current);
       return false;
+    }
+  }
+
+  Future<void> completeCreatorOnboarding({
+    required String username,
+    required String displayName,
+    required String creatorBio,
+    required String creatorShopUrl,
+    required String creatorLogoUrl,
+    required String linkedUserUid,
+  }) async {
+    final user = _authService.currentUser;
+    if (user == null) return;
+    final now = DateTime.now().toIso8601String();
+    final expires = DateTime.now()
+        .add(const Duration(days: 30))
+        .toIso8601String();
+    final existing = await _firestoreService.getUser(user.uid);
+    if (existing == null) {
+      await _firestoreService.createUser(UserModel(
+        uid: user.uid,
+        email: user.email ?? '',
+        username: username,
+        displayName: displayName,
+        createdAt: now,
+        isNewUser: false,
+        accountType: 'creator',
+        creatorBio: creatorBio,
+        creatorShopUrl: creatorShopUrl,
+        creatorLogoUrl: creatorLogoUrl,
+        linkedUserUid: linkedUserUid,
+        creatorSubscriptionStatus: 'active',
+        creatorSubscriptionExpiresAt: expires,
+      ));
+    } else {
+      await _firestoreService.updateUser(user.uid, {
+        'username': username,
+        'display_name': displayName,
+        'is_new_user': false,
+        'account_type': 'creator',
+        'creator_bio': creatorBio,
+        'creator_shop_url': creatorShopUrl,
+        'creator_logo_url': creatorLogoUrl,
+        'linked_user_uid': linkedUserUid,
+        'creator_subscription_status': 'active',
+        'creator_subscription_expires_at': expires,
+      });
+    }
+  }
+
+  Future<void> activateCreatorSubscriptionStub() async {
+    final user = _authService.currentUser;
+    if (user == null) return;
+    final expires = DateTime.now()
+        .add(const Duration(days: 30))
+        .toIso8601String();
+    final patch = {
+      'account_type': 'creator',
+      'creator_subscription_status': 'active',
+      'creator_subscription_expires_at': expires,
+    };
+    final existing = await _firestoreService.getUser(user.uid);
+    if (existing == null) {
+      await _firestoreService.createUser(UserModel(
+        uid: user.uid,
+        email: user.email ?? '',
+        createdAt: DateTime.now().toIso8601String(),
+        isNewUser: true,
+        accountType: 'creator',
+        creatorSubscriptionStatus: 'active',
+        creatorSubscriptionExpiresAt: expires,
+      ));
+    } else {
+      await _firestoreService.updateUser(user.uid, patch);
     }
   }
 
