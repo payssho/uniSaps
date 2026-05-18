@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
@@ -1428,15 +1427,15 @@ class _OutfitPhotoCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             if (hasPhoto)
-              CachedNetworkImage(
+              StorageAwareCachedImage(
                 imageUrl: outfit.referencePhotoUrl,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
+                loadingWidget: Container(
                   color: AppColors.surfaceVariant,
                   child: const Center(
                       child: CircularProgressIndicator(strokeWidth: 2)),
                 ),
-                errorWidget: (_, __, ___) =>
+                errorWidget: (_, __) =>
                     _FallbackOutfitVisual(outfit: outfit, garmentCache: garmentCache),
               )
             else
@@ -1601,15 +1600,15 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
             fit: StackFit.expand,
             children: [
               if (hasPhoto)
-                CachedNetworkImage(
+                StorageAwareCachedImage(
                   imageUrl: widget.outfit.referencePhotoUrl,
                   fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(
+                  loadingWidget: Container(
                     color: AppColors.surfaceVariant,
                     child: const Center(
                         child: CircularProgressIndicator(strokeWidth: 2)),
                   ),
-                  errorWidget: (_, __, ___) => _FallbackOutfitVisual(
+                  errorWidget: (_, __) => _FallbackOutfitVisual(
                       outfit: widget.outfit,
                       garmentCache: widget.garmentCache),
                 )
@@ -1752,9 +1751,27 @@ class _FallbackOutfitVisual extends StatelessWidget {
         crossAxisCount: 2,
         physics: const NeverScrollableScrollPhysics(),
         children: garmentImages
-            .map((g) => CachedNetworkImage(
+            .map((g) => StorageAwareCachedImage(
                   imageUrl: g.imageUrl,
                   fit: BoxFit.cover,
+                  loadingWidget: Container(
+                    color: AppColors.surfaceVariant,
+                    child: const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  ),
+                  errorWidget: (_, __) => Container(
+                    color: AppColors.surfaceVariant,
+                    child: Icon(
+                      categoryIcon(g.category),
+                      size: 28,
+                      color: AppColors.textHint,
+                    ),
+                  ),
                 ))
             .toList(),
       ),
@@ -1943,15 +1960,17 @@ class _DailyOutfitView extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   if (photoUrl.isNotEmpty)
-                    CachedNetworkImage(
+                    StorageAwareCachedImage(
                       imageUrl: photoUrl,
                       fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(
+                      loadingWidget: Container(
                         color: AppColors.surfaceVariant,
                         child: const Center(
                             child:
                                 CircularProgressIndicator(strokeWidth: 2)),
                       ),
+                      errorWidget: (_, __) => _FallbackOutfitVisual(
+                          outfit: outfit, garmentCache: garmentCache),
                     )
                   else
                     _FallbackOutfitVisual(
@@ -2073,11 +2092,14 @@ class _OutfitDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = outfit.garments.entries
-        .where(
-            (e) => e.value.isNotEmpty && garmentCache.containsKey(e.value))
-        .map((e) => MapEntry(e.key, garmentCache[e.value]!))
-        .toList();
+    final items = <MapEntry<String, GarmentModel>>[];
+    for (final e in outfit.garments.entries) {
+      if (e.value.isEmpty) continue;
+      for (final id in OutfitModel.parseGarmentSlotValue(e.value)) {
+        final g = garmentCache[id];
+        if (g != null) items.add(MapEntry(e.key, g));
+      }
+    }
 
     return Container(
       constraints: BoxConstraints(
@@ -2109,16 +2131,22 @@ class _OutfitDetailSheet extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(18),
-                        child: AspectRatio(
+                          child: AspectRatio(
                           aspectRatio: 3 / 4,
-                          child: CachedNetworkImage(
+                          child: StorageAwareCachedImage(
                             imageUrl: outfit.referencePhotoUrl,
                             fit: BoxFit.cover,
-                            placeholder: (_, __) => Container(
+                            loadingWidget: Container(
                                 color: AppColors.surfaceVariant,
                                 child: const Center(
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2))),
+                            errorWidget: (_, __) => Container(
+                              color: AppColors.surfaceVariant,
+                              child: Icon(Icons.broken_image_outlined,
+                                  color:
+                                      AppColors.textHint.withOpacity(0.55)),
+                            ),
                           ),
                         ),
                       ),
@@ -2185,11 +2213,35 @@ class _OutfitDetailSheet extends StatelessWidget {
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
                                     child: g.imageUrl.isNotEmpty
-                                        ? CachedNetworkImage(
+                                        ? StorageAwareCachedImage(
                                             imageUrl: g.imageUrl,
                                             width: 40,
                                             height: 40,
                                             fit: BoxFit.cover,
+                                            loadingWidget: Container(
+                                              width: 40,
+                                              height: 40,
+                                              color: AppColors.surfaceVariant,
+                                              child: const Center(
+                                                child: SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                          strokeWidth: 2),
+                                                ),
+                                              ),
+                                            ),
+                                            errorWidget: (_, __) =>
+                                                Container(
+                                              width: 40,
+                                              height: 40,
+                                              color: AppColors.divider,
+                                              child: const Icon(
+                                                  Icons.checkroom,
+                                                  size: 18,
+                                                  color: AppColors.textHint),
+                                            ),
                                           )
                                         : Container(
                                             width: 40,
