@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_daily_outfit_label">Outfit du jour</string>
+    <string name="widget_pick_outfit_label">Choisir mon outfit</string>
+    <string name="widget_inspi_label">Inspi du jour</string>
+
+    <string name="widget_login">Ouvre uniSaps pour te connecter</string>
+    <string name="widget_daily_title">Outfit du jour</string>
+    <string name="widget_no_outfit_title">Pas encore choisi</string>
+    <string name="widget_no_outfit_subtitle">Tape pour choisir ton look</string>
+    <string name="widget_streak_format">🔥 %d jours</string>
+
+    <string name="widget_pick_choose_title">Choisis ton look</string>
+    <string name="widget_pick_choose_subtitle">Swipe pour décider</string>
+    <string name="widget_pick_change_title">Outfit du jour</string>
+    <string name="widget_suitable_count">%d looks adaptés</string>
+
+    <string name="widget_inspi_title">Inspi du jour</string>
+    <string name="widget_inspi_empty_title">Aucune inspi</string>
+    <string name="widget_inspi_empty_subtitle">Ajoute des amis pour voir leurs looks</string>
+</resources>

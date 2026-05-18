@@ -6,6 +6,7 @@ import '../models/outfit_model.dart';
 import '../models/garment_model.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
+import '../services/widget_sync_bridge.dart';
 import 'auth_provider.dart';
 import 'garment_provider.dart';
 
@@ -62,6 +63,7 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
       );
       await _db.addPost(post);
       state = const AsyncValue.data(null);
+      await WidgetSyncBridge.request();
       return true;
     } catch (e) {
       state = AsyncValue.error(e.toString(), StackTrace.current);
@@ -110,6 +112,7 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
       );
       await _db.addPost(post);
       state = const AsyncValue.data(null);
+      await WidgetSyncBridge.request();
       return 'ok';
     } catch (e) {
       state = AsyncValue.error(e.toString(), StackTrace.current);

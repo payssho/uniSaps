@@ -14,6 +14,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../providers/friendship_provider.dart';
+import '../../providers/widget_launch_provider.dart';
 import '../home/home_screen.dart';
 import 'search_users_screen.dart';
 import 'user_profile_screen.dart';
@@ -76,6 +77,14 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
   Widget build(BuildContext context) {
     final uid = ref.watch(authServiceProvider).uid;
     final user = ref.watch(currentUserProvider).valueOrNull;
+
+    ref.listen(inspoPublishTriggerProvider, (prev, next) {
+      if (next > (prev ?? 0)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _handlePublish(context);
+        });
+      }
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkScrollHint());
 

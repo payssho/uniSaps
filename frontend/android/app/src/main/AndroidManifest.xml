@@ -15,7 +15,7 @@
         android:usesCleartextTraffic="true">
 
         <activity
-            android:name="io.flutter.embedding.android.FlutterActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -32,7 +32,57 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="unisaps" android:host="home" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="unisaps" android:host="publish" />
+            </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".widgets.DailyOutfitWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_daily_outfit_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/daily_outfit_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.PickOutfitWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_pick_outfit_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pick_outfit_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.InspiWidgetProvider"
+            android:exported="true"
+            android:label="@string/widget_inspi_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/inspi_widget_info" />
+        </receiver>
 
         <meta-data
             android:name="flutterEmbedding"

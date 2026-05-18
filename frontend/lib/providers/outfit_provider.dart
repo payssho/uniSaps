@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart' show FieldValue;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/outfit_model.dart';
 import '../services/firestore_service.dart';
+import '../services/widget_sync_bridge.dart';
 import 'auth_provider.dart';
 
 /// Indique si l'onglet Outfits est actuellement en mode "Swipe" (true) ou Biblio (false).
@@ -89,6 +90,7 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
       'times_worn': FieldValue.increment(1),
       'last_worn': today,
     });
+    await WidgetSyncBridge.request();
   }
 
   Future<void> setDailyPhoto(String uid, String outfitId, String photoUrl) async {
@@ -120,6 +122,7 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
     await _db.updateOutfit(uid, outfitId, {
       'photo_urls': FieldValue.arrayUnion([photoUrl]),
     });
+    await WidgetSyncBridge.request();
   }
 
   Future<void> clearDailyOutfit(String uid) async {
@@ -153,6 +156,7 @@ class OutfitNotifier extends StateNotifier<AsyncValue<void>> {
       'daily_outfit_id': '',
       'daily_photo_url': '',
     });
+    await WidgetSyncBridge.request();
   }
 
   Future<void> deleteOutfit(String uid, String outfitId) async {

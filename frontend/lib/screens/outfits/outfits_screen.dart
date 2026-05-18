@@ -46,7 +46,11 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
     super.initState();
     // Par défaut : mode Biblio -> on autorise le swipe entre onglets
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (!mounted) return;
+      final wantSwipe = ref.read(outfitsIsSwipeModeProvider);
+      if (wantSwipe) {
+        setState(() => _mode = _Mode.swipe);
+      } else {
         ref.read(outfitsIsSwipeModeProvider.notifier).state = false;
       }
     });

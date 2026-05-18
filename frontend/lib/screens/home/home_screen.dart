@@ -9,6 +9,7 @@ import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/friendship_provider.dart';
 import '../../providers/weather_provider.dart';
+import '../../providers/widget_launch_provider.dart';
 import '../inspiration/inspiration_screen.dart';
 import '../inspiration/search_users_screen.dart';
 import '../outfits/outfits_screen.dart';
@@ -97,6 +98,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         uid.isNotEmpty ? ref.watch(outfitsProvider(uid)) : null;
     final hasGarments = garmentsAsync?.valueOrNull?.isNotEmpty ?? false;
     final hasOutfits = outfitsAsync?.valueOrNull?.isNotEmpty ?? false;
+
+    ref.listen(widgetLaunchRequestProvider, (prev, next) {
+      if (next == null) return;
+      if (next.outfitsSwipeMode) {
+        ref.read(outfitsIsSwipeModeProvider.notifier).state = true;
+      }
+      final unlocked = [true, hasGarments, hasOutfits, true];
+      if (unlocked[next.tab]) {
+        ref.read(selectedTabProvider.notifier).state = next.tab;
+      }
+      if (next.openPublish) {
+        ref.read(inspoPublishTriggerProvider.notifier).state++;
+      }
+      ref.read(widgetLaunchRequestProvider.notifier).state = null;
+    });
 
     // Listen to selectedTabProvider for programmatic tab changes (e.g. from InspirationScreen)
     ref.listen(selectedTabProvider, (prev, next) {
