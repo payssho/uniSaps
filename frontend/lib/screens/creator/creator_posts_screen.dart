@@ -181,95 +181,110 @@ class _PostTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final imageUrl = post.displayImageUrl;
+    final radius = BorderRadius.circular(14);
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: radius,
         side: BorderSide(color: AppColors.divider.withValues(alpha: 0.65)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AspectRatio(
-            aspectRatio: 3 / 4,
-            child: imageUrl.isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: imageUrl,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                    placeholder: (_, __) => Container(
+      child: InkWell(
+        onTap: () => CreatorPostPreviewSheet.show(context, post),
+        borderRadius: radius,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: 3 / 4,
+              child: imageUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
+                      placeholder: (_, __) => Container(
+                        color: AppColors.surfaceVariant,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Container(
                       color: AppColors.surfaceVariant,
-                      child: const Center(
-                        child: SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
+                      child:
+                          const Icon(Icons.image_outlined, color: AppColors.textHint),
                     ),
-                  )
-                : Container(
-                    color: AppColors.surfaceVariant,
-                    child: const Icon(Icons.image_outlined, color: AppColors.textHint),
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  post.caption.isNotEmpty ? post.caption : 'Post sponsorisé',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: post.isActive
-                            ? AppColors.success.withValues(alpha: 0.12)
-                            : AppColors.textHint.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        post.isActive ? 'Actif' : 'Inactif',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: post.isActive ? AppColors.success : AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      tooltip: 'Aperçu',
-                      visualDensity: VisualDensity.compact,
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                      icon: const Icon(Icons.visibility_outlined, size: 22),
-                      onPressed: () => CreatorPostPreviewSheet.show(context, post),
-                    ),
-                    Transform.scale(
-                      scale: 0.82,
-                      alignment: Alignment.center,
-                      child: Switch.adaptive(
-                        value: post.isActive,
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        onChanged: (v) => ref
-                            .read(creatorPostNotifierProvider.notifier)
-                            .setPostActive(post.id, v),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.caption.isNotEmpty ? post.caption : 'Post sponsorisé',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style:
+                        const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: post.isActive
+                                  ? AppColors.success.withValues(alpha: 0.12)
+                                  : AppColors.textHint.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              post.isActive ? 'Actif' : 'Inactif',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: post.isActive
+                                    ? AppColors.success
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        height: 30,
+                        width: 42,
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          alignment: Alignment.centerRight,
+                          child: Switch.adaptive(
+                            value: post.isActive,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            onChanged: (v) => ref
+                                .read(creatorPostNotifierProvider.notifier)
+                                .setPostActive(post.id, v),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

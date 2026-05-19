@@ -13,6 +13,7 @@ import '../../models/post_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/post_provider.dart';
+import '../../providers/inspiration_feed_dev_provider.dart';
 import '../../providers/friendship_provider.dart';
 import '../home/home_screen.dart';
 import 'search_users_screen.dart';
@@ -65,6 +66,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
   void _toggleFeed(bool friends) {
     if (_showFriends == friends) return;
     setState(() => _showFriends = friends);
+    ref.read(inspirationExplorerVisibleProvider.notifier).state = !friends;
     _horizontalPageController.animateToPage(
       friends ? 0 : 1,
       duration: const Duration(milliseconds: 280),
@@ -90,7 +92,11 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
           PageView(
             controller: _horizontalPageController,
             physics: const NeverScrollableScrollPhysics(),
-            onPageChanged: (i) => setState(() => _showFriends = i == 0),
+            onPageChanged: (i) {
+              setState(() => _showFriends = i == 0);
+              ref.read(inspirationExplorerVisibleProvider.notifier).state =
+                  i == 1;
+            },
             children: [
               _FriendsFeed(
                 uid: uid,

@@ -8,7 +8,9 @@ import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 import 'auth_provider.dart';
 import 'garment_provider.dart';
+import '../data/mock_explore_feed_posts.dart';
 import '../utils/feed_mix.dart';
+import 'inspiration_feed_dev_provider.dart';
 
 final postsProvider = StreamProvider<List<PostModel>>((ref) {
   return ref.watch(firestoreServiceProvider).postsStream();
@@ -18,6 +20,7 @@ final postsProvider = StreamProvider<List<PostModel>>((ref) {
 final exploreFeedProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
   final all = ref.watch(postsProvider);
   final sponsored = ref.watch(_sponsoredActiveProvider);
+  final mockAdsOn = ref.watch(exploreDevMockPostsEnabledProvider);
   return all.when(
     data: (organicPosts) {
       return sponsored.when(
@@ -25,8 +28,11 @@ final exploreFeedProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
           final organic = organicPosts
               .where((p) => p.isOrganic && !p.isSponsored)
               .toList();
+          final sponsoredPool = mockAdsOn
+              ? [...kMockExploreFeedPosts, ...sponsoredPosts]
+              : sponsoredPosts;
           return AsyncValue.data(
-            mixExploreFeed(organic: organic, sponsoredActive: sponsoredPosts),
+            mixExploreFeed(organic: organic, sponsoredActive: sponsoredPool),
           );
         },
         loading: () => const AsyncValue.loading(),

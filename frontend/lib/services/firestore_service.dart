@@ -6,6 +6,7 @@ import '../models/outfit_model.dart';
 import '../models/post_model.dart';
 import '../models/friend_request_model.dart';
 import '../models/collection_model.dart';
+import '../data/mock_explore_feed_posts.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -219,6 +220,10 @@ class FirestoreService {
   }
 
   Future<bool> toggleLike(String postId, String uid) async {
+    // Posts factices Explorer (dev) : pas de document Firestore.
+    if (isDevMockExplorePostId(postId)) {
+      return false;
+    }
     final ref = _postCol.doc(postId);
     final snap = await ref.get();
     final likedBy = List<String>.from(snap.data()?['liked_by'] ?? []);
@@ -239,10 +244,12 @@ class FirestoreService {
 
   Future<void> deletePost(String postId) async {
     if (postId.isEmpty) throw Exception('ID du post invalide.');
+    if (isDevMockExplorePostId(postId)) return;
     await _postCol.doc(postId).delete();
   }
 
   Future<void> updatePostCaption(String postId, String caption) async {
+    if (isDevMockExplorePostId(postId)) return;
     await _postCol.doc(postId).update({'caption': caption});
   }
 

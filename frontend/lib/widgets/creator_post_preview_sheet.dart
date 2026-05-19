@@ -46,12 +46,7 @@ class CreatorPostPreviewSheet extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Rendu approximatif dans l’onglet Explorer.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Flexible(
               child: SingleChildScrollView(
                 child: PostCard(

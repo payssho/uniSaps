@@ -9,6 +9,7 @@ import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/friendship_provider.dart';
 import '../../providers/weather_provider.dart';
+import '../../providers/inspiration_feed_dev_provider.dart';
 import '../inspiration/inspiration_screen.dart';
 import '../inspiration/search_users_screen.dart';
 import '../outfits/outfits_screen.dart';
@@ -236,6 +237,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (_currentTab == 2) ...[
+                        Consumer(
+                          builder: (_, ref, __) {
+                            final explorer =
+                                ref.watch(inspirationExplorerVisibleProvider);
+                            if (!explorer) {
+                              return const SizedBox.shrink();
+                            }
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const _ExploreDevMockAdsToggle(),
+                                const SizedBox(width: 8),
+                              ],
+                            );
+                          },
+                        ),
                         _SearchFriendsButton(),
                       ],
                     ],
@@ -310,6 +327,49 @@ class _KeepAliveState extends State<_KeepAlive>
   Widget build(BuildContext context) {
     super.build(context);
     return widget.child;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Faux posts sponsorisés — fil Explorer (dev / test)
+// ---------------------------------------------------------------------------
+class _ExploreDevMockAdsToggle extends ConsumerWidget {
+  const _ExploreDevMockAdsToggle();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final on = ref.watch(exploreDevMockPostsEnabledProvider);
+    return Tooltip(
+      message: on
+          ? 'Désactiver les faux posts sponsorisés (test)'
+          : 'Activer ~30 faux posts sponsorisés (test)',
+      child: GestureDetector(
+        onTap: () => ref
+            .read(exploreDevMockPostsEnabledProvider.notifier)
+            .update((s) => !s),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: on
+                ? AppColors.accent.withValues(alpha: 0.2)
+                : AppColors.surface,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.graphite.withOpacity(0.15),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Icon(
+            Icons.campaign_outlined,
+            size: 18,
+            color: on ? AppColors.accent : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
   }
 }
 
