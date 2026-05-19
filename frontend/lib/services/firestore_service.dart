@@ -144,6 +144,17 @@ class FirestoreService {
         .toList();
   }
 
+  Future<List<GarmentModel>> getGarmentsByCollectionId(String uid, String collectionId) async {
+    if (collectionId.isEmpty) return [];
+    final snap =
+        await _garmentCol(uid).where('collection_id', isEqualTo: collectionId).get();
+    return snap.docs.map((d) => GarmentModel.fromMap(d.data(), docId: d.id)).toList();
+  }
+
+  Future<void> deleteCollectionDocument(String uid, String collectionId) async {
+    await _collectionCol(uid).doc(collectionId).delete();
+  }
+
   Stream<List<CollectionModel>> collectionsStream(String uid) {
     return _collectionCol(uid)
         .orderBy('created_at', descending: true)

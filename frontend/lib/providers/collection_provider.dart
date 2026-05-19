@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/collection_model.dart';
 import '../models/garment_model.dart';
+import '../models/collection_model.dart';
 import '../services/firestore_service.dart';
 import 'auth_provider.dart';
 import 'garment_provider.dart';
@@ -25,8 +25,10 @@ final garmentsByCollectionProvider =
 
 class CollectionNotifier extends StateNotifier<AsyncValue<void>> {
   final FirestoreService _db;
+  final GarmentNotifier Function() _garmentNotifier;
 
-  CollectionNotifier(this._db) : super(const AsyncValue.data(null));
+  CollectionNotifier(this._db, this._garmentNotifier)
+      : super(const AsyncValue.data(null));
 
   Future<String?> createCollection({
     required String userId,
@@ -51,9 +53,33 @@ class CollectionNotifier extends StateNotifier<AsyncValue<void>> {
       return null;
     }
   }
+
+  /// Supprime tous les vêtements de la collection puis le document collection.
+  Future<bool> deleteCollection({
+    required String uid,
+    required String collectionId,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final garments = await _db.getGarmentsByCollectionId(uid, collectionId);
+      final notifier = _garmentNotifier();
+      for (final g in garments) {
+        await notifier.deleteGarment(uid, g.id);
+      }
+      await _db.deleteCollectionDocument(uid, collectionId);
+      state = const AsyncValue.data(null);
+      return true;
+    } catch (e) {
+      state = AsyncValue.error(e.toString(), StackTrace.current);
+      return false;
+    }
+  }
 }
 
 final collectionNotifierProvider =
     StateNotifierProvider<CollectionNotifier, AsyncValue<void>>((ref) {
-  return CollectionNotifier(ref.watch(firestoreServiceProvider));
+  return CollectionNotifier(
+    ref.watch(firestoreServiceProvider),
+    () => ref.read(garmentNotifierProvider.notifier),
+  );
 });

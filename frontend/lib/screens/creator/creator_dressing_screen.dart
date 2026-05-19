@@ -73,32 +73,150 @@ class CreatorDressingScreen extends ConsumerWidget {
     );
   }
 
+  static String _isoDate(DateTime d) => d.toIso8601String().substring(0, 10);
+
   Future<void> _createCollection(BuildContext context, WidgetRef ref, String uid) async {
     final nameController = TextEditingController();
+    var startDate = DateTime.now();
+    var endDate = DateTime.now();
+
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Nouvelle collection'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(hintText: 'Nom de la collection'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Créer')),
-        ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          Future<void> pickStart() async {
+            final picked = await showDatePicker(
+              context: ctx,
+              initialDate: startDate,
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null) setLocal(() => startDate = picked);
+          }
+
+          Future<void> pickEnd() async {
+            final picked = await showDatePicker(
+              context: ctx,
+              initialDate: endDate,
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null) setLocal(() => endDate = picked);
+          }
+
+          return AlertDialog(
+            title: const Text('Nouvelle collection'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      hintText: 'Nom de la collection',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Date de début'),
+                    subtitle: Text(_isoDate(startDate)),
+                    trailing: const Icon(Icons.calendar_today_outlined, size: 20),
+                    onTap: pickStart,
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Date de fin'),
+                    subtitle: Text(_isoDate(endDate)),
+                    trailing: const Icon(Icons.calendar_today_outlined, size: 20),
+                    onTap: pickEnd,
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Créer')),
+            ],
+          );
+        },
       ),
     );
-    if (ok != true || !context.mounted) return;
+
+    if (ok != true || !context.mounted) {
+      nameController.dispose();
+      return;
+    }
     final name = nameController.text.trim();
-    if (name.isEmpty) return;
-    final today = DateTime.now().toIso8601String().substring(0, 10);
+    nameController.dispose();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Indique un nom de collection.')),
+      );
+      return;
+    }
+
+    var s = startDate;
+    var e = endDate;
+    if (e.isBefore(s)) {
+      final tmp = s;
+      s = e;
+      e = tmp;
+    }
+
     await ref.read(collectionNotifierProvider.notifier).createCollection(
           userId: uid,
           name: name,
-          startDate: today,
-          endDate: today,
+          startDate: _isoDate(s),
+          endDate: _isoDate(e),
         );
+  }
+
+  Future<void> _confirmDeleteCollection(
+    BuildContext context,
+    WidgetRef ref,
+    CollectionModel collection,
+    int garmentCount,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer la collection ?'),
+        content: Text(
+          garmentCount > 0
+              ? '« ${collection.name} » et ses $garmentCount pièce${garmentCount > 1 ? 's' : ''} '
+                  'seront supprimées définitivement.'
+              : '« ${collection.name} » sera supprimée.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final success = await ref.read(collectionNotifierProvider.notifier).deleteCollection(
+          uid: uid,
+          collectionId: collection.id,
+        );
+    if (!context.mounted) return;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Collection supprimée.')),
+      );
+    } else {
+      final err = ref.read(collectionNotifierProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(err != null ? '$err' : 'Suppression impossible.')),
+      );
+    }
   }
 
   @override
@@ -170,6 +288,8 @@ class CreatorDressingScreen extends ConsumerWidget {
                         garments: items,
                         onAdd: () => _showAddGarment(context, collectionId: col.id),
                         onGarmentTap: (g) => _showGarmentDetails(context, ref, uid, g),
+                        onDeleteCollection: () =>
+                            _confirmDeleteCollection(context, ref, col, items.length),
                       );
                     },
                   );
@@ -205,12 +325,14 @@ class _CollectionSection extends StatelessWidget {
   final CollectionModel collection;
   final List<GarmentModel> garments;
   final VoidCallback onAdd;
+  final VoidCallback onDeleteCollection;
   final void Function(GarmentModel) onGarmentTap;
 
   const _CollectionSection({
     required this.collection,
     required this.garments,
     required this.onAdd,
+    required this.onDeleteCollection,
     required this.onGarmentTap,
   });
 
@@ -235,6 +357,12 @@ class _CollectionSection extends StatelessWidget {
                       ),
                   ],
                 ),
+              ),
+              IconButton(
+                tooltip: 'Supprimer la collection',
+                icon: const Icon(Icons.delete_outline_rounded),
+                color: AppColors.error,
+                onPressed: onDeleteCollection,
               ),
               TextButton.icon(
                 onPressed: onAdd,

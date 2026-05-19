@@ -100,15 +100,20 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   void _scheduleScrollFocusedIntoView() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (!_formScrollController.hasClients) return;
       final ctx = FocusManager.instance.primaryFocus?.context;
-      if (ctx != null) {
-        Scrollable.ensureVisible(
-          ctx,
-          alignment: 0.12,
-          duration: const Duration(milliseconds: 320),
+      if (ctx == null) return;
+      final ro = ctx.findRenderObject();
+      if (ro == null || !ro.attached) return;
+      try {
+        // Cible uniquement le scroll du formulaire (évite de faire bouger la route modale).
+        _formScrollController.position.ensureVisible(
+          ro,
+          alignment: 0.22,
+          duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutCubic,
         );
-      }
+      } catch (_) {}
     });
   }
 
