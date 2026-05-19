@@ -137,7 +137,20 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                                 padding: const EdgeInsets.only(top: 12, bottom: 8),
                                 child: Text(title, style: AppTextStyles.heading3),
                               ),
-                              ...e.value.map((p) => _PostTile(post: p)),
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 0.51,
+                                ),
+                                itemCount: e.value.length,
+                                itemBuilder: (_, i) =>
+                                    _PostTile(post: e.value[i]),
+                              ),
                             ],
                           );
                         }).toList(),
@@ -169,35 +182,89 @@ class _PostTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final imageUrl = post.displayImageUrl;
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: AppColors.divider.withValues(alpha: 0.65)),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (imageUrl.isNotEmpty)
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-              child: CachedNetworkImage(
-                imageUrl: imageUrl,
-                height: 160,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ListTile(
-            title: Text(post.caption.isNotEmpty ? post.caption : 'Post sponsorisé'),
-            subtitle: Text(post.isActive ? 'Actif' : 'Inactif'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+          AspectRatio(
+            aspectRatio: 3 / 4,
+            child: imageUrl.isNotEmpty
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                    placeholder: (_, __) => Container(
+                      color: AppColors.surfaceVariant,
+                      child: const Center(
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ),
+                  )
+                : Container(
+                    color: AppColors.surfaceVariant,
+                    child: const Icon(Icons.image_outlined, color: AppColors.textHint),
+                  ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  tooltip: 'Aperçu',
-                  icon: const Icon(Icons.visibility_outlined),
-                  onPressed: () => CreatorPostPreviewSheet.show(context, post),
+                Text(
+                  post.caption.isNotEmpty ? post.caption : 'Post sponsorisé',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                 ),
-                Switch(
-                  value: post.isActive,
-                  onChanged: (v) => ref
-                      .read(creatorPostNotifierProvider.notifier)
-                      .setPostActive(post.id, v),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: post.isActive
+                            ? AppColors.success.withValues(alpha: 0.12)
+                            : AppColors.textHint.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        post.isActive ? 'Actif' : 'Inactif',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: post.isActive ? AppColors.success : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: 'Aperçu',
+                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      icon: const Icon(Icons.visibility_outlined, size: 22),
+                      onPressed: () => CreatorPostPreviewSheet.show(context, post),
+                    ),
+                    Transform.scale(
+                      scale: 0.82,
+                      alignment: Alignment.center,
+                      child: Switch.adaptive(
+                        value: post.isActive,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        onChanged: (v) => ref
+                            .read(creatorPostNotifierProvider.notifier)
+                            .setPostActive(post.id, v),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

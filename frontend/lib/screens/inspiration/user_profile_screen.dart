@@ -776,13 +776,19 @@ class _PostsTab extends ConsumerWidget {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 14,
+        childAspectRatio: 0.52,
+      ),
       itemCount: posts.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 14),
       itemBuilder: (_, i) => PostCard(
         post: posts[i],
         currentUid: uid,
+        layout: PostCardLayout.grid,
         onLike: () => ref.read(postNotifierProvider.notifier).toggleLike(posts[i].id, uid),
         onTap: () => _showPostDetails(context, posts[i]),
       ),

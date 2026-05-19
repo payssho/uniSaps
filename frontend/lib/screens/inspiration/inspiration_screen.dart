@@ -1481,8 +1481,8 @@ class _InspoPostCardState extends State<_InspoPostCard>
           GestureDetector(
             onDoubleTap: _onDoubleTapImage,
             child: AspectRatio(
-              // Un peu moins haut que 4/5 pour que la carte tienne mieux à l’écran.
-              aspectRatio: 7 / 8,
+              // Ratio plus « portrait » pour mieux voir les photos verticales.
+              aspectRatio: 2 / 3,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
