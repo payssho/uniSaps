@@ -125,11 +125,6 @@ class CreatorDressingScreen extends ConsumerWidget {
                     onPressed: () => _createCollection(context, ref, uid),
                     icon: const Icon(Icons.create_new_folder_outlined),
                   ),
-                  IconButton(
-                    tooltip: 'Ajouter un vêtement',
-                    onPressed: () => _showAddGarment(context),
-                    icon: const Icon(Icons.add),
-                  ),
                 ],
               ),
             ),
@@ -165,7 +160,7 @@ class CreatorDressingScreen extends ConsumerWidget {
                     );
                   }
                   return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
                     itemCount: sorted.length,
                     itemBuilder: (context, index) {
                       final col = sorted[index];
@@ -186,6 +181,20 @@ class CreatorDressingScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16, right: 16),
+        child: FloatingActionButton.extended(
+          heroTag: 'creator_catalog_fab',
+          backgroundColor: AppColors.accent,
+          elevation: 6,
+          onPressed: () => _showAddGarment(context),
+          icon: const Icon(Icons.add, color: AppColors.white, size: 24),
+          label: const Text(
+            'Ajouter',
+            style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
+          ),
         ),
       ),
     );

@@ -85,10 +85,43 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   final _newCollectionNameController = TextEditingController();
   final _collectionStartController = TextEditingController();
   final _collectionEndController = TextEditingController();
+  final ScrollController _formScrollController = ScrollController();
+  final FocusNode _nameFocusNode = FocusNode();
+  final FocusNode _newCollectionFocusNode = FocusNode();
+  final FocusNode _collectionStartFocusNode = FocusNode();
+  final FocusNode _collectionEndFocusNode = FocusNode();
+
+  void _bindScrollOnFocus(FocusNode node) {
+    node.addListener(() {
+      if (node.hasFocus) _scheduleScrollFocusedIntoView();
+    });
+  }
+
+  void _scheduleScrollFocusedIntoView() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final ctx = FocusManager.instance.primaryFocus?.context;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.12,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    _bindScrollOnFocus(_nameFocusNode);
+    _bindScrollOnFocus(_newCollectionFocusNode);
+    _bindScrollOnFocus(_collectionStartFocusNode);
+    _bindScrollOnFocus(_collectionEndFocusNode);
+    if (widget.creatorCatalogMode) {
+      _useAiAnalysis = false;
+    }
     _previewController = PageController();
     _nameController = TextEditingController(text: widget.garment?.name ?? '');
     _brandController = TextEditingController(text: widget.garment?.brand ?? '');
@@ -136,6 +169,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     _newCollectionNameController.dispose();
     _collectionStartController.dispose();
     _collectionEndController.dispose();
+    _formScrollController.dispose();
+    _nameFocusNode.dispose();
+    _newCollectionFocusNode.dispose();
+    _collectionStartFocusNode.dispose();
+    _collectionEndFocusNode.dispose();
     super.dispose();
   }
 
@@ -672,6 +710,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             else ...[
               TextField(
                 controller: _newCollectionNameController,
+                focusNode: _newCollectionFocusNode,
+                scrollPadding: const EdgeInsets.only(bottom: 160),
                 decoration: const InputDecoration(
                   hintText: 'Nom de la collection',
                   border: OutlineInputBorder(
@@ -685,6 +725,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                   Expanded(
                     child: TextField(
                       controller: _collectionStartController,
+                      focusNode: _collectionStartFocusNode,
+                      scrollPadding: const EdgeInsets.only(bottom: 160),
                       decoration: const InputDecoration(
                         labelText: 'Début (AAAA-MM-JJ)',
                         border: OutlineInputBorder(
@@ -697,6 +739,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                   Expanded(
                     child: TextField(
                       controller: _collectionEndController,
+                      focusNode: _collectionEndFocusNode,
+                      scrollPadding: const EdgeInsets.only(bottom: 160),
                       decoration: const InputDecoration(
                         labelText: 'Fin (AAAA-MM-JJ)',
                         border: OutlineInputBorder(
@@ -856,6 +900,9 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   }
 
   Widget _buildAiSwitchSection(BuildContext context, bool isPremium) {
+    if (widget.creatorCatalogMode) {
+      return const SizedBox.shrink();
+    }
     final tiles = Column(
       children: [
         if (!widget.creatorCatalogMode)
@@ -934,200 +981,196 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       }
     });
 
-    final catalogBrandDisplay = widget.creatorCatalogMode
-        ? ref.watch(currentUserProvider).maybeWhen(
-              data: (u) {
-                if (u == null) return '…';
-                final l = creatorCatalogBrandLabel(u);
-                return l.isEmpty ? '—' : l;
-              },
-              orElse: () => '…',
-            )
-        : '';
+    final mediaQuery = MediaQuery.of(context);
+    final keyboardInset = mediaQuery.viewInsets.bottom;
+    final availableHeight = mediaQuery.size.height - keyboardInset;
+    final sheetHeight = (availableHeight * 0.94).clamp(280.0, mediaQuery.size.height);
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 20),
-              decoration: BoxDecoration(
-                color: AppColors.textHint.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        height: sheetHeight,
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: SafeArea(
+          top: true,
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.textHint.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text(
-                    widget.garment == null ? 'Nouveau vêtement' : 'Modifier le vêtement',
-                    style: AppTextStyles.heading2.copyWith(fontSize: 22),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                    color: AppColors.textSecondary,
-                  ),
-                ],
-              ),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
                   children: [
-                    _buildPhotoPreview(),
-                    const SizedBox(height: 10),
-                    if (_slots.length < _kMaxGarmentImages)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: _aiAnalyzing ? null : _openPickSources,
-                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 20),
-                          label: Text(
-                            _slots.isEmpty
-                                ? 'Ajouter des photos'
-                                : 'Ajouter d’autres photos (${_slots.length}/$_kMaxGarmentImages)',
-                          ),
-                          style: TextButton.styleFrom(foregroundColor: AppColors.accent),
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                    _buildAiSwitchSection(context, ref.watch(isPremiumProvider)),
-                    const SizedBox(height: 24),
-                    TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        hintText: 'Nom / description',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                        ),
-                      ),
+                    Text(
+                      widget.garment == null ? 'Nouveau vêtement' : 'Modifier le vêtement',
+                      style: AppTextStyles.heading2.copyWith(fontSize: 22),
                     ),
-                    const SizedBox(height: 16),
-                    if (widget.creatorCatalogMode) ...[
-                      const Text('Marque', style: AppTextStyles.heading3),
-                      const SizedBox(height: 8),
-                      Text(
-                        catalogBrandDisplay,
-                        style: AppTextStyles.bodySecondary.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ] else ...[
-                      BrandSelector(
-                        controller: _brandController,
-                        initialValue: widget.garment?.brand,
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    const Text('Couleurs', style: AppTextStyles.heading3),
-                    const SizedBox(height: 8),
-                    MultiColorSelector(
-                      key: ValueKey('colors_${_selectedColors.join("_")}'),
-                      initialColors: _selectedColors,
-                      onColorsChanged: (colors) {
-                        setState(() => _selectedColors = colors);
-                      },
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                      color: AppColors.textSecondary,
                     ),
-                    if (widget.requireCollection) ...[
-                      const SizedBox(height: 24),
-                      _buildCollectionSection(ref.watch(authServiceProvider).uid),
-                    ],
-                    const SizedBox(height: 24),
-                    const Text('Catégorie', style: AppTextStyles.heading3),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: categories.map((cat) {
-                        final selected = _selectedCategory == cat.key;
-                        return ChoiceChip(
-                          label: Text(cat.label),
-                          avatar: Icon(cat.icon, size: 18),
-                          selected: selected,
-                          selectedColor: AppColors.accent,
-                          labelStyle: TextStyle(
-                            color: selected ? AppColors.white : AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          onSelected: (_) => setState(() => _selectedCategory = cat.key),
-                        );
-                      }).toList(),
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.error, width: 1),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.error_outline, color: AppColors.error, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _error!,
-                                style: const TextStyle(
-                                  color: AppColors.error,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: _loading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
-                              )
-                            : Text(
-                                widget.garment == null ? 'Enregistrer' : 'Modifier',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
                   ],
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _formScrollController,
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildPhotoPreview(),
+                      const SizedBox(height: 10),
+                      if (_slots.length < _kMaxGarmentImages)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: _aiAnalyzing ? null : _openPickSources,
+                            icon: const Icon(Icons.add_photo_alternate_outlined, size: 20),
+                            label: Text(
+                              _slots.isEmpty
+                                  ? 'Ajouter des photos'
+                                  : 'Ajouter d’autres photos (${_slots.length}/$_kMaxGarmentImages)',
+                            ),
+                            style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      _buildAiSwitchSection(context, ref.watch(isPremiumProvider)),
+                      const SizedBox(height: 24),
+                      TextField(
+                        controller: _nameController,
+                        focusNode: _nameFocusNode,
+                        scrollPadding: const EdgeInsets.only(bottom: 160),
+                        decoration: const InputDecoration(
+                          hintText: 'Nom / description',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (!widget.creatorCatalogMode) ...[
+                        BrandSelector(
+                          controller: _brandController,
+                          initialValue: widget.garment?.brand,
+                          onFocusGain: _scheduleScrollFocusedIntoView,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      const Text('Couleurs', style: AppTextStyles.heading3),
+                      const SizedBox(height: 8),
+                      MultiColorSelector(
+                        key: ValueKey('colors_${_selectedColors.join("_")}'),
+                        initialColors: _selectedColors,
+                        onColorsChanged: (colors) {
+                          setState(() => _selectedColors = colors);
+                        },
+                        onSearchFocusGain: _scheduleScrollFocusedIntoView,
+                      ),
+                      if (widget.requireCollection) ...[
+                        const SizedBox(height: 24),
+                        _buildCollectionSection(ref.watch(authServiceProvider).uid),
+                      ],
+                      const SizedBox(height: 24),
+                      const Text('Catégorie', style: AppTextStyles.heading3),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: categories.map((cat) {
+                          final selected = _selectedCategory == cat.key;
+                          return ChoiceChip(
+                            label: Text(cat.label),
+                            avatar: Icon(cat.icon, size: 18),
+                            selected: selected,
+                            selectedColor: AppColors.accent,
+                            labelStyle: TextStyle(
+                              color: selected ? AppColors.white : AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            onSelected: (_) => setState(() => _selectedCategory = cat.key),
+                          );
+                        }).toList(),
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.error, width: 1),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: const TextStyle(
+                                    color: AppColors.error,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _loading ? null : _save,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: _loading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                                )
+                              : Text(
+                                  widget.garment == null ? 'Enregistrer' : 'Modifier',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      SizedBox(height: 16 + keyboardInset),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
