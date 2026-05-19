@@ -31,7 +31,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
       widget.onSearchFocusGain?.call();
       if (!_showSuggestions) {
         setState(() {
-          _suggestions = ColorService.getColors().take(20).toList();
+          _suggestions = ColorService.quickPickColors();
           _showSuggestions = true;
         });
       }
@@ -86,7 +86,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
   void _onSearchChanged(String value) {
     if (value.isEmpty) {
       setState(() {
-        _suggestions = ColorService.getColors().take(20).toList();
+        _suggestions = ColorService.quickPickColors();
         _showSuggestions = _focusNode.hasFocus;
       });
       return;
@@ -222,7 +222,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
           onTap: () {
             if (!_showSuggestions) {
               setState(() {
-                _suggestions = ColorService.getColors().take(20).toList();
+                _suggestions = ColorService.quickPickColors();
                 _showSuggestions = true;
               });
             }
@@ -241,7 +241,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
                     onPressed: () {
                       _searchController.clear();
                       setState(() {
-                        _suggestions = ColorService.getColors().take(20).toList();
+                        _suggestions = ColorService.quickPickColors();
                       });
                     },
                   )

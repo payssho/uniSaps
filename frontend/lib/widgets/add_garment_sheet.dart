@@ -1,3 +1,4 @@
+import 'dart:math' show min;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -86,50 +87,10 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   final _collectionStartController = TextEditingController();
   final _collectionEndController = TextEditingController();
   final ScrollController _formScrollController = ScrollController();
-  final FocusNode _nameFocusNode = FocusNode();
-  final FocusNode _newCollectionFocusNode = FocusNode();
-  final FocusNode _collectionStartFocusNode = FocusNode();
-  final FocusNode _collectionEndFocusNode = FocusNode();
-
-  void _bindScrollOnFocus(FocusNode node) {
-    node.addListener(() {
-      if (node.hasFocus) _scheduleScrollFocusedIntoView();
-    });
-  }
-
-  void _scheduleScrollFocusedIntoView() {
-    void scrollFieldToTopOfForm() {
-      if (!mounted) return;
-      if (!_formScrollController.hasClients) return;
-      final ctx = FocusManager.instance.primaryFocus?.context;
-      if (ctx == null) return;
-      final ro = ctx.findRenderObject();
-      if (ro == null || !ro.attached) return;
-      try {
-        // Pas de scrollPadding sur les TextField : évite le double-scroll Flutter + modal.
-        // On place le champ actif le plus haut possible dans le viewport du formulaire.
-        _formScrollController.position.ensureVisible(
-          ro,
-          alignment: 0.0,
-          duration: const Duration(milliseconds: 240),
-          curve: Curves.easeOutCubic,
-        );
-      } catch (_) {}
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Après ouverture du clavier / recalcul du sheet (viewInsets).
-      Future.delayed(const Duration(milliseconds: 100), scrollFieldToTopOfForm);
-    });
-  }
 
   @override
   void initState() {
     super.initState();
-    _bindScrollOnFocus(_nameFocusNode);
-    _bindScrollOnFocus(_newCollectionFocusNode);
-    _bindScrollOnFocus(_collectionStartFocusNode);
-    _bindScrollOnFocus(_collectionEndFocusNode);
     if (widget.creatorCatalogMode) {
       _useAiAnalysis = false;
     }
@@ -181,10 +142,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     _collectionStartController.dispose();
     _collectionEndController.dispose();
     _formScrollController.dispose();
-    _nameFocusNode.dispose();
-    _newCollectionFocusNode.dispose();
-    _collectionStartFocusNode.dispose();
-    _collectionEndFocusNode.dispose();
     super.dispose();
   }
 
@@ -992,7 +949,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             else ...[
               TextField(
                 controller: _newCollectionNameController,
-                focusNode: _newCollectionFocusNode,
                 scrollPadding: EdgeInsets.zero,
                 decoration: const InputDecoration(
                   hintText: 'Nom de la collection',
@@ -1007,7 +963,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                   Expanded(
                     child: TextField(
                       controller: _collectionStartController,
-                      focusNode: _collectionStartFocusNode,
                       scrollPadding: EdgeInsets.zero,
                       decoration: const InputDecoration(
                         labelText: 'Début (AAAA-MM-JJ)',
@@ -1021,7 +976,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                   Expanded(
                     child: TextField(
                       controller: _collectionEndController,
-                      focusNode: _collectionEndFocusNode,
                       scrollPadding: EdgeInsets.zero,
                       decoration: const InputDecoration(
                         labelText: 'Fin (AAAA-MM-JJ)',
@@ -1264,9 +1218,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     });
 
     final mediaQuery = MediaQuery.of(context);
+    final screenH = mediaQuery.size.height;
     final keyboardInset = mediaQuery.viewInsets.bottom;
-    final availableHeight = mediaQuery.size.height - keyboardInset;
-    final sheetHeight = (availableHeight * 0.94).clamp(280.0, mediaQuery.size.height);
+    // Ne pas appliquer 0,94 deux fois sur la zone déjà réduite par le clavier (sheet trop basse / illisible).
+    final sheetHeight =
+        min(screenH * 0.94, screenH - keyboardInset).clamp(280.0, screenH);
 
     return Align(
       alignment: Alignment.bottomCenter,
@@ -1315,7 +1271,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                 child: SingleChildScrollView(
                   controller: _formScrollController,
                   keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                  padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + keyboardInset),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1340,7 +1296,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                       const SizedBox(height: 24),
                       TextField(
                         controller: _nameController,
-                        focusNode: _nameFocusNode,
                         scrollPadding: EdgeInsets.zero,
                         decoration: const InputDecoration(
                           hintText: 'Nom / description',
@@ -1354,7 +1309,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                         BrandSelector(
                           controller: _brandController,
                           initialValue: widget.garment?.brand,
-                          onFocusGain: _scheduleScrollFocusedIntoView,
                         ),
                         const SizedBox(height: 16),
                       ],
@@ -1366,7 +1320,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                         onColorsChanged: (colors) {
                           setState(() => _selectedColors = colors);
                         },
-                        onSearchFocusGain: _scheduleScrollFocusedIntoView,
                       ),
                       if (widget.requireCollection) ...[
                         const SizedBox(height: 24),
