@@ -5,11 +5,14 @@ import '../services/brand_service.dart';
 class BrandSelector extends StatefulWidget {
   final TextEditingController controller;
   final String? initialValue;
+  /// Appelé lorsque le champ marque reçoit le focus (ex. scroll dans une bottom sheet).
+  final VoidCallback? onFocusGain;
 
   const BrandSelector({
     super.key,
     required this.controller,
     this.initialValue,
+    this.onFocusGain,
   });
 
   @override
@@ -31,6 +34,9 @@ class _BrandSelectorState extends State<BrandSelector> {
       widget.controller.text = widget.initialValue!;
     }
     _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        widget.onFocusGain?.call();
+      }
       if (!_focusNode.hasFocus) {
         // Délai pour permettre aux clics sur la liste de se terminer
         Future.delayed(const Duration(milliseconds: 150), () {
@@ -94,6 +100,7 @@ class _BrandSelectorState extends State<BrandSelector> {
           controller: widget.controller,
           focusNode: _focusNode,
           onChanged: _onTextChanged,
+          scrollPadding: const EdgeInsets.only(bottom: 120),
           onTap: () {
             if (widget.controller.text.isNotEmpty) {
               _onTextChanged(widget.controller.text);

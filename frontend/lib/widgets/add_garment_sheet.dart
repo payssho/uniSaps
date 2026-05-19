@@ -20,6 +20,17 @@ import '../widgets/storage_aware_cached_image.dart';
 
 const int _kMaxGarmentImages = 8;
 
+/// Marque affichée / enregistrée pour le catalogue créateur : pseudo avec @.
+String creatorCatalogBrandLabel(UserModel user) {
+  final raw = user.username.trim();
+  if (raw.isEmpty) {
+    final d = user.displayName.trim();
+    if (d.isEmpty) return '';
+    return d.startsWith('@') ? d : '@$d';
+  }
+  return raw.startsWith('@') ? raw : '@$raw';
+}
+
 /// Une photo locale choisie ou une URL déjà en ligne (édition).
 class _GarmentImageSlot {
   _GarmentImageSlot.network(this.networkUrl) : file = null;
@@ -33,12 +44,15 @@ class AddGarmentSheet extends ConsumerStatefulWidget {
   final GarmentModel? garment;
   final bool requireCollection;
   final String? initialCollectionId;
+  /// Flux catalogue marque : pas de suppression de fond IA, marque = @ du compte.
+  final bool creatorCatalogMode;
 
   const AddGarmentSheet({
     super.key,
     this.garment,
     this.requireCollection = false,
     this.initialCollectionId,
+    this.creatorCatalogMode = false,
   });
 
   @override
@@ -99,10 +113,16 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     // Ne pas lier _useAiAnalysis au tier ici : tant que le doc Firestore n'est pas
     // chargé, isPremium est faux → l'IA était ignorée en ~1 s sans message.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || widget.garment != null) return;
+      if (!mounted) return;
       final user = ref.read(currentUserProvider).valueOrNull;
       if (user == null) return;
-      if (!user.isPremium) {
+      if (widget.creatorCatalogMode) {
+        final label = creatorCatalogBrandLabel(user);
+        if (label.isNotEmpty) {
+          setState(() => _brandController.text = label);
+        }
+        setState(() => _removeBackground = false);
+      } else if (widget.garment == null && !user.isPremium) {
         setState(() => _removeBackground = false);
       }
     });
@@ -173,9 +193,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           _nameController.text = n;
         }
 
-        final b = (result['brand'] as String?)?.trim() ?? '';
-        if (b.isNotEmpty && _brandController.text.trim().isEmpty) {
-          _brandController.text = b;
+        if (!widget.creatorCatalogMode) {
+          final b = (result['brand'] as String?)?.trim() ?? '';
+          if (b.isNotEmpty && _brandController.text.trim().isEmpty) {
+            _brandController.text = b;
+          }
         }
         _primaryAiApplied = true;
       }
@@ -392,6 +414,14 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       setState(() => _error = 'Le nom est obligatoire.');
       return;
     }
+    if (widget.creatorCatalogMode) {
+      final u = ref.read(currentUserProvider).valueOrNull;
+      if (u == null || creatorCatalogBrandLabel(u).isEmpty) {
+        setState(() => _error =
+            'Ton pseudo (@identifiant) est introuvable. Complète ton profil créateur.');
+        return;
+      }
+    }
     if (widget.requireCollection && widget.garment == null) {
       if (_creatingCollection) {
         final cName = _newCollectionNameController.text.trim();
@@ -436,6 +466,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     }
 
     final premium = ref.read(isPremiumProvider);
+    final userForBrand = ref.read(currentUserProvider).valueOrNull;
+    final brand = widget.creatorCatalogMode && userForBrand != null
+        ? creatorCatalogBrandLabel(userForBrand)
+        : _brandController.text.trim();
+    final stripBackground = premium && _removeBackground && !widget.creatorCatalogMode;
     final imageBytesList = <Uint8List>[];
     final imageNames = <String>[];
     for (final s in _slots) {
@@ -448,11 +483,14 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     final needUpload = imageBytesList.isNotEmpty;
 
     try {
-      if (needUpload) {
+      // Ping backend uniquement si l’upload passe par l’API (ex. suppression de fond).
+      // Sinon upload Firebase direct → pas de dépendance au backend (catalogue créateur, etc.).
+      if (needUpload && stripBackground) {
         try {
           final api = ref.read(apiServiceProvider);
           final healthUrl = api.baseUrl.replaceAll('/api/v1', '/health');
-          final testResponse = await http.get(Uri.parse(healthUrl)).timeout(const Duration(seconds: 5));
+          final testResponse =
+              await http.get(Uri.parse(healthUrl)).timeout(const Duration(seconds: 15));
           if (testResponse.statusCode != 200) {
             throw Exception('Backend non disponible');
           }
@@ -476,7 +514,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         success = await ref.read(garmentNotifierProvider.notifier).addGarment(
               userId: uid,
               name: name,
-              brand: _brandController.text.trim(),
+              brand: brand,
               colors: _selectedColors,
               category: _selectedCategory,
               styleTags: styleTags,
@@ -486,7 +524,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               material: material,
               imageBytesList: imageBytesList,
               imageNames: imageNames,
-              removeBackground: premium && _removeBackground,
+              removeBackground: stripBackground,
               collectionId: collectionId,
             );
       } else {
@@ -495,13 +533,13 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               uid: uid,
               garmentId: widget.garment!.id,
               name: name,
-              brand: _brandController.text.trim(),
+              brand: brand,
               colors: _selectedColors,
               category: _selectedCategory,
               keptImageUrls: keptUrls,
               newImageBytesList: imageBytesList,
               newImageNames: imageNames,
-              removeBackground: premium && _removeBackground,
+              removeBackground: stripBackground,
             );
       }
 
@@ -820,21 +858,22 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   Widget _buildAiSwitchSection(BuildContext context, bool isPremium) {
     final tiles = Column(
       children: [
-        SwitchListTile.adaptive(
-          value: _removeBackground,
-          onChanged: !isPremium || _aiAnalyzing
-              ? null
-              : (value) => setState(() => _removeBackground = value),
-          contentPadding: EdgeInsets.zero,
-          title: const Text(
-            'Supprimer l’arrière-plan',
-            style: AppTextStyles.bodySecondary,
+        if (!widget.creatorCatalogMode)
+          SwitchListTile.adaptive(
+            value: _removeBackground,
+            onChanged: !isPremium || _aiAnalyzing
+                ? null
+                : (value) => setState(() => _removeBackground = value),
+            contentPadding: EdgeInsets.zero,
+            title: const Text(
+              'Supprimer l’arrière-plan',
+              style: AppTextStyles.bodySecondary,
+            ),
+            subtitle: const Text(
+              'Utilise l’IA pour isoler le vêtement. Décoche si tu veux garder le fond.',
+              style: TextStyle(fontSize: 12, color: AppColors.textHint),
+            ),
           ),
-          subtitle: const Text(
-            'Utilise l’IA pour isoler le vêtement. Décoche si tu veux garder le fond.',
-            style: TextStyle(fontSize: 12, color: AppColors.textHint),
-          ),
-        ),
         SwitchListTile.adaptive(
           value: _useAiAnalysis,
           onChanged: !isPremium || _aiAnalyzing
@@ -875,12 +914,36 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<UserModel?>>(currentUserProvider, (prev, next) {
-      if (!mounted || widget.garment != null) return;
+      if (!mounted) return;
       final user = next.valueOrNull;
+      if (widget.creatorCatalogMode) {
+        if (user != null) {
+          final label = creatorCatalogBrandLabel(user);
+          if (label.isNotEmpty && mounted) {
+            setState(() => _brandController.text = label);
+          }
+        }
+        if (_removeBackground && mounted) {
+          setState(() => _removeBackground = false);
+        }
+        return;
+      }
+      if (widget.garment != null) return;
       if (user != null && !user.isPremium && _removeBackground) {
         setState(() => _removeBackground = false);
       }
     });
+
+    final catalogBrandDisplay = widget.creatorCatalogMode
+        ? ref.watch(currentUserProvider).maybeWhen(
+              data: (u) {
+                if (u == null) return '…';
+                final l = creatorCatalogBrandLabel(u);
+                return l.isEmpty ? '—' : l;
+              },
+              orElse: () => '…',
+            )
+        : '';
 
     return Container(
       decoration: const BoxDecoration(
@@ -952,11 +1015,24 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    BrandSelector(
-                      controller: _brandController,
-                      initialValue: widget.garment?.brand,
-                    ),
-                    const SizedBox(height: 16),
+                    if (widget.creatorCatalogMode) ...[
+                      const Text('Marque', style: AppTextStyles.heading3),
+                      const SizedBox(height: 8),
+                      Text(
+                        catalogBrandDisplay,
+                        style: AppTextStyles.bodySecondary.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      BrandSelector(
+                        controller: _brandController,
+                        initialValue: widget.garment?.brand,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     const Text('Couleurs', style: AppTextStyles.heading3),
                     const SizedBox(height: 8),
                     MultiColorSelector(

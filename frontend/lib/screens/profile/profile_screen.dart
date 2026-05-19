@@ -844,7 +844,7 @@ class _ProfileTabRailState extends State<_ProfileTabRail> {
   }
 
   Widget _buildEntry(BuildContext context, int i) {
-    final entries = _ProfileTabRail.entries;
+    const entries = _ProfileTabRail.entries;
     final controller = widget.controller;
     final pendingRequests = widget.pendingRequests;
     final e = entries[i];
@@ -932,7 +932,7 @@ class _ProfileTabRailState extends State<_ProfileTabRail> {
                           child: Text(
                             pendingRequests > 99
                                 ? '99+'
-                                : '${pendingRequests}',
+                                : '$pendingRequests',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: AppColors.white,

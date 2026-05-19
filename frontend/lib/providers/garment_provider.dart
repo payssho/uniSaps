@@ -44,6 +44,25 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
 
   GarmentNotifier(this._db, this._storage, this._apiService) : super(const AsyncValue.data(null));
 
+  /// Sans suppression de fond : upload direct Firebase (pas besoin du backend).
+  /// Avec suppression de fond : passe par l’API (resize / pipeline serveur).
+  Future<String> _uploadGarmentBytes({
+    required String userId,
+    required Uint8List imageBytes,
+    required String filename,
+    required bool removeBackground,
+  }) async {
+    if (!removeBackground) {
+      return _storage.uploadGarmentImageBytes(imageBytes, userId, filename);
+    }
+    return _apiService.uploadImage(
+      imageBytes: imageBytes,
+      filename: filename,
+      folder: 'garments',
+      removeBackground: true,
+    );
+  }
+
   Future<bool> addGarment({
     required String userId,
     required String name,
@@ -68,10 +87,10 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
           throw Exception('Incohérence images / noms de fichiers.');
         }
         for (var i = 0; i < imageBytesList.length; i++) {
-          final u = await _apiService.uploadImage(
+          final u = await _uploadGarmentBytes(
+            userId: userId,
             imageBytes: imageBytesList[i],
             filename: imageNames[i],
-            folder: 'garments',
             removeBackground: removeBackground,
           );
           if (u.isEmpty) {
@@ -145,10 +164,10 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
 
       final uploaded = <String>[];
       for (var i = 0; i < newImageBytesList.length; i++) {
-        final u = await _apiService.uploadImage(
+        final u = await _uploadGarmentBytes(
+          userId: uid,
           imageBytes: newImageBytesList[i],
           filename: newImageNames[i],
-          folder: 'garments',
           removeBackground: removeBackground,
         );
         if (u.isNotEmpty) uploaded.add(u);

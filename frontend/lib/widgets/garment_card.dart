@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
-import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
 import 'garment_photo_carousel.dart';
 

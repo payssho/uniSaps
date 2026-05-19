@@ -22,6 +22,7 @@ class CreatorDressingScreen extends ConsumerWidget {
       builder: (_) => AddGarmentSheet(
         requireCollection: true,
         initialCollectionId: collectionId,
+        creatorCatalogMode: true,
       ),
     );
   }
@@ -48,6 +49,7 @@ class CreatorDressingScreen extends ConsumerWidget {
               garment: garment,
               requireCollection: true,
               initialCollectionId: garment.collectionId,
+              creatorCatalogMode: true,
             ),
           );
         },
