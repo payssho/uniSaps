@@ -303,19 +303,21 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                                   Container(
                                                 color:
                                                     AppColors.surfaceVariant,
-                                                child: Icon(
-                                                  categoryIcon(categoryKey),
+                                                child: GarmentCategoryGlyph(
+                                                  categoryKey: categoryKey,
                                                   color: AppColors.textHint,
+                                                  size: 24,
                                                 ),
                                               ),
                                             )
                                           : Container(
                                               color:
                                                   AppColors.surfaceVariant,
-                                              child: Icon(
-                                                  categoryIcon(categoryKey),
+                                              child: GarmentCategoryGlyph(
+                                                  categoryKey: categoryKey,
                                                   color:
-                                                      AppColors.textHint),
+                                                      AppColors.textHint,
+                                                  size: 24),
                                             ),
                                     ),
                                     Padding(
@@ -694,8 +696,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                         ),
                         errorWidget: (_, __) => Container(
                           color: AppColors.surfaceVariant,
-                          child: Icon(
-                            categoryIcon(catKey),
+                          child: GarmentCategoryGlyph(
+                            categoryKey: catKey,
                             size: 22,
                             color: AppColors.textHint,
                           ),
@@ -1147,8 +1149,8 @@ class _CreationLayerChip extends StatelessWidget {
                           ),
                           errorWidget: (_, __) => Container(
                             color: AppColors.surface,
-                            child: Icon(
-                              categoryIcon(categoryKey),
+                            child: GarmentCategoryGlyph(
+                              categoryKey: categoryKey,
                               size: 18,
                               color: AppColors.textHint,
                             ),
@@ -1156,8 +1158,8 @@ class _CreationLayerChip extends StatelessWidget {
                         )
                       : Container(
                           color: AppColors.surface,
-                          child: Icon(
-                            categoryIcon(categoryKey),
+                          child: GarmentCategoryGlyph(
+                            categoryKey: categoryKey,
                             size: 18,
                             color: AppColors.textHint,
                           ),

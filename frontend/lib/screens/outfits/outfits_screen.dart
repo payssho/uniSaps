@@ -1771,8 +1771,8 @@ class _FallbackOutfitVisual extends StatelessWidget {
                   ),
                   errorWidget: (_, __) => Container(
                     color: AppColors.surfaceVariant,
-                    child: Icon(
-                      categoryIcon(g.category),
+                    child: GarmentCategoryGlyph(
+                      categoryKey: g.category,
                       size: 28,
                       color: AppColors.textHint,
                     ),
