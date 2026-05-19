@@ -15,7 +15,9 @@ import '../../providers/collection_provider.dart';
 import '../../providers/creator_post_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../widgets/creator_post_preview_sheet.dart';
+import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/garment_picker_grid_sheet.dart';
+import '../../widgets/storage_aware_cached_image.dart';
 
 class CreatorPostCreateSheet extends ConsumerStatefulWidget {
   const CreatorPostCreateSheet({super.key});
@@ -28,6 +30,7 @@ class CreatorPostCreateSheet extends ConsumerStatefulWidget {
 class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet> {
   final _nameController = TextEditingController();
   final _captionController = TextEditingController();
+  late final FocusNode _nameFocusNode;
   final Map<String, String> _selected = {};
   final Map<String, GarmentModel> _selectedGarments = {};
   String? _collectionId;
@@ -37,8 +40,24 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
   bool _saving = false;
   String? _error;
 
+  void _onNameFocusChanged() {
+    if (!_nameFocusNode.hasFocus) {
+      _nameFocusNode.canRequestFocus = false;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _nameFocusNode = FocusNode(skipTraversal: true);
+    _nameFocusNode.canRequestFocus = false;
+    _nameFocusNode.addListener(_onNameFocusChanged);
+  }
+
   @override
   void dispose() {
+    _nameFocusNode.removeListener(_onNameFocusChanged);
+    _nameFocusNode.dispose();
     _nameController.dispose();
     _captionController.dispose();
     super.dispose();
@@ -118,6 +137,7 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
   }
 
   Future<void> _pickGarment(String zoneKey, String categoryKey) async {
+    FocusManager.instance.primaryFocus?.unfocus();
     final uid = ref.read(authServiceProvider).uid;
     var garments =
         await ref.read(firestoreServiceProvider).getGarments(uid, category: categoryKey);
@@ -138,6 +158,10 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
         _selectedGarments[zoneKey] = picked;
       });
     }
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) FocusManager.instance.primaryFocus?.unfocus();
+    });
   }
 
   Future<void> _previewFeed() async {
@@ -656,6 +680,11 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                     padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
                     child: TextField(
                       controller: _nameController,
+                      focusNode: _nameFocusNode,
+                      onTap: () {
+                        _nameFocusNode.canRequestFocus = true;
+                        _nameFocusNode.requestFocus();
+                      },
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         hintText: 'Nom du post / look',

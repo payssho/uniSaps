@@ -88,6 +88,24 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   final _collectionStartController = TextEditingController();
   final _collectionEndController = TextEditingController();
 
+  /// Catalogue créateur : même logique que [CreatorPostCreateSheet] pour éviter que le focus
+  /// revienne sur le nom après une bottom sheet (photos, collection…).
+  FocusNode? _creatorCatalogNameFocusNode;
+
+  void _onCreatorCatalogNameFocusChanged() {
+    final n = _creatorCatalogNameFocusNode;
+    if (n != null && !n.hasFocus) {
+      n.canRequestFocus = false;
+    }
+  }
+
+  void _unfocusAfterCreatorCatalogSheet() {
+    if (!widget.creatorCatalogMode || !mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) FocusManager.instance.primaryFocus?.unfocus();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -102,6 +120,12 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     _selectedCollectionId = widget.garment?.collectionId.isNotEmpty == true
         ? widget.garment!.collectionId
         : widget.initialCollectionId;
+
+    if (widget.creatorCatalogMode) {
+      _creatorCatalogNameFocusNode = FocusNode(skipTraversal: true);
+      _creatorCatalogNameFocusNode!.canRequestFocus = false;
+      _creatorCatalogNameFocusNode!.addListener(_onCreatorCatalogNameFocusChanged);
+    }
 
     if (widget.garment != null) {
       final urls = widget.garment!.imageUrls.isNotEmpty
@@ -136,6 +160,10 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   @override
   void dispose() {
     _previewController.dispose();
+    if (_creatorCatalogNameFocusNode != null) {
+      _creatorCatalogNameFocusNode!.removeListener(_onCreatorCatalogNameFocusChanged);
+      _creatorCatalogNameFocusNode!.dispose();
+    }
     _nameController.dispose();
     _brandController.dispose();
     _newCollectionNameController.dispose();
@@ -325,7 +353,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   Future<void> _openPickSources() async {
     if (_slots.length >= _kMaxGarmentImages) return;
 
-    final choice = await showModalBottomSheet<String>(
+    if (widget.creatorCatalogMode) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    try {
+      final choice = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
@@ -355,27 +387,30 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         ),
       ),
     );
-    if (choice == null || !mounted) return;
+      if (choice == null || !mounted) return;
 
-    final picker = ImagePicker();
+      final picker = ImagePicker();
 
-    if (choice == 'camera') {
-      final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 1200, imageQuality: 82);
-      if (picked != null && mounted) {
-        setState(() => _slots.add(_GarmentImageSlot.local(picked)));
-        await _runAiOnPendingLocals();
+      if (choice == 'camera') {
+        final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 1200, imageQuality: 82);
+        if (picked != null && mounted) {
+          setState(() => _slots.add(_GarmentImageSlot.local(picked)));
+          await _runAiOnPendingLocals();
+        }
+      } else if (choice == 'gallery_multi') {
+        final files = await picker.pickMultiImage(maxWidth: 1200, imageQuality: 82);
+        if (files.isNotEmpty && mounted) {
+          setState(() {
+            for (final f in files) {
+              if (_slots.length >= _kMaxGarmentImages) break;
+              _slots.add(_GarmentImageSlot.local(f));
+            }
+          });
+          await _runAiOnPendingLocals();
+        }
       }
-    } else if (choice == 'gallery_multi') {
-      final files = await picker.pickMultiImage(maxWidth: 1200, imageQuality: 82);
-      if (files.isNotEmpty && mounted) {
-        setState(() {
-          for (final f in files) {
-            if (_slots.length >= _kMaxGarmentImages) break;
-            _slots.add(_GarmentImageSlot.local(f));
-          }
-        });
-        await _runAiOnPendingLocals();
-      }
+    } finally {
+      _unfocusAfterCreatorCatalogSheet();
     }
   }
 
@@ -631,6 +666,9 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     List<CollectionModel> collections,
   ) async {
     if (collections.isEmpty) return;
+    if (widget.creatorCatalogMode) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
     final chosenId = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -769,6 +807,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     if (chosenId != null && mounted) {
       setState(() => _selectedCollectionId = chosenId);
     }
+    _unfocusAfterCreatorCatalogSheet();
   }
 
   Widget _buildExistingCollectionPicker(List<CollectionModel> sorted) {
@@ -1283,6 +1322,13 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                       const SizedBox(height: 8),
                       TextField(
                         controller: _nameController,
+                        focusNode: widget.creatorCatalogMode ? _creatorCatalogNameFocusNode : null,
+                        onTap: widget.creatorCatalogMode
+                            ? () {
+                                _creatorCatalogNameFocusNode?.canRequestFocus = true;
+                                _creatorCatalogNameFocusNode?.requestFocus();
+                              }
+                            : null,
                         scrollPadding: EdgeInsets.zero,
                         decoration: const InputDecoration(
                           hintText: 'Nom / description',
