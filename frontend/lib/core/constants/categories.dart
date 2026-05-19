@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class GarmentCategory {
   final String key;
   final String label;
