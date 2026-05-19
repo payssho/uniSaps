@@ -11,6 +11,7 @@ import '../../providers/garment_provider.dart';
 import '../../services/firebase_storage_display_url.dart';
 import '../../widgets/garment_card.dart';
 import '../../widgets/category_chip.dart';
+import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/garment_detail_sheet.dart';
 import '../../widgets/add_garment_sheet.dart';
 
@@ -78,7 +79,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                   children: [
                     CategoryChip(
                       label: 'Tout',
-                      icon: Icons.grid_view_rounded,
+                      leadingBuilder: (c) => Icon(Icons.grid_view_rounded, size: 16, color: c),
                       selected: _selectedCategory.isEmpty,
                       onTap: () => setState(() => _selectedCategory = ''),
                     ),
@@ -87,7 +88,11 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                           padding: const EdgeInsets.only(right: 8),
                           child: CategoryChip(
                             label: cat.label,
-                            icon: cat.icon,
+                            leadingBuilder: (c) => GarmentCategoryGlyph(
+                              categoryKey: cat.key,
+                              color: c,
+                              size: 16,
+                            ),
                             selected: _selectedCategory == cat.key,
                             onTap: () => setState(() => _selectedCategory = cat.key),
                           ),
@@ -198,6 +203,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       enableDrag: false,
+      isDismissible: false,
       builder: (_) => const AddGarmentSheet(),
     );
   }
@@ -208,6 +214,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       enableDrag: false,
+      isDismissible: false,
       builder: (_) => AddGarmentSheet(garment: garment),
     );
   }

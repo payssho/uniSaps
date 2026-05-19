@@ -5,14 +5,11 @@ import '../services/color_service.dart';
 class MultiColorSelector extends StatefulWidget {
   final List<String> initialColors;
   final Function(List<String>) onColorsChanged;
-  /// Quand le champ recherche couleur prend le focus (scroll parent).
-  final VoidCallback? onSearchFocusGain;
 
   const MultiColorSelector({
     super.key,
     this.initialColors = const [],
     required this.onColorsChanged,
-    this.onSearchFocusGain,
   });
 
   @override
@@ -23,22 +20,55 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
   List<ColorOption> _selectedColors = [];
   List<ColorOption> _suggestions = [];
   bool _showSuggestions = false;
+  /// false = 1er tap : liste visible sans clavier · true = 2e tap : saisie / filtre.
+  bool _isSearchMode = false;
   final FocusNode _focusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
+  /// Regroupe champ + liste : tap ailleurs sur le formulaire ferme le picker sans confondre avec le scroll dans la liste.
+  final Object _pickerTapGroup = Object();
 
   void _onFocusNodeChanged() {
-    if (_focusNode.hasFocus) {
-      widget.onSearchFocusGain?.call();
-      if (!_showSuggestions) {
-        setState(() {
-          _suggestions = ColorService.quickPickColors();
-          _showSuggestions = true;
-        });
-      }
-    } else {
+    // Ne pas fermer la liste au blur en mode browse : le scroll du dropdown enlève souvent le focus du TextField.
+    if (!_focusNode.hasFocus && _isSearchMode) {
       Future.delayed(const Duration(milliseconds: 150), () {
         if (mounted && !_focusNode.hasFocus) {
-          setState(() => _showSuggestions = false);
+          setState(() {
+            _showSuggestions = false;
+            _isSearchMode = false;
+          });
+        }
+      });
+    }
+  }
+
+  void _closePickerFromOutside() {
+    if (!_showSuggestions) return;
+    setState(() {
+      _showSuggestions = false;
+      _isSearchMode = false;
+    });
+    _focusNode.unfocus();
+  }
+
+  void _handleTap() {
+    final blocked = _selectedColors.length >= 3 &&
+        !_selectedColors.any((c) => c.name.toLowerCase() == 'multicolore');
+    if (blocked) return;
+
+    if (!_showSuggestions) {
+      setState(() {
+        _suggestions = ColorService.quickPickColors();
+        _showSuggestions = true;
+        _isSearchMode = false;
+      });
+    } else if (!_isSearchMode) {
+      setState(() => _isSearchMode = true);
+      Future.microtask(() {
+        if (mounted) {
+          _focusNode.unfocus();
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted) _focusNode.requestFocus();
+          });
         }
       });
     }
@@ -115,6 +145,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
       setState(() {
         _selectedColors = [color];
         _showSuggestions = false;
+        _isSearchMode = false;
       });
       widget.onColorsChanged(['Multicolore']);
       _searchController.clear();
@@ -140,7 +171,13 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
 
     widget.onColorsChanged(_selectedColors.map((c) => c.name).toList());
     _searchController.clear();
-    setState(() => _showSuggestions = false);
+    setState(() {
+      _showSuggestions = false;
+      _isSearchMode = false;
+    });
+    Future.delayed(const Duration(milliseconds: 80), () {
+      if (mounted) _focusNode.unfocus();
+    });
   }
 
   void _removeColor(ColorOption color) {
@@ -152,9 +189,12 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return TapRegion(
+      groupId: _pickerTapGroup,
+      onTapOutside: (_) => _closePickerFromOutside(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
         // Couleurs sélectionnées
         if (_selectedColors.isNotEmpty)
           Wrap(
@@ -218,19 +258,15 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
           controller: _searchController,
           focusNode: _focusNode,
           scrollPadding: EdgeInsets.zero,
-          onChanged: _onSearchChanged,
-          onTap: () {
-            if (!_showSuggestions) {
-              setState(() {
-                _suggestions = ColorService.quickPickColors();
-                _showSuggestions = true;
-              });
-            }
-          },
+          readOnly: !_isSearchMode,
+          onChanged: _isSearchMode ? _onSearchChanged : null,
+          onTap: _handleTap,
           decoration: InputDecoration(
             hintText: _selectedColors.length >= 3
                 ? 'Maximum 3 couleurs atteint'
-                : 'Rechercher ou choisir une couleur (max 3)',
+                : _showSuggestions && !_isSearchMode
+                    ? 'Appuie à nouveau pour filtrer…'
+                    : 'Rechercher ou choisir une couleur (max 3)',
             prefixIcon: const Padding(
               padding: EdgeInsets.all(12),
               child: Icon(Icons.palette_outlined, size: 22, color: AppColors.textHint),
@@ -242,6 +278,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
                       _searchController.clear();
                       setState(() {
                         _suggestions = ColorService.quickPickColors();
+                        _showSuggestions = true;
                       });
                     },
                   )
@@ -350,6 +387,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
         if (_showSuggestions &&
             _suggestions.isEmpty &&
             _searchController.text.isNotEmpty &&
+            _isSearchMode &&
             _focusNode.hasFocus)
           Container(
             margin: const EdgeInsets.only(top: 4),
@@ -375,7 +413,8 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
               ],
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }

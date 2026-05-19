@@ -3,14 +3,14 @@ import '../core/constants/app_colors.dart';
 
 class CategoryChip extends StatefulWidget {
   final String label;
-  final IconData icon;
+  final Widget Function(Color iconColor) leadingBuilder;
   final bool selected;
   final VoidCallback onTap;
 
   const CategoryChip({
     super.key,
     required this.label,
-    required this.icon,
+    required this.leadingBuilder,
     required this.selected,
     required this.onTap,
   });
@@ -46,10 +46,8 @@ class _CategoryChipState extends State<CategoryChip> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              widget.icon,
-              size: 16,
-              color: widget.selected ? AppColors.white : AppColors.textSecondary,
+            widget.leadingBuilder(
+              widget.selected ? AppColors.white : AppColors.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(

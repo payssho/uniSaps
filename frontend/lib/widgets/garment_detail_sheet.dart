@@ -7,6 +7,7 @@ import '../models/garment_model.dart';
 import '../services/color_service.dart';
 import '../providers/auth_provider.dart';
 import 'garment_photo_carousel.dart';
+import 'garment_category_glyph.dart';
 
 class GarmentDetailSheet extends ConsumerWidget {
   final GarmentModel garment;
@@ -108,8 +109,8 @@ class GarmentDetailSheet extends ConsumerWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              categoryIcon(garment.category),
+                            GarmentCategoryGlyph(
+                              categoryKey: garment.category,
                               size: 16,
                               color: AppColors.accent,
                             ),

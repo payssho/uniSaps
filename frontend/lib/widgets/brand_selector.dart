@@ -5,14 +5,11 @@ import '../services/brand_service.dart';
 class BrandSelector extends StatefulWidget {
   final TextEditingController controller;
   final String? initialValue;
-  /// Appelé lorsque le champ marque reçoit le focus (ex. scroll dans une bottom sheet).
-  final VoidCallback? onFocusGain;
 
   const BrandSelector({
     super.key,
     required this.controller,
     this.initialValue,
-    this.onFocusGain,
   });
 
   @override
@@ -24,7 +21,9 @@ class _BrandSelectorState extends State<BrandSelector> {
   List<String> _suggestions = [];
   bool _isLoading = true;
   bool _showSuggestions = false;
+  bool _isSearchMode = false;
   final FocusNode _focusNode = FocusNode();
+  final Object _pickerTapGroup = Object();
 
   @override
   void initState() {
@@ -34,14 +33,13 @@ class _BrandSelectorState extends State<BrandSelector> {
       widget.controller.text = widget.initialValue!;
     }
     _focusNode.addListener(() {
-      if (_focusNode.hasFocus) {
-        widget.onFocusGain?.call();
-      }
-      if (!_focusNode.hasFocus) {
-        // Délai pour permettre aux clics sur la liste de se terminer
+      if (!_focusNode.hasFocus && _isSearchMode) {
         Future.delayed(const Duration(milliseconds: 150), () {
           if (mounted && !_focusNode.hasFocus) {
-            setState(() => _showSuggestions = false);
+            setState(() {
+              _showSuggestions = false;
+              _isSearchMode = false;
+            });
           }
         });
       }
@@ -65,8 +63,8 @@ class _BrandSelectorState extends State<BrandSelector> {
   void _onTextChanged(String value) {
     if (value.isEmpty) {
       setState(() {
-        _suggestions = [];
-        _showSuggestions = false;
+        _suggestions = _allBrands.take(20).toList();
+        _showSuggestions = _focusNode.hasFocus;
       });
       return;
     }
@@ -82,6 +80,7 @@ class _BrandSelectorState extends State<BrandSelector> {
     widget.controller.text = brand;
     setState(() {
       _showSuggestions = false;
+      _isSearchMode = false;
     });
     // Délai pour permettre au clic de se terminer avant de perdre le focus
     Future.delayed(const Duration(milliseconds: 100), () {
@@ -91,23 +90,61 @@ class _BrandSelectorState extends State<BrandSelector> {
     });
   }
 
+  void _handleBrandTap() {
+    if (!_showSuggestions) {
+      setState(() {
+        if (widget.controller.text.isNotEmpty) {
+          final matches =
+              BrandService.searchBrands(widget.controller.text, _allBrands);
+          _suggestions = matches;
+          _showSuggestions = matches.isNotEmpty;
+        } else {
+          _suggestions = _allBrands.take(20).toList();
+          _showSuggestions = _suggestions.isNotEmpty;
+        }
+        _isSearchMode = false;
+      });
+    } else if (!_isSearchMode) {
+      setState(() => _isSearchMode = true);
+      Future.microtask(() {
+        if (mounted) {
+          _focusNode.unfocus();
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted) _focusNode.requestFocus();
+          });
+        }
+      });
+    }
+  }
+
+  void _closePickerFromOutside() {
+    if (!_showSuggestions) return;
+    setState(() {
+      _showSuggestions = false;
+      _isSearchMode = false;
+    });
+    _focusNode.unfocus();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return TapRegion(
+      groupId: _pickerTapGroup,
+      onTapOutside: (_) => _closePickerFromOutside(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
         TextField(
           controller: widget.controller,
           focusNode: _focusNode,
-          onChanged: _onTextChanged,
+          readOnly: !_isSearchMode,
+          onChanged: _isSearchMode ? _onTextChanged : null,
           scrollPadding: EdgeInsets.zero,
-          onTap: () {
-            if (widget.controller.text.isNotEmpty) {
-              _onTextChanged(widget.controller.text);
-            }
-          },
+          onTap: _handleBrandTap,
           decoration: InputDecoration(
-            hintText: 'Marque',
+            hintText: _showSuggestions && !_isSearchMode
+                ? 'Appuie à nouveau pour filtrer…'
+                : 'Marque',
             suffixIcon: _isLoading
                 ? const SizedBox(
                     width: 20,
@@ -125,6 +162,7 @@ class _BrandSelectorState extends State<BrandSelector> {
                           setState(() {
                             _suggestions = [];
                             _showSuggestions = false;
+                            _isSearchMode = false;
                           });
                         },
                       )
@@ -176,7 +214,11 @@ class _BrandSelectorState extends State<BrandSelector> {
               ),
             ),
           ),
-        if (_showSuggestions && _suggestions.isEmpty && widget.controller.text.isNotEmpty && _focusNode.hasFocus)
+        if (_showSuggestions &&
+            _suggestions.isEmpty &&
+            widget.controller.text.isNotEmpty &&
+            _isSearchMode &&
+            _focusNode.hasFocus)
           Container(
             margin: const EdgeInsets.only(top: 4),
             padding: const EdgeInsets.all(12),
@@ -201,7 +243,8 @@ class _BrandSelectorState extends State<BrandSelector> {
               ],
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }

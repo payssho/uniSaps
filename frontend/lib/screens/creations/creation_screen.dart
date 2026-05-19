@@ -11,6 +11,7 @@ import '../../models/garment_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/garment_provider.dart';
+import '../../widgets/garment_category_glyph.dart';
 
 IconData _creationWeatherIcon(String id) {
   switch (id) {
@@ -235,11 +236,13 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                           : Container(
                                               color:
                                                   AppColors.surfaceVariant,
-                                              child: Icon(
-                                                  categoryIcon(
-                                                      categoryKey),
-                                                  color:
-                                                      AppColors.textHint),
+                                              child: Center(
+                                                child: GarmentCategoryGlyph(
+                                                  categoryKey: categoryKey,
+                                                  color: AppColors.textHint,
+                                                  size: 36,
+                                                ),
+                                              ),
                                             ),
                                     ),
                                     Padding(

@@ -18,6 +18,7 @@ import '../widgets/brand_selector.dart';
 import '../widgets/multi_color_selector.dart';
 import '../widgets/premium_upgrade_dialog.dart';
 import '../widgets/storage_aware_cached_image.dart';
+import '../widgets/garment_category_glyph.dart';
 
 const int _kMaxGarmentImages = 8;
 
@@ -86,7 +87,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   final _newCollectionNameController = TextEditingController();
   final _collectionStartController = TextEditingController();
   final _collectionEndController = TextEditingController();
-  final ScrollController _formScrollController = ScrollController();
 
   @override
   void initState() {
@@ -141,7 +141,6 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     _newCollectionNameController.dispose();
     _collectionStartController.dispose();
     _collectionEndController.dispose();
-    _formScrollController.dispose();
     super.dispose();
   }
 
@@ -893,29 +892,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.layers_rounded, color: AppColors.accent, size: 20),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'Collection',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.35,
-                  ),
-                ),
-              ],
+            const Text(
+              'Collection',
+              style: AppTextStyles.heading3,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             SegmentedButton<bool>(
               segments: const [
                 ButtonSegment<bool>(
@@ -1220,23 +1201,29 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     final mediaQuery = MediaQuery.of(context);
     final screenH = mediaQuery.size.height;
     final keyboardInset = mediaQuery.viewInsets.bottom;
-    // Ne pas appliquer 0,94 deux fois sur la zone déjà réduite par le clavier (sheet trop basse / illisible).
+    // Une seule adaptation à la zone au-dessus du clavier : pas d’insets aussi dans le padding du scroll (ça doublait l’animation et sautait au focus).
     final sheetHeight =
         min(screenH * 0.94, screenH - keyboardInset).clamp(280.0, screenH);
 
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Container(
-        height: sheetHeight,
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: SafeArea(
-          top: true,
-          bottom: false,
-          child: Column(
+    return MediaQuery.removeViewInsets(
+      removeBottom: true,
+      context: context,
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.transparent,
+        body: Align(
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            height: sheetHeight,
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: SafeArea(
+              top: true,
+              bottom: false,
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Center(
@@ -1269,31 +1256,31 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  controller: _formScrollController,
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: EdgeInsets.fromLTRB(20, 0, 20, 24 + keyboardInset),
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildPhotoPreview(),
-                      const SizedBox(height: 10),
-                      if (_slots.length < _kMaxGarmentImages)
+                      if (_slots.isNotEmpty && _slots.length < _kMaxGarmentImages) ...[
+                        const SizedBox(height: 10),
                         Align(
                           alignment: Alignment.centerLeft,
                           child: TextButton.icon(
                             onPressed: _aiAnalyzing ? null : _openPickSources,
                             icon: const Icon(Icons.add_photo_alternate_outlined, size: 20),
                             label: Text(
-                              _slots.isEmpty
-                                  ? 'Ajouter des photos'
-                                  : 'Ajouter d’autres photos (${_slots.length}/$_kMaxGarmentImages)',
+                              'Ajouter d’autres photos (${_slots.length}/$_kMaxGarmentImages)',
                             ),
                             style: TextButton.styleFrom(foregroundColor: AppColors.accent),
                           ),
                         ),
+                      ],
                       const SizedBox(height: 4),
                       _buildAiSwitchSection(context, ref.watch(isPremiumProvider)),
                       const SizedBox(height: 24),
+                      const Text('Nom', style: AppTextStyles.heading3),
+                      const SizedBox(height: 8),
                       TextField(
                         controller: _nameController,
                         scrollPadding: EdgeInsets.zero,
@@ -1328,23 +1315,87 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                       const SizedBox(height: 24),
                       const Text('Catégorie', style: AppTextStyles.heading3),
                       const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: categories.map((cat) {
-                          final selected = _selectedCategory == cat.key;
-                          return ChoiceChip(
-                            label: Text(cat.label),
-                            avatar: Icon(cat.icon, size: 18),
-                            selected: selected,
-                            selectedColor: AppColors.accent,
-                            labelStyle: TextStyle(
-                              color: selected ? AppColors.white : AppColors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            onSelected: (_) => setState(() => _selectedCategory = cat.key),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          const spacing = 10.0;
+                          final tileW = (constraints.maxWidth - spacing) / 2;
+                          return Wrap(
+                            alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: spacing,
+                            runSpacing: spacing,
+                            children: categories.map((cat) {
+                              final selected = _selectedCategory == cat.key;
+                              final fg =
+                                  selected ? AppColors.white : AppColors.textSecondary;
+                              final bg = selected
+                                  ? AppColors.accent
+                                  : AppColors.surfaceVariant.withValues(alpha: 0.4);
+                              final border = selected
+                                  ? AppColors.accent
+                                  : AppColors.divider.withValues(alpha: 0.65);
+                              return SizedBox(
+                                width: tileW,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () =>
+                                        setState(() => _selectedCategory = cat.key),
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 160),
+                                      curve: Curves.easeOutCubic,
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                        horizontal: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: bg,
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: border,
+                                          width: selected ? 2 : 1,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            height: 24,
+                                            width: 24,
+                                            child: Center(
+                                              child: GarmentCategoryGlyph(
+                                                categoryKey: cat.key,
+                                                color: fg,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            cat.label,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              height: 1.2,
+                                              letterSpacing: -0.2,
+                                              color: fg,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                           );
-                        }).toList(),
+                        },
                       ),
                       if (_error != null) ...[
                         const SizedBox(height: 16),
@@ -1401,7 +1452,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                                 ),
                         ),
                       ),
-                      SizedBox(height: 16 + keyboardInset),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -1410,6 +1461,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           ),
         ),
       ),
+    ),
+    ),
     );
   }
 }

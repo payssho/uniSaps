@@ -19,6 +19,7 @@ class CreatorDressingScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       enableDrag: false,
+      isDismissible: false,
       backgroundColor: Colors.transparent,
       builder: (_) => AddGarmentSheet(
         requireCollection: true,
@@ -46,6 +47,7 @@ class CreatorDressingScreen extends ConsumerWidget {
             context: context,
             isScrollControlled: true,
             enableDrag: false,
+            isDismissible: false,
             backgroundColor: Colors.transparent,
             builder: (_) => AddGarmentSheet(
               garment: garment,

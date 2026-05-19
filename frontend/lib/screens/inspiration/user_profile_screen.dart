@@ -14,6 +14,7 @@ import '../../providers/post_provider.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/premium_avatar_ring.dart';
+import '../../widgets/garment_category_glyph.dart';
 import '../../core/constants/categories.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
@@ -926,7 +927,13 @@ class _DressingTab extends StatelessWidget {
                           )
                         : Container(
                             color: AppColors.surfaceVariant,
-                            child: Icon(categoryIcon(g.category), color: AppColors.textHint, size: 32),
+                            child: Center(
+                              child: GarmentCategoryGlyph(
+                                categoryKey: g.category,
+                                color: AppColors.textHint,
+                                size: 32,
+                              ),
+                            ),
                           ),
                   ),
                   Padding(
@@ -1290,7 +1297,13 @@ class _FriendOutfitDetailSheetState
                                             )
                                           : Container(
                                               color: AppColors.surfaceVariant,
-                                              child: Icon(categoryIcon(g.category), color: AppColors.textHint),
+                                              child: Center(
+                                                child: GarmentCategoryGlyph(
+                                                  categoryKey: g.category,
+                                                  color: AppColors.textHint,
+                                                  size: 28,
+                                                ),
+                                              ),
                                             ),
                                     ),
                                   ),
@@ -1419,9 +1432,21 @@ class _ReadOnlyGarmentSheet extends StatelessWidget {
                           imageUrl: garment.imageUrl,
                           fit: BoxFit.cover,
                           placeholder: (_, __) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                          errorWidget: (_, __, ___) => Icon(categoryIcon(garment.category), size: 56, color: AppColors.textHint),
+                          errorWidget: (_, __, ___) => Center(
+                            child: GarmentCategoryGlyph(
+                              categoryKey: garment.category,
+                              size: 56,
+                              color: AppColors.textHint,
+                            ),
+                          ),
                         )
-                      : Icon(categoryIcon(garment.category), size: 56, color: AppColors.textHint),
+                      : Center(
+                          child: GarmentCategoryGlyph(
+                            categoryKey: garment.category,
+                            size: 56,
+                            color: AppColors.textHint,
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -1437,7 +1462,11 @@ class _ReadOnlyGarmentSheet extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(categoryIcon(garment.category), size: 16, color: AppColors.accent),
+                      GarmentCategoryGlyph(
+                        categoryKey: garment.category,
+                        size: 16,
+                        color: AppColors.accent,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         categoryLabel(garment.category),

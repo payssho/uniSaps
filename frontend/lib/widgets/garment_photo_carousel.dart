@@ -4,6 +4,7 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/categories.dart';
 import '../services/firebase_storage_display_url.dart';
 import 'storage_aware_cached_image.dart';
+import 'garment_category_glyph.dart';
 
 /// Affiche une ou plusieurs photos de vêtement avec défilement et indicateurs.
 ///
@@ -92,10 +93,12 @@ class _GarmentPhotoCarouselState extends State<GarmentPhotoCarousel> {
       return Container(
         height: widget.height,
         color: AppColors.surfaceVariant,
-        child: Icon(
-          categoryIcon(widget.category),
-          size: 48,
-          color: AppColors.textHint,
+        child: Center(
+          child: GarmentCategoryGlyph(
+            categoryKey: widget.category,
+            size: 48,
+            color: AppColors.textHint,
+          ),
         ),
       );
     }
@@ -127,10 +130,12 @@ class _GarmentPhotoCarouselState extends State<GarmentPhotoCarousel> {
                 ),
                 errorWidget: (_, __) => Container(
                   color: AppColors.surfaceVariant,
-                  child: Icon(
-                    categoryIcon(widget.category),
-                    size: 44,
-                    color: AppColors.textHint,
+                  child: Center(
+                    child: GarmentCategoryGlyph(
+                      categoryKey: widget.category,
+                      size: 44,
+                      color: AppColors.textHint,
+                    ),
                   ),
                 ),
               );

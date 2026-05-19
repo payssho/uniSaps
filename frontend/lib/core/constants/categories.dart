@@ -3,26 +3,29 @@ import 'package:flutter/material.dart';
 class GarmentCategory {
   final String key;
   final String label;
-  final IconData icon;
 
   const GarmentCategory({
     required this.key,
     required this.label,
-    required this.icon,
   });
 }
 
 const categories = [
-  GarmentCategory(key: 'headwear', label: 'Couvre-chef', icon: Icons.face),
-  GarmentCategory(key: 'top', label: 'Hauts', icon: Icons.checkroom),
-  GarmentCategory(key: 'outerwear', label: 'Vestes', icon: Icons.dry_cleaning),
-  GarmentCategory(key: 'bottom', label: 'Bas', icon: Icons.accessibility_new),
-  GarmentCategory(key: 'shoes', label: 'Chaussures', icon: Icons.ice_skating),
-  GarmentCategory(key: 'accessory', label: 'Accessoires', icon: Icons.watch),
+  GarmentCategory(key: 'headwear', label: 'Couvre-chef'),
+  GarmentCategory(key: 'top', label: 'Hauts'),
+  GarmentCategory(key: 'outerwear', label: 'Vestes'),
+  GarmentCategory(key: 'bottom', label: 'Bas'),
+  GarmentCategory(key: 'shoes', label: 'Chaussures'),
+  GarmentCategory(key: 'accessory', label: 'Accessoires'),
 ];
 
 const categoryKeys = [
-  'headwear', 'top', 'outerwear', 'bottom', 'shoes', 'accessory',
+  'headwear',
+  'top',
+  'outerwear',
+  'bottom',
+  'shoes',
+  'accessory',
 ];
 
 const bodyZones = {
@@ -46,15 +49,10 @@ const stylePrompts = [
 ];
 
 String categoryLabel(String key) {
-  return categories.firstWhere(
-    (c) => c.key == key,
-    orElse: () => const GarmentCategory(key: '', label: '', icon: Icons.help),
-  ).label;
-}
-
-IconData categoryIcon(String key) {
-  return categories.firstWhere(
-    (c) => c.key == key,
-    orElse: () => const GarmentCategory(key: '', label: '', icon: Icons.help),
-  ).icon;
+  return categories
+      .firstWhere(
+        (c) => c.key == key,
+        orElse: () => const GarmentCategory(key: '', label: ''),
+      )
+      .label;
 }
