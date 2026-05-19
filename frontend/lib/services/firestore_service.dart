@@ -193,14 +193,30 @@ class FirestoreService {
             snap.docs.map((d) => PostModel.fromMap(d.data(), docId: d.id)).toList());
   }
 
-  Stream<List<PostModel>> sponsoredActivePostsStream({int limit = 30}) {
-    return postsStream(limit: 120).map((posts) {
-      final sponsored = posts
-          .where((p) => p.isSponsored && p.isActive)
-          .take(limit)
-          .toList();
-      return sponsored;
-    });
+  /// Posts sponsorisés actifs pour le fil Explorer (indépendamment des X derniers posts).
+  ///
+  /// Ne pas dériver de [postsStream] avec une petite limite globale : les publications
+  /// organiques récentes poussaient les pubs hors fenêtre et elles n’apparaissaient jamais.
+  Stream<List<PostModel>> sponsoredActivePostsStream({int limit = 50}) {
+    return _postCol
+        .where('is_sponsored', isEqualTo: true)
+        .limit(200)
+        .snapshots()
+        .map((snap) {
+          final list = snap.docs
+              .map((d) => PostModel.fromMap(d.data(), docId: d.id))
+              .where((p) =>
+                  p.isActive &&
+                  !isDevMockExplorePostId(p.id) &&
+                  (p.isSponsored || p.postKind == 'sponsored'))
+              .toList();
+          list.sort((a, b) {
+            final da = DateTime.tryParse(a.createdAt) ?? DateTime(1970);
+            final db = DateTime.tryParse(b.createdAt) ?? DateTime(1970);
+            return db.compareTo(da);
+          });
+          return list.take(limit).toList();
+        });
   }
 
   Stream<List<PostModel>> creatorPostsStream(String uid, {int limit = 80}) {

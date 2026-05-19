@@ -48,21 +48,45 @@ void main() {
         sponsoredActive: sponsors,
         organicInterval: 7,
       );
-      expect(result.length, 9);
+      expect(result.length, 8);
       expect(result[7].isSponsored, true);
     });
 
-    test('ajoute les sponsorisés restants en fin de liste', () {
+    test('sans multiple de N organiques : aucune insertion sponsorisée', () {
       final result = mixExploreFeed(
-        organic: [organic('2026-01-01T12:00:00Z')],
+        organic: [organic('2026-01-01T12:00:00Z', id: 'only')],
         sponsoredActive: [
-          sponsored('2026-02-01T12:00:00Z'),
-          sponsored('2026-02-02T12:00:00Z'),
+          sponsored('2026-02-01T12:00:00Z', id: 'sp1'),
+          sponsored('2026-02-02T12:00:00Z', id: 'sp2'),
         ],
         organicInterval: 7,
       );
-      expect(result.length, 3);
-      expect(result.last.isSponsored, true);
+      expect(result.length, 1);
+      expect(result.first.id, 'only');
+      expect(result.every((p) => !p.isSponsored), true);
+    });
+
+    test('rotation infinie des sponsorisés après chaque bloc de N organiques', () {
+      final organics = List.generate(
+        21,
+        (i) => organic(
+          '2026-01-${(i + 1).toString().padLeft(2, '0')}T12:00:00Z',
+          id: 'day${i + 1}',
+        ),
+      );
+      final sponsors = [
+        sponsored('2026-02-02T12:00:00Z', id: 'sp-B'),
+        sponsored('2026-02-01T12:00:00Z', id: 'sp-A'),
+      ];
+      final result = mixExploreFeed(
+        organic: organics,
+        sponsoredActive: sponsors,
+        organicInterval: 7,
+      );
+      expect(result.length, 24);
+      expect(result[7].id, 'sp-B');
+      expect(result[15].id, 'sp-A');
+      expect(result[23].id, 'sp-B');
     });
   });
 }

@@ -30,7 +30,7 @@ const _garmentPool = <GarmentRef>[
   GarmentRef(name: 'Robe midi', brand: 'Studio Fictif'),
 ];
 
-/// ~30 posts sponsorisés factices pour tester le mélange dans le fil Explorer.
+/// ~30 posts factices de volume pour le mode dev (pas des pubs).
 final List<PostModel> kMockExploreFeedPosts = List<PostModel>.generate(
   30,
   (i) {
@@ -55,8 +55,8 @@ final List<PostModel> kMockExploreFeedPosts = List<PostModel>.generate(
           .subtract(Duration(minutes: 20 + i * 45))
           .toIso8601String(),
       authorIsPremium: i.isOdd,
-      postKind: 'sponsored',
-      isSponsored: true,
+      postKind: 'organic',
+      isSponsored: false,
       isActive: true,
       collectionId: '',
       previewImageUrl: '',

@@ -16,28 +16,44 @@ final postsProvider = StreamProvider<List<PostModel>>((ref) {
   return ref.watch(firestoreServiceProvider).postsStream();
 });
 
+List<PostModel> _organicOnly(List<PostModel> all) =>
+    all.where((p) => p.isOrganic && !p.isSponsored).toList();
+
 /// Feed Explorer : organiques + sponsorisés actifs mélangés.
 final exploreFeedProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
   final all = ref.watch(postsProvider);
-  final sponsored = ref.watch(_sponsoredActiveProvider);
+  final sponsoredAsync = ref.watch(_sponsoredActiveProvider);
   final mockAdsOn = ref.watch(exploreDevMockPostsEnabledProvider);
+
   return all.when(
     data: (organicPosts) {
-      return sponsored.when(
-        data: (sponsoredPosts) {
-          final organic = organicPosts
-              .where((p) => p.isOrganic && !p.isSponsored)
-              .toList();
-          final sponsoredPool = mockAdsOn
-              ? [...kMockExploreFeedPosts, ...sponsoredPosts]
-              : sponsoredPosts;
-          return AsyncValue.data(
-            mixExploreFeed(organic: organic, sponsoredActive: sponsoredPool),
-          );
-        },
-        loading: () => const AsyncValue.loading(),
-        error: (e, st) => AsyncValue.error(e, st),
+      final organic = _organicOnly(organicPosts);
+      final sponsoredPosts = sponsoredAsync.valueOrNull ?? [];
+
+      if (!mockAdsOn) {
+        return sponsoredAsync.when(
+          data: (_) => AsyncValue.data(
+            mixExploreFeed(organic: organic, sponsoredActive: sponsoredPosts),
+          ),
+          loading: () => const AsyncValue.loading(),
+          error: (e, st) => AsyncValue.error(e, st),
+        );
+      }
+
+      // Mode dev : mocks en tête (organiques, sans pastille pub).
+      // Mélange tous les 7 : uniquement les pubs Firestore (compte créateur, etc.).
+      if (organic.isEmpty) {
+        return AsyncValue.data(List<PostModel>.from(kMockExploreFeedPosts));
+      }
+
+      final mixed = mixExploreFeed(
+        organic: organic,
+        sponsoredActive: sponsoredPosts,
       );
+      return AsyncValue.data([
+        ...kMockExploreFeedPosts,
+        ...mixed,
+      ]);
     },
     loading: () => const AsyncValue.loading(),
     error: (e, st) => AsyncValue.error(e, st),

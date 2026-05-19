@@ -14,6 +14,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../providers/inspiration_feed_dev_provider.dart';
+import '../../data/mock_explore_feed_posts.dart';
 import '../../providers/friendship_provider.dart';
 import '../home/home_screen.dart';
 import 'search_users_screen.dart';
@@ -834,6 +835,7 @@ class _ContinuousFeed extends ConsumerWidget {
 
           final post = posts[index];
           return _InspoPostCard(
+            key: ValueKey<String>('explore_${index}_${post.id}'),
             post: post,
             uid: uid,
             onLike: () {
@@ -963,6 +965,7 @@ class _InspoPostCard extends StatefulWidget {
   final void Function(String caption)? onEditCaption;
 
   const _InspoPostCard({
+    super.key,
     required this.post,
     required this.uid,
     required this.onLike,
@@ -1451,6 +1454,31 @@ class _InspoPostCardState extends State<_InspoPostCard>
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
+                            if (!isDevMockExplorePostId(widget.post.id) &&
+                                (widget.post.isSponsored ||
+                                    widget.post.postKind == 'sponsored')) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.campaign_outlined,
+                                    size: 12,
+                                    color: AppColors.primary.withValues(alpha: 0.85),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Sponsorisé',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary.withValues(alpha: 0.92),
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),
