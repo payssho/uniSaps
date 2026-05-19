@@ -69,7 +69,7 @@ class _ColorSelectorState extends State<ColorSelector> {
   void _onTextChanged(String value) {
     if (value.isEmpty) {
       setState(() {
-        _suggestions = ColorService.getColors().take(20).toList();
+        _suggestions = ColorService.quickPickColors();
         _showSuggestions = true;
         _selectedColor = null;
       });
@@ -99,7 +99,7 @@ class _ColorSelectorState extends State<ColorSelector> {
     if (!_showSuggestions) {
       // 1er tap : ouvrir le dropdown sans afficher le clavier
       setState(() {
-        _suggestions = ColorService.getColors().take(20).toList();
+        _suggestions = ColorService.quickPickColors();
         _showSuggestions = true;
         _isSearchMode = false;
       });

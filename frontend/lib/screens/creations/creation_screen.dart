@@ -11,6 +11,8 @@ import '../../models/outfit_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/garment_provider.dart';
+import '../../widgets/garment_category_glyph.dart';
+import '../../widgets/garment_picker_grid_sheet.dart';
 import '../../widgets/storage_aware_cached_image.dart';
 
 IconData _creationWeatherIcon(String id) {
@@ -179,147 +181,11 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         .getGarments(uid, category: categoryKey);
     if (!mounted) return;
 
-    final picked = await showModalBottomSheet<GarmentModel>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.6),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 12),
-              decoration: BoxDecoration(
-                color: AppColors.textHint.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(categoryLabel(categoryKey),
-                  style: AppTextStyles.heading3),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: garments.isEmpty
-                  ? const Center(
-                      child: Text('Aucun vêtement dans cette catégorie',
-                          style: AppTextStyles.bodySecondary))
-                  : GridView.builder(
-                      padding: const EdgeInsets.all(12),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        childAspectRatio: 0.78,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
-                      itemCount: garments.length,
-                      itemBuilder: (_, i) {
-                        final g = garments[i];
-                        final isSelected = _selected[zoneKey] == g.id;
-                        return GestureDetector(
-                          onTap: () => Navigator.pop(context, g),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppColors.accent
-                                    : AppColors.divider,
-                                width: isSelected ? 2.5 : 1,
-                              ),
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Stack(
-                              children: [
-                                Column(
-                                  children: [
-                                    Expanded(
-                                      child: g.imageUrl.isNotEmpty
-                                          ? StorageAwareCachedImage(
-                                              imageUrl: g.imageUrl,
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                              loadingWidget: Container(
-                                                color: AppColors.surfaceVariant,
-                                                child: const Center(
-                                                  child: SizedBox(
-                                                    width: 22,
-                                                    height: 22,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                            strokeWidth: 2),
-                                                  ),
-                                                ),
-                                              ),
-                                              errorWidget: (_, __) =>
-                                                  Container(
-                                                color:
-                                                    AppColors.surfaceVariant,
-                                                child: Icon(
-                                                  categoryIcon(categoryKey),
-                                                  color: AppColors.textHint,
-                                                ),
-                                              ),
-                                            )
-                                          : Container(
-                                              color:
-                                                  AppColors.surfaceVariant,
-                                              child: Icon(
-                                                  categoryIcon(
-                                                      categoryKey),
-                                                  color:
-                                                      AppColors.textHint),
-                                            ),
-                                    ),
-                                    Padding(
-                                      padding:
-                                          const EdgeInsets.all(5),
-                                      child: Text(g.name,
-                                          style: const TextStyle(
-                                              fontSize: 10),
-                                          maxLines: 1,
-                                          overflow:
-                                              TextOverflow.ellipsis),
-                                    ),
-                                  ],
-                                ),
-                                if (isSelected)
-                                  Positioned(
-                                    top: 4,
-                                    right: 4,
-                                    child: Container(
-                                      padding:
-                                          const EdgeInsets.all(2),
-                                      decoration:
-                                          const BoxDecoration(
-                                        color: AppColors.accent,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                          Icons.check,
-                                          size: 12,
-                                          color: AppColors.white),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
+    final picked = await showGarmentPickerGridSheet(
+      context,
+      categoryKey: categoryKey,
+      garments: garments,
+      selectedGarmentId: _selected[zoneKey],
     );
     if (picked != null) {
       setState(() {

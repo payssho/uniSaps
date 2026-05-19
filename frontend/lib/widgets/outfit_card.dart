@@ -4,6 +4,7 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/categories.dart';
 import '../models/outfit_model.dart';
 import '../models/garment_model.dart';
+import 'garment_category_glyph.dart';
 
 class OutfitCard extends StatelessWidget {
   final OutfitModel outfit;
@@ -118,7 +119,13 @@ class _GarmentChip extends StatelessWidget {
                     width: 36,
                     height: 36,
                     color: AppColors.divider,
-                    child: Icon(categoryIcon(garment.category), size: 18, color: AppColors.textHint),
+                    child: Center(
+                      child: GarmentCategoryGlyph(
+                        categoryKey: garment.category,
+                        size: 18,
+                        color: AppColors.textHint,
+                      ),
+                    ),
                   ),
           ),
           const SizedBox(width: 6),

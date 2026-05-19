@@ -8,6 +8,7 @@ import '../../core/constants/categories.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../widgets/platform_image.dart';
+import '../../widgets/garment_category_glyph.dart';
 
 class AddGarmentScreen extends ConsumerStatefulWidget {
   const AddGarmentScreen({super.key});
@@ -194,7 +195,11 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
                 final selected = _selectedCategory == cat.key;
                 return ChoiceChip(
                   label: Text(cat.label),
-                  avatar: Icon(cat.icon, size: 18),
+                  avatar: GarmentCategoryGlyph(
+                    categoryKey: cat.key,
+                    color: selected ? AppColors.white : AppColors.textSecondary,
+                    size: 18,
+                  ),
                   selected: selected,
                   selectedColor: AppColors.accent,
                   labelStyle: TextStyle(

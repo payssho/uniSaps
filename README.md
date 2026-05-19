@@ -77,6 +77,15 @@ L’app est organisée en **4 onglets** (avec déverrouillage progressif) :
 - Champ Firestore `account_tier` : `free` ou `premium`
 - Fonctionnalités premium : suggestions IA outfits, anneau avatar, etc.
 
+### Compte Créateur (marques)
+
+- `account_type: creator` — shell dédié **Vêtements · Posts · Profil** (`/creator/home`)
+- Collections sous `users/{uid}/collections` ; chaque vêtement créateur a un `collection_id`
+- Posts publicitaires dans la collection globale `posts` (`post_kind: sponsored`, `is_active`)
+- Feed **Explorer** : mixage client (1 sponsorisé / 7 organiques par défaut, [`feed_mix_config.dart`](frontend/lib/core/constants/feed_mix_config.dart))
+- Paiement MVP : code test `CREATOR2026` ou activation stub ; API `POST /api/v1/creator/activate-subscription`
+- Index Firestore composite optionnel sur `posts` (`is_sponsored`, `is_active`, `created_at`) si requêtes serveur filtrées
+
 ### Déverrouillage des onglets
 
 - **Outfits** : au moins 1 vêtement dans le dressing

@@ -15,8 +15,8 @@ class ColorService {
     ColorOption(name: 'Marron clair', color: Colors.brown.shade300),
     ColorOption(name: 'Marron foncé', color: Colors.brown.shade700),
     const ColorOption(name: 'Bleu', color: AppColors.yaleBlue),
-    ColorOption(name: 'Bleu clair', color: AppColors.stormyTeal),
-    ColorOption(name: 'Bleu foncé', color: AppColors.graphite),
+    const ColorOption(name: 'Bleu clair', color: AppColors.stormyTeal),
+    const ColorOption(name: 'Bleu foncé', color: AppColors.graphite),
     const ColorOption(name: 'Bleu marine', color: Color(0xFF000080)),
     const ColorOption(name: 'Bleu ciel', color: Color(0xFF87CEEB)),
     const ColorOption(name: 'Bleu turquoise', color: AppColors.stormyTeal),
@@ -68,10 +68,41 @@ class ColorService {
     const ColorOption(name: 'Multicolore', color: Colors.transparent),
   ];
 
+  /// Une entrée par famille (pas Bleu + Bleu clair + marine ; la recherche garde les nuances).
+  static const List<String> _quickPickColorNames = [
+    'Noir',
+    'Blanc',
+    'Bleu',
+    'Rouge',
+    'Vert',
+    'Jaune',
+    'Orange',
+    'Rose',
+    'Violet',
+    'Marron',
+    'Beige',
+    'Gris',
+    'Multicolore',
+  ];
+
   static List<ColorOption> getColors() => _colors;
 
+  /// Couleurs simples les plus utiles en premier (pas les nuances de gris, etc.).
+  static List<ColorOption> quickPickColors() {
+    final byLower = <String, ColorOption>{};
+    for (final c in _colors) {
+      byLower.putIfAbsent(c.name.toLowerCase(), () => c);
+    }
+    final out = <ColorOption>[];
+    for (final name in _quickPickColorNames) {
+      final found = byLower[name.toLowerCase()];
+      if (found != null) out.add(found);
+    }
+    return out;
+  }
+
   static List<ColorOption> searchColors(String query) {
-    if (query.isEmpty) return _colors.take(20).toList();
+    if (query.isEmpty) return quickPickColors();
     
     final lowerQuery = query.toLowerCase();
     return _colors

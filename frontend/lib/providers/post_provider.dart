@@ -9,9 +9,60 @@ import '../services/storage_service.dart';
 import '../services/widget_sync_bridge.dart';
 import 'auth_provider.dart';
 import 'garment_provider.dart';
+import '../data/mock_explore_feed_posts.dart';
+import '../utils/feed_mix.dart';
+import 'inspiration_feed_dev_provider.dart';
 
 final postsProvider = StreamProvider<List<PostModel>>((ref) {
   return ref.watch(firestoreServiceProvider).postsStream();
+});
+
+List<PostModel> _organicOnly(List<PostModel> all) =>
+    all.where((p) => p.isOrganic && !p.isSponsored).toList();
+
+/// Feed Explorer : organiques + sponsorisés actifs mélangés.
+final exploreFeedProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
+  final all = ref.watch(postsProvider);
+  final sponsoredAsync = ref.watch(_sponsoredActiveProvider);
+  final mockAdsOn = ref.watch(exploreDevMockPostsEnabledProvider);
+
+  return all.when(
+    data: (organicPosts) {
+      final organic = _organicOnly(organicPosts);
+      final sponsoredPosts = sponsoredAsync.valueOrNull ?? [];
+
+      if (!mockAdsOn) {
+        return sponsoredAsync.when(
+          data: (_) => AsyncValue.data(
+            mixExploreFeed(organic: organic, sponsoredActive: sponsoredPosts),
+          ),
+          loading: () => const AsyncValue.loading(),
+          error: (e, st) => AsyncValue.error(e, st),
+        );
+      }
+
+      // Mode dev : mocks en tête (organiques, sans pastille pub).
+      // Mélange tous les 7 : uniquement les pubs Firestore (compte créateur, etc.).
+      if (organic.isEmpty) {
+        return AsyncValue.data(List<PostModel>.from(kMockExploreFeedPosts));
+      }
+
+      final mixed = mixExploreFeed(
+        organic: organic,
+        sponsoredActive: sponsoredPosts,
+      );
+      return AsyncValue.data([
+        ...kMockExploreFeedPosts,
+        ...mixed,
+      ]);
+    },
+    loading: () => const AsyncValue.loading(),
+    error: (e, st) => AsyncValue.error(e, st),
+  );
+});
+
+final _sponsoredActiveProvider = StreamProvider<List<PostModel>>((ref) {
+  return ref.watch(firestoreServiceProvider).sponsoredActivePostsStream();
 });
 
 /// True si l'utilisateur courant a déjà posté aujourd'hui.
@@ -23,6 +74,7 @@ final hasPostedTodayProvider = Provider<bool>((ref) {
   final todayStart = DateTime(now.year, now.month, now.day);
   final todayEnd = todayStart.add(const Duration(days: 1));
   return posts.any((p) {
+    if (p.isSponsored || p.postKind == 'sponsored') return false;
     if (p.userId != uid) return false;
     final dt = DateTime.tryParse(p.createdAt)?.toLocal();
     if (dt == null) return false;

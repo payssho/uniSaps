@@ -15,6 +15,7 @@ class GarmentModel {
   final String season;
   final String pattern;
   final String material;
+  final String collectionId;
 
   const GarmentModel({
     this.id = '',
@@ -31,6 +32,7 @@ class GarmentModel {
     this.season = '',
     this.pattern = '',
     this.material = '',
+    this.collectionId = '',
   });
 
   /// Première image (compatibilité avec l’ancien champ unique `image_url`).
@@ -79,6 +81,7 @@ class GarmentModel {
       season: map['season'] ?? '',
       pattern: map['pattern'] ?? '',
       material: map['material'] ?? '',
+      collectionId: map['collection_id'] ?? '',
     );
   }
 
@@ -98,6 +101,7 @@ class GarmentModel {
         'season': season,
         'pattern': pattern,
         'material': material,
+        'collection_id': collectionId,
       };
 
   GarmentModel copyWith({
@@ -115,6 +119,7 @@ class GarmentModel {
     String? season,
     String? pattern,
     String? material,
+    String? collectionId,
   }) {
     return GarmentModel(
       id: id ?? this.id,
@@ -131,6 +136,7 @@ class GarmentModel {
       season: season ?? this.season,
       pattern: pattern ?? this.pattern,
       material: material ?? this.material,
+      collectionId: collectionId ?? this.collectionId,
     );
   }
 }

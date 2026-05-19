@@ -129,7 +129,7 @@ class ApiService {
       );
     }
 
-    bool _shouldRetryUpload(int code) =>
+    bool shouldRetryUpload(int code) =>
         code == 401 ||
         code == 403 ||
         code == 408 ||
@@ -161,7 +161,7 @@ class ApiService {
           }
           return data['url'] as String;
         }
-        if (_shouldRetryUpload(response.statusCode) && attempt < 2) {
+        if (shouldRetryUpload(response.statusCode) && attempt < 2) {
           await Future.delayed(Duration(milliseconds: 450 * (attempt + 1)));
           continue;
         }

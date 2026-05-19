@@ -6,12 +6,14 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/premium_unlock.dart';
+import '../../core/constants/categories.dart';
 import '../../models/user_model.dart';
 import '../../models/garment_model.dart';
 import '../../models/outfit_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/friendship_provider.dart';
+import '../../services/firestore_service.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/premium_avatar_ring.dart';
 import '../inspiration/user_profile_screen.dart';
@@ -844,7 +846,7 @@ class _ProfileTabRailState extends State<_ProfileTabRail> {
   }
 
   Widget _buildEntry(BuildContext context, int i) {
-    final entries = _ProfileTabRail.entries;
+    const entries = _ProfileTabRail.entries;
     final controller = widget.controller;
     final pendingRequests = widget.pendingRequests;
     final e = entries[i];
@@ -932,7 +934,7 @@ class _ProfileTabRailState extends State<_ProfileTabRail> {
                           child: Text(
                             pendingRequests > 99
                                 ? '99+'
-                                : '${pendingRequests}',
+                                : '$pendingRequests',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: AppColors.white,
@@ -1245,14 +1247,54 @@ void _showOutfitSummary(BuildContext context, OutfitModel outfit) {
   );
 }
 
-class _OutfitSummarySheet extends ConsumerWidget {
+class _ResolvedOutfitPiece {
+  final String categoryKey;
+  final GarmentModel? garment;
+
+  const _ResolvedOutfitPiece({
+    required this.categoryKey,
+    this.garment,
+  });
+}
+
+class _OutfitSummarySheet extends ConsumerStatefulWidget {
   final OutfitModel outfit;
 
   const _OutfitSummarySheet({required this.outfit});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final uid = ref.watch(authServiceProvider).uid;
+  ConsumerState<_OutfitSummarySheet> createState() => _OutfitSummarySheetState();
+}
+
+class _OutfitSummarySheetState extends ConsumerState<_OutfitSummarySheet> {
+  late final Future<List<_ResolvedOutfitPiece>> _piecesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = ref.read(authServiceProvider).uid;
+    final fs = ref.read(firestoreServiceProvider);
+    _piecesFuture = _loadOutfitPieces(fs, uid, widget.outfit);
+  }
+
+  Future<List<_ResolvedOutfitPiece>> _loadOutfitPieces(
+    FirestoreService fs,
+    String uid,
+    OutfitModel outfit,
+  ) async {
+    final entries =
+        outfit.garments.entries.where((e) => e.value.trim().isNotEmpty).toList();
+    if (entries.isEmpty) return [];
+    return Future.wait(
+      entries.map((e) async {
+        final g = await fs.getGarment(uid, e.value);
+        return _ResolvedOutfitPiece(categoryKey: e.key, garment: g);
+      }),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -1278,19 +1320,19 @@ class _OutfitSummarySheet extends ConsumerWidget {
                 ),
               ),
               Text(
-                outfit.name.isEmpty ? 'Outfit' : outfit.name,
+                widget.outfit.name.isEmpty ? 'Outfit' : widget.outfit.name,
                 style: AppTextStyles.heading3,
               ),
               const SizedBox(height: 4),
-              if (outfit.lastWorn.isNotEmpty)
-                Text('Dernier port : ${outfit.lastWorn}',
+              if (widget.outfit.lastWorn.isNotEmpty)
+                Text('Dernier port : ${widget.outfit.lastWorn}',
                     style: AppTextStyles.caption),
               const SizedBox(height: 12),
-              if (outfit.referencePhotoUrl.isNotEmpty)
+              if (widget.outfit.referencePhotoUrl.isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(18),
                   child: CachedNetworkImage(
-                    imageUrl: outfit.referencePhotoUrl,
+                    imageUrl: widget.outfit.referencePhotoUrl,
                     fit: BoxFit.cover,
                     height: 220,
                     width: double.infinity,
@@ -1309,15 +1351,25 @@ class _OutfitSummarySheet extends ConsumerWidget {
                     ),
                   ),
                 ),
-              if (outfit.referencePhotoUrl.isNotEmpty)
+              if (widget.outfit.referencePhotoUrl.isNotEmpty)
                 const SizedBox(height: 16),
-              FutureBuilder<List<GarmentModel>>(
-                future:
-                    ref.read(firestoreServiceProvider).mostWornGarments(uid),
+              FutureBuilder<List<_ResolvedOutfitPiece>>(
+                future: _piecesFuture,
                 builder: (context, snapshot) {
-                  // For now, just show garment ids; deep garment summary could be added later.
-                  final garmentIds = outfit.garmentIds;
-                  if (garmentIds.isEmpty) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(
+                        child: SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    );
+                  }
+                  final pieces = snapshot.data ?? [];
+                  if (pieces.isEmpty) {
                     return const Text(
                       'Aucun vetement associe.',
                       style: AppTextStyles.bodySecondary,
@@ -1326,22 +1378,62 @@ class _OutfitSummarySheet extends ConsumerWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Pieces', style: AppTextStyles.heading3),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: garmentIds
-                            .map(
-                              (id) => Chip(
-                                label: Text(
-                                  id,
-                                  style: const TextStyle(fontSize: 12),
+                      const Text('Pièces', style: AppTextStyles.heading3),
+                      const SizedBox(height: 10),
+                      ...pieces.map((p) {
+                        final g = p.garment;
+                        final title = g != null && g.name.trim().isNotEmpty
+                            ? g.name.trim()
+                            : 'Pièce introuvable';
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                margin: const EdgeInsets.only(top: 6, right: 10),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.accent,
+                                  shape: BoxShape.circle,
                                 ),
                               ),
-                            )
-                            .toList(),
-                      ),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      title,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      categoryLabel(p.categoryKey),
+                                      style: AppTextStyles.caption,
+                                    ),
+                                    if (g != null && g.brand.trim().isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          g.brand.trim(),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
                     ],
                   );
                 },

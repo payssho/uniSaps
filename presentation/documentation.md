@@ -24,7 +24,7 @@ Je pars du constat que les utilisateurs veulent :
 
 ### 1.3 Objectifs mesurables
 
-- Temps de choix du matin réduit (sélection en &lt; 30 s via swipe ou IA).
+- Temps de choix du matin réduit (sélection en < 30 s via swipe ou IA).
 - Taux de pièces « oubliées » diminué grâce au scoring anti-répétition (7 jours).
 - Engagement : streak et 1 post/jour maximum pour éviter le spam.
 
@@ -36,33 +36,37 @@ Je pars du constat que les utilisateurs veulent :
 
 - **Firebase Auth** : inscription et connexion email/mot de passe.
 - **Onboarding** : pseudo, photo de profil après première connexion.
-- **Tutoriels** : bulles contextuelles par onglet (`tutorial_seen.*` dans Firestore), affichage unique, taille limitée (~35 % hauteur écran), boutons Suivant / Passer.
+- **Tutoriels** : bulles contextuelles par onglet (`tutorial_seen.`* dans Firestore), affichage unique, taille limitée (~35 % hauteur écran), boutons Suivant / Passer.
 - **Responsive** : écrans login/signup adaptés aux largeurs ≥ 320 px (textes courts, retours à la ligne).
 
 ### 2.2 Dressing (bibliothèque de vêtements)
 
-| Fonction | Détail technique |
-|----------|------------------|
-| CRUD vêtements | Sous-collection `users/{uid}/garments` |
-| Catégories | `top`, `bottom`, `shoes`, `outerwear`, `headwear`, `accessory` |
+
+| Fonction         | Détail technique                                                              |
+| ---------------- | ----------------------------------------------------------------------------- |
+| CRUD vêtements   | Sous-collection `users/{uid}/garments`                                        |
+| Catégories       | `top`, `bottom`, `shoes`, `outerwear`, `headwear`, `accessory`                |
 | Photos multiples | Champ `image_urls[]` ; upload via API backend (resize JPEG) ou Storage direct |
-| Marques | Liste embarquée `assets/data/brand.json` + saisie libre |
-| Couleurs | Palette normalisée côté client (`color_service.dart`) |
-| Analyse IA | `POST /api/v1/ai/analyze-garment` - réservé **premium** |
+| Marques          | Liste embarquée `assets/data/brand.json` + saisie libre                       |
+| Couleurs         | Palette normalisée côté client (`color_service.dart`)                         |
+| Analyse IA       | `POST /api/v1/ai/analyze-garment` - réservé **premium**                       |
+
 
 **Flux ajout vêtement :** photo → (option IA) → préremplissage formulaire → validation → Firestore + Storage.
 
 ### 2.3 Outfits (tenues et outfit du jour)
 
-| Fonction | Détail |
-|----------|--------|
-| Composition | 6 zones : `headwear`, `top`, `outerwear`, `bottom`, `shoes`, `accessory` |
-| Modes de sélection | **Bibliothèque** (scroll horizontal) et **Swipe** (`flutter_card_swiper`) |
-| Outfit du jour | Champs user : `daily_outfit_id`, `daily_outfit_date`, `daily_photo_url` |
-| Streak | `current_streak`, `best_streak` ; logique client au changement de jour |
-| Historique de port | `times_worn`, `last_worn`, `wear_history[]` sur chaque outfit |
-| Météo | Open-Meteo + géolocalisation ; tags `weather_tags` et `seasons` pour tri |
-| Suggestions IA | `POST /api/v1/ai/suggest` - 3 propositions, prompt + contexte météo/saison |
+
+| Fonction           | Détail                                                                     |
+| ------------------ | -------------------------------------------------------------------------- |
+| Composition        | 6 zones : `headwear`, `top`, `outerwear`, `bottom`, `shoes`, `accessory`   |
+| Modes de sélection | **Bibliothèque** (scroll horizontal) et **Swipe** (`flutter_card_swiper`)  |
+| Outfit du jour     | Champs user : `daily_outfit_id`, `daily_outfit_date`, `daily_photo_url`    |
+| Streak             | `current_streak`, `best_streak` ; logique client au changement de jour     |
+| Historique de port | `times_worn`, `last_worn`, `wear_history[]` sur chaque outfit              |
+| Météo              | Open-Meteo + géolocalisation ; tags `weather_tags` et `seasons` pour tri   |
+| Suggestions IA     | `POST /api/v1/ai/suggest` - 3 propositions, prompt + contexte météo/saison |
+
 
 **Niveau 1 (aucun outfit du jour) :** bannière d'état + tabs Bibliothèque / Swipe / IA (sheet premium).  
 **Niveau 2 (outfit choisi) :** affichage principal, photo optionnelle, streak visible.
@@ -88,26 +92,24 @@ Je pars du constat que les utilisateurs veulent :
 
 J'ai défini et intégré deux formules pour débloquer l'IA :
 
-| Formule | Prix | Fonctionnalités |
-|---------|------|-----------------|
-| Abonnement mensuel | **1 € / mois** | `POST /ai/analyze-garment`, `POST /ai/suggest`, badge premium |
-| Achat à vie | **5 €** (unique) | Idem, sans renouvellement |
+
+| Formule            | Prix             | Fonctionnalités                                               |
+| ------------------ | ---------------- | ------------------------------------------------------------- |
+| Abonnement mensuel | **1 € / mois**   | `POST /ai/analyze-garment`, `POST /ai/suggest`, badge premium |
+| Achat à vie        | **5 €** (unique) | Idem, sans renouvellement                                     |
+
 
 **Implémentation actuelle :** champ Firestore `account_tier`, écrans d'upgrade (`premium_upgrade_dialog.dart`), section UniSaps+ dans le profil. L'activation en développement peut passer par un code ; le branchement **Google Play Billing** est prévu pour encaisser les tarifs en production.
 
 **Justification :** les appels Gemini restent peu coûteux unitairement ; à 1 €/mois je finance l'API et je garde un positionnement accessible. L'offre à **5 €** récompense les premiers utilisateurs et améliore ma trésorerie au lancement.
 
-#### Comptes Créateur - offre marques (roadmap)
+#### Comptes Créateur - offre marques (MVP implémenté)
 
-Je prévois une seconde ligne de revenus :
-
-- **Cible :** marques de vêtements **françaises indépendantes** (démarchage Instagram, salons, réseau local).
-- **Modèle :** abonnement mensuel « compte Créateur » (tarif à fixer selon la marque).
-- **Contenu :** **pub posts** - publications Inspiration présentant des outfits composés avec leurs pièces.
-- **Distribution :** insertion native dans le feed, objectif **1 post sponsorisé pour 5 à 10 posts** organiques (ratio configurable).
-- **Obligations :** badge **Sponsorisé** / **Partenaire**, charte éditoriale.
-
-**Évolutions Firestore envisagées :** `account_type: user | creator`, champs post `is_sponsored`, `brand_id`, service de mixage du feed.
+- **Cible :** marques indépendantes ; parcours `/creator` → checkout stub → onboarding → shell 3 onglets.
+- **Modèle :** abonnement mensuel affiché (29 €/mois) ; activation dev via code `CREATOR2026` ou essai stub (Google Play Billing en phase 2).
+- **Données :** `account_type: creator`, collections, posts `post_kind: sponsored`, `is_active`, `preview_image_url`, `linked_user_uid` vers le compte perso du responsable.
+- **Feed Explorer :** mixage client 1 sponsorisé / 7 organiques ; badge **Sponsorisé** sur `PostCard` ; pas de mélange dans le feed Amis.
+- **Backend :** `POST /api/v1/creator/activate-subscription`, `GET /api/v1/creator/subscription-status`.
 
 ### 2.7 Widgets Android (bonus)
 
@@ -120,30 +122,34 @@ Je prévois une seconde ligne de revenus :
 
 ### 3.1 Stack retenue
 
-| Couche | Technologie | Justification |
-|--------|-------------|---------------|
-| Mobile | **Flutter 3.24+** | UI native performante, un seul codebase, écosystème widgets (swipe, cache images) |
-| State | **Riverpod 2** | Réactivité, testabilité (providers injectables) |
-| Navigation | **go_router** | Routes auth + deep links |
-| BDD temps réel | **Cloud Firestore** | Sync offline, règles fines, sous-collections par user |
-| Fichiers | **Firebase Storage** | URLs signées, intégration Auth |
-| Auth | **Firebase Authentication** | Standard marché, token JWT pour API |
-| API métier | **FastAPI** (Python 3.11) | PO Java/Python, typage Pydantic, déploiement serverless |
-| Hébergement API | **Vercel** | HTTPS gratuit, cold start acceptable pour IA ponctuelle |
-| Météo | **Open-Meteo** | Gratuit, sans clé, suffisant pour tags météo |
-| Vision | **Google Gemini 2.5 Flash** | Multimodal, tier gratuit généreux, JSON structuré |
-| Suggestions | **Moteur rule-based Python** | Latence &lt; 1 s, coût nul, explicable devant jury |
+
+| Couche          | Technologie                  | Justification                                                                     |
+| --------------- | ---------------------------- | --------------------------------------------------------------------------------- |
+| Mobile          | **Flutter 3.24+**            | UI native performante, un seul codebase, écosystème widgets (swipe, cache images) |
+| State           | **Riverpod 2**               | Réactivité, testabilité (providers injectables)                                   |
+| Navigation      | **go_router**                | Routes auth + deep links                                                          |
+| BDD temps réel  | **Cloud Firestore**          | Sync offline, règles fines, sous-collections par user                             |
+| Fichiers        | **Firebase Storage**         | URLs signées, intégration Auth                                                    |
+| Auth            | **Firebase Authentication**  | Standard marché, token JWT pour API                                               |
+| API métier      | **FastAPI** (Python 3.11)    | PO Java/Python, typage Pydantic, déploiement serverless                           |
+| Hébergement API | **Vercel**                   | HTTPS gratuit, cold start acceptable pour IA ponctuelle                           |
+| Météo           | **Open-Meteo**               | Gratuit, sans clé, suffisant pour tags météo                                      |
+| Vision          | **Google Gemini 2.5 Flash**  | Multimodal, tier gratuit généreux, JSON structuré                                 |
+| Suggestions     | **Moteur rule-based Python** | Latence < 1 s, coût nul, explicable devant jury                                   |
+
 
 ### 3.2 Alternatives écartées
 
-| Option | Raison de l'écart |
-|--------|-------------------|
-| **Flet (Python UI)** - V1 | Peu de widgets mobiles matures, perf et responsive limités → abandon |
-| **React Native** | Moins aligné avec exigence Python significatif côté backend |
-| **Supabase seul** | Moins intégré écosystème mobile Firebase déjà utilisé en cours |
-| **LLM pour chaque suggestion d'outfit** | Coût et latence (3–5 s difficiles à tenir à grande échelle) |
-| **GPT-4 Vision** | Coût par image supérieur à Gemini Flash pour un projet étudiant |
-| **Parse / Backendless** | Vendor lock-in, moins de contrôle sur les règles Firestore |
+
+| Option                                  | Raison de l'écart                                                    |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| **Flet (Python UI)** - V1               | Peu de widgets mobiles matures, perf et responsive limités → abandon |
+| **React Native**                        | Moins aligné avec exigence Python significatif côté backend          |
+| **Supabase seul**                       | Moins intégré écosystème mobile Firebase déjà utilisé en cours       |
+| **LLM pour chaque suggestion d'outfit** | Coût et latence (3–5 s difficiles à tenir à grande échelle)          |
+| **GPT-4 Vision**                        | Coût par image supérieur à Gemini Flash pour un projet étudiant      |
+| **Parse / Backendless**                 | Vendor lock-in, moins de contrôle sur les règles Firestore           |
+
 
 ### 3.3 Architecture logicielle
 
@@ -193,17 +199,19 @@ Je prévois une seconde ligne de revenus :
 
 ---
 
-## 4. Section IA (obligatoire)
+## 4. Section IA
 
 ### 4.1 Usages de l'IA dans le projet
 
-| Usage | Outil / modèle | Rôle |
-|-------|----------------|------|
-| Génération de code | Cursor, agents Composer | Scaffolding Flutter/Python, refactor |
-| Analyse photo vêtement | **Gemini 2.5 Flash** | Vision → JSON structuré |
-| Suggestions d'outfits | **Algorithme déterministe** (pas LLM) | Score couleurs, style, saison, météo, historique |
-| Documentation | LLM | README, rapport, cette doc |
-| Suppression de fond | **rembg** (optionnel, local) | Désactivé en prod Vercel |
+
+| Usage                  | Outil / modèle                        | Rôle                                             |
+| ---------------------- | ------------------------------------- | ------------------------------------------------ |
+| Génération de code     | Cursor, agents Composer               | Scaffolding Flutter/Python, refactor             |
+| Analyse photo vêtement | **Gemini 2.5 Flash**                  | Vision → JSON structuré                          |
+| Suggestions d'outfits  | **Algorithme déterministe** (pas LLM) | Score couleurs, style, saison, météo, historique |
+| Documentation          | LLM                                   | README, rapport, cette doc                       |
+| Suppression de fond    | **rembg** (optionnel, local)          | Désactivé en prod Vercel                         |
+
 
 ### 4.2 Analyse d'image (Gemini)
 
@@ -248,12 +256,14 @@ final list = await api.suggestOutfits(
 
 ### 4.4 Analyse des coûts API IA
 
-| Service | Tarification indicative | Usage uniSaps | Choix |
-|---------|-------------------------|-----------------|-------|
-| **Gemini 2.5 Flash** | Tier gratuit (~1500 req/jour en dev) | 1 appel / ajout vêtement premium | **Retenu** - meilleur rapport qualité/coût pour la vision |
-| **GPT-4o mini / Vision** | ~0,15–0,60 $ / M tokens + image | Équivalent fonctionnel | Écarté - coût cumulé si tous les users analysent chaque photo |
-| **Claude Vision** | Payant à l'usage | Idem | Écarté - même raison |
-| **LLM par suggestion outfit** | 1–3 appels / matin / user | Centaines de tokens + latence | **Écarté** - moteur rule-based gratuit et &lt; 1 s |
+
+| Service                       | Tarification indicative              | Usage uniSaps                    | Choix                                                         |
+| ----------------------------- | ------------------------------------ | -------------------------------- | ------------------------------------------------------------- |
+| **Gemini 2.5 Flash**          | Tier gratuit (~1500 req/jour en dev) | 1 appel / ajout vêtement premium | **Retenu** - meilleur rapport qualité/coût pour la vision     |
+| **GPT-4o mini / Vision**      | ~0,15–0,60 $ / M tokens + image      | Équivalent fonctionnel           | Écarté - coût cumulé si tous les users analysent chaque photo |
+| **Claude Vision**             | Payant à l'usage                     | Idem                             | Écarté - même raison                                          |
+| **LLM par suggestion outfit** | 1–3 appels / matin / user            | Centaines de tokens + latence    | **Écarté** - moteur rule-based gratuit et < 1 s               |
+
 
 **Estimation ordre de grandeur (100 users actifs, 5 vêtements analysés/mois) :**  
 ≈ 500 appels Gemini/mois → reste dans le gratuit ou quelques euros. Un LLM par suggestion multiplierait par 30× les appels.
@@ -262,12 +272,14 @@ final list = await api.suggestOutfits(
 
 Développement assisté par **agents spécialisés** dans Cursor :
 
-| Agent | Mission | Livrables |
-|-------|---------|-----------|
-| **Back** | FastAPI, `ai_service`, routes, déploiement Vercel | `backend/app/` |
-| **Front** | Écrans Flutter, providers, intégration Firebase | `frontend/lib/` |
-| **Design** | `AppColors`, `AppTheme`, contraintes 320px, tutoriels | `core/theme`, widgets |
-| **Data / Firebase** | Schéma Firestore, `firestore.rules`, index | Racine projet |
+
+| Agent               | Mission                                               | Livrables             |
+| ------------------- | ----------------------------------------------------- | --------------------- |
+| **Back**            | FastAPI, `ai_service`, routes, déploiement Vercel     | `backend/app/`        |
+| **Front**           | Écrans Flutter, providers, intégration Firebase       | `frontend/lib/`       |
+| **Design**          | `AppColors`, `AppTheme`, contraintes 320px, tutoriels | `core/theme`, widgets |
+| **Data / Firebase** | Schéma Firestore, `firestore.rules`, index            | Racine projet         |
+
 
 **Exemple de prompt « chef de projet » (extrait du cahier des charges initial) :**
 
@@ -281,14 +293,6 @@ créer des tenues, outfit du jour, streak, réseau social Inspiration.
 ```
 
 Chaque agent recevait un sous-ensemble (ex. « implémente `outfits_screen.dart` avec tabs Bibliothèque / Tinder / IA, sans débordement texte »).
-
-### 4.6 Ce que je dois pouvoir expliquer au jury
-
-- Pourquoi j'utilise Gemini pour **une** tâche vision et pas pour les suggestions.
-- Comment `PROMPT_MAP` et `_score()` influencent le résultat (démo avec 2 prompts différents).
-- Où je stocke les métadonnées IA (`garments` Firestore).
-- Comment je monétise l'IA (**1 € / 5 €**) sans exploser les coûts API.
-- Ma roadmap **Créateur** : pub posts, ratio 1/10, transparence sponsorisée.
 
 ---
 
@@ -313,20 +317,16 @@ posts/{user_id}/{filename}
 
 ### 5.3 Fichiers de configuration
 
-| Fichier | Rôle |
-|---------|------|
-| `frontend/android/app/google-services.json` | Config Android Firebase |
-| `firestore.rules` | Sécurité données |
-| `firebase.json` | Déploiement règles |
-| `backend/serviceAccountKey.json` | Admin SDK (gitignored) |
-| `backend/.env` | `GEMINI_API_KEY`, bucket Storage |
-| `backend/vercel.json` | Routing serverless |
 
-### 5.4 Secrets (ne pas committer)
+| Fichier                                     | Rôle                             |
+| ------------------------------------------- | -------------------------------- |
+| `frontend/android/app/google-services.json` | Config Android Firebase          |
+| `firestore.rules`                           | Sécurité données                 |
+| `firebase.json`                             | Déploiement règles               |
+| `backend/serviceAccountKey.json`            | Admin SDK (gitignored)           |
+| `backend/.env`                              | `GEMINI_API_KEY`, bucket Storage |
+| `backend/vercel.json`                       | Routing serverless               |
 
-- `GEMINI_API_KEY`
-- `serviceAccountKey.json`
-- Codes premium de démo
 
 ---
 
@@ -344,12 +344,14 @@ Détaillée dans `presentation/README.md` et `backend/LANCE_BACKEND.md`.
 
 ### 6.3 Tests
 
-| Type | Emplacement | Commande |
-|------|-------------|----------|
-| Modèles Dart | `frontend/test/models/` | `flutter test` |
-| Providers | `frontend/test/providers/` | idem |
-| Services | `frontend/test/services/` | idem |
-| CI | `.github/workflows/flutter_tests.yml` | analyze + test sur push |
+
+| Type         | Emplacement                           | Commande                |
+| ------------ | ------------------------------------- | ----------------------- |
+| Modèles Dart | `frontend/test/models/`               | `flutter test`          |
+| Providers    | `frontend/test/providers/`            | idem                    |
+| Services     | `frontend/test/services/`             | idem                    |
+| CI           | `.github/workflows/flutter_tests.yml` | analyze + test sur push |
+
 
 **Manques :** tests widget/E2E, tests `pytest` backend.
 
@@ -388,8 +390,6 @@ Détaillée dans `presentation/README.md` et `backend/LANCE_BACKEND.md`.
 - [Google AI Gemini API](https://ai.google.dev/)
 - [Open-Meteo](https://open-meteo.com/)
 - [Riverpod](https://riverpod.dev/)
-- Sujet PO : *Projet de Programmation Orienté Objet*, Adrien ESCOURROU, CNAM, 2026.
 
 ---
 
-*Document source pour export PDF - voir `GENERER_PDF.md`.*

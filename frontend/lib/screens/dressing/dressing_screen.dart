@@ -12,6 +12,7 @@ import '../../services/color_service.dart';
 import '../../services/firebase_storage_display_url.dart';
 import '../../widgets/garment_card.dart';
 import '../../widgets/category_chip.dart';
+import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/garment_detail_sheet.dart';
 import '../../widgets/add_garment_sheet.dart';
 
@@ -99,7 +100,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                   children: [
                     CategoryChip(
                       label: 'Tout',
-                      icon: Icons.grid_view_rounded,
+                      leadingBuilder: (c) => Icon(Icons.grid_view_rounded, size: 16, color: c),
                       selected: _selectedCategory.isEmpty,
                       onTap: () => _setCategory(''),
                     ),
@@ -108,7 +109,11 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                           padding: const EdgeInsets.only(right: 8),
                           child: CategoryChip(
                             label: cat.label,
-                            icon: cat.icon,
+                            leadingBuilder: (c) => GarmentCategoryGlyph(
+                              categoryKey: cat.key,
+                              color: c,
+                              size: 16,
+                            ),
                             selected: _selectedCategory == cat.key,
                             onTap: () => _setCategory(cat.key),
                           ),
@@ -276,21 +281,11 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
   }
 
   void _showAddGarmentSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => const AddGarmentSheet(),
-    );
+    pushAddGarmentRoute(context);
   }
 
   void _showEditGarmentSheet(GarmentModel garment) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => AddGarmentSheet(garment: garment),
-    );
+    pushAddGarmentRoute(context, garment: garment);
   }
 
   Future<bool?> _confirmDelete(GarmentModel garment) async {

@@ -8,15 +8,29 @@ import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
 import '../models/user_model.dart';
+import '../models/collection_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/collection_provider.dart';
 import '../providers/garment_provider.dart';
 import '../widgets/platform_image.dart';
 import '../widgets/brand_selector.dart';
 import '../widgets/multi_color_selector.dart';
 import '../widgets/premium_upgrade_dialog.dart';
 import '../widgets/storage_aware_cached_image.dart';
+import '../widgets/garment_category_glyph.dart';
 
 const int _kMaxGarmentImages = 8;
+
+/// Marque affichée / enregistrée pour le catalogue créateur : pseudo avec @.
+String creatorCatalogBrandLabel(UserModel user) {
+  final raw = user.username.trim();
+  if (raw.isEmpty) {
+    final d = user.displayName.trim();
+    if (d.isEmpty) return '';
+    return d.startsWith('@') ? d : '@$d';
+  }
+  return raw.startsWith('@') ? raw : '@$raw';
+}
 
 /// Une photo locale choisie ou une URL déjà en ligne (édition).
 class _GarmentImageSlot {
@@ -29,8 +43,18 @@ class _GarmentImageSlot {
 
 class AddGarmentSheet extends ConsumerStatefulWidget {
   final GarmentModel? garment;
+  final bool requireCollection;
+  final String? initialCollectionId;
+  /// Flux catalogue marque : pas de suppression de fond IA, marque = @ du compte.
+  final bool creatorCatalogMode;
 
-  const AddGarmentSheet({super.key, this.garment});
+  const AddGarmentSheet({
+    super.key,
+    this.garment,
+    this.requireCollection = false,
+    this.initialCollectionId,
+    this.creatorCatalogMode = false,
+  });
 
   @override
   ConsumerState<AddGarmentSheet> createState() => _AddGarmentSheetState();
@@ -57,15 +81,50 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   bool _useAiAnalysis = true;
   bool _aiAnalyzing = false;
   Map<String, dynamic>? _aiAttributes;
+  String? _selectedCollectionId;
+  bool _creatingCollection = false;
+  final _newCollectionNameController = TextEditingController();
+  final _collectionStartController = TextEditingController();
+  final _collectionEndController = TextEditingController();
+
+  /// Catalogue créateur : même logique que [CreatorPostCreateSheet] pour éviter que le focus
+  /// revienne sur le nom après une bottom sheet (photos, collection…).
+  FocusNode? _creatorCatalogNameFocusNode;
+
+  void _onCreatorCatalogNameFocusChanged() {
+    final n = _creatorCatalogNameFocusNode;
+    if (n != null && !n.hasFocus) {
+      n.canRequestFocus = false;
+    }
+  }
+
+  void _unfocusAfterCreatorCatalogSheet() {
+    if (!widget.creatorCatalogMode || !mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) FocusManager.instance.primaryFocus?.unfocus();
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    if (widget.creatorCatalogMode) {
+      _useAiAnalysis = false;
+    }
     _previewController = PageController();
     _nameController = TextEditingController(text: widget.garment?.name ?? '');
     _brandController = TextEditingController(text: widget.garment?.brand ?? '');
     _selectedColors = List<String>.from(widget.garment?.colors ?? []);
     _selectedCategory = widget.garment?.category ?? 'top';
+    _selectedCollectionId = widget.garment?.collectionId.isNotEmpty == true
+        ? widget.garment!.collectionId
+        : widget.initialCollectionId;
+
+    if (widget.creatorCatalogMode) {
+      _creatorCatalogNameFocusNode = FocusNode(skipTraversal: true);
+      _creatorCatalogNameFocusNode!.canRequestFocus = false;
+      _creatorCatalogNameFocusNode!.addListener(_onCreatorCatalogNameFocusChanged);
+    }
 
     if (widget.garment != null) {
       final urls = widget.garment!.imageUrls.isNotEmpty
@@ -82,10 +141,16 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     // Ne pas lier _useAiAnalysis au tier ici : tant que le doc Firestore n'est pas
     // chargé, isPremium est faux → l'IA était ignorée en ~1 s sans message.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || widget.garment != null) return;
+      if (!mounted) return;
       final user = ref.read(currentUserProvider).valueOrNull;
       if (user == null) return;
-      if (!user.isPremium) {
+      if (widget.creatorCatalogMode) {
+        final label = creatorCatalogBrandLabel(user);
+        if (label.isNotEmpty) {
+          setState(() => _brandController.text = label);
+        }
+        setState(() => _removeBackground = false);
+      } else if (widget.garment == null && !user.isPremium) {
         setState(() => _removeBackground = false);
       }
     });
@@ -94,8 +159,15 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   @override
   void dispose() {
     _previewController.dispose();
+    if (_creatorCatalogNameFocusNode != null) {
+      _creatorCatalogNameFocusNode!.removeListener(_onCreatorCatalogNameFocusChanged);
+      _creatorCatalogNameFocusNode!.dispose();
+    }
     _nameController.dispose();
     _brandController.dispose();
+    _newCollectionNameController.dispose();
+    _collectionStartController.dispose();
+    _collectionEndController.dispose();
     super.dispose();
   }
 
@@ -153,9 +225,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           _nameController.text = n;
         }
 
-        final b = (result['brand'] as String?)?.trim() ?? '';
-        if (b.isNotEmpty && _brandController.text.trim().isEmpty) {
-          _brandController.text = b;
+        if (!widget.creatorCatalogMode) {
+          final b = (result['brand'] as String?)?.trim() ?? '';
+          if (b.isNotEmpty && _brandController.text.trim().isEmpty) {
+            _brandController.text = b;
+          }
         }
         _primaryAiApplied = true;
       }
@@ -278,7 +352,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   Future<void> _openPickSources() async {
     if (_slots.length >= _kMaxGarmentImages) return;
 
-    final choice = await showModalBottomSheet<String>(
+    if (widget.creatorCatalogMode) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    try {
+      final choice = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
@@ -308,27 +386,30 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         ),
       ),
     );
-    if (choice == null || !mounted) return;
+      if (choice == null || !mounted) return;
 
-    final picker = ImagePicker();
+      final picker = ImagePicker();
 
-    if (choice == 'camera') {
-      final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 1200, imageQuality: 82);
-      if (picked != null && mounted) {
-        setState(() => _slots.add(_GarmentImageSlot.local(picked)));
-        await _runAiOnPendingLocals();
+      if (choice == 'camera') {
+        final picked = await picker.pickImage(source: ImageSource.camera, maxWidth: 1200, imageQuality: 82);
+        if (picked != null && mounted) {
+          setState(() => _slots.add(_GarmentImageSlot.local(picked)));
+          await _runAiOnPendingLocals();
+        }
+      } else if (choice == 'gallery_multi') {
+        final files = await picker.pickMultiImage(maxWidth: 1200, imageQuality: 82);
+        if (files.isNotEmpty && mounted) {
+          setState(() {
+            for (final f in files) {
+              if (_slots.length >= _kMaxGarmentImages) break;
+              _slots.add(_GarmentImageSlot.local(f));
+            }
+          });
+          await _runAiOnPendingLocals();
+        }
       }
-    } else if (choice == 'gallery_multi') {
-      final files = await picker.pickMultiImage(maxWidth: 1200, imageQuality: 82);
-      if (files.isNotEmpty && mounted) {
-        setState(() {
-          for (final f in files) {
-            if (_slots.length >= _kMaxGarmentImages) break;
-            _slots.add(_GarmentImageSlot.local(f));
-          }
-        });
-        await _runAiOnPendingLocals();
-      }
+    } finally {
+      _unfocusAfterCreatorCatalogSheet();
     }
   }
 
@@ -372,14 +453,63 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       setState(() => _error = 'Le nom est obligatoire.');
       return;
     }
+    if (widget.creatorCatalogMode) {
+      final u = ref.read(currentUserProvider).valueOrNull;
+      if (u == null || creatorCatalogBrandLabel(u).isEmpty) {
+        setState(() => _error =
+            'Ton pseudo (@identifiant) est introuvable. Complète ton profil créateur.');
+        return;
+      }
+    }
+    if (widget.requireCollection && widget.garment == null) {
+      if (_creatingCollection) {
+        final cName = _newCollectionNameController.text.trim();
+        if (cName.isEmpty) {
+          setState(() => _error = 'Le nom de la collection est obligatoire.');
+          return;
+        }
+      } else if (_selectedCollectionId == null || _selectedCollectionId!.isEmpty) {
+        setState(() => _error = 'Sélectionne une collection.');
+        return;
+      }
+    }
     setState(() {
       _error = null;
       _loading = true;
     });
 
     final uid = ref.read(authServiceProvider).uid;
+    var collectionId = _selectedCollectionId ?? '';
+    if (widget.requireCollection && widget.garment == null && _creatingCollection) {
+      final now = DateTime.now().toIso8601String().substring(0, 10);
+      final start = _collectionStartController.text.trim().isNotEmpty
+          ? _collectionStartController.text.trim()
+          : now;
+      final end = _collectionEndController.text.trim().isNotEmpty
+          ? _collectionEndController.text.trim()
+          : now;
+      final newId = await ref.read(collectionNotifierProvider.notifier).createCollection(
+            userId: uid,
+            name: _newCollectionNameController.text.trim(),
+            startDate: start,
+            endDate: end,
+          );
+      if (newId == null) {
+        setState(() {
+          _loading = false;
+          _error = 'Impossible de créer la collection.';
+        });
+        return;
+      }
+      collectionId = newId;
+    }
 
     final premium = ref.read(isPremiumProvider);
+    final userForBrand = ref.read(currentUserProvider).valueOrNull;
+    final brand = widget.creatorCatalogMode && userForBrand != null
+        ? creatorCatalogBrandLabel(userForBrand)
+        : _brandController.text.trim();
+    final stripBackground = premium && _removeBackground && !widget.creatorCatalogMode;
     final imageBytesList = <Uint8List>[];
     final imageNames = <String>[];
     for (final s in _slots) {
@@ -392,11 +522,14 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     final needUpload = imageBytesList.isNotEmpty;
 
     try {
-      if (needUpload) {
+      // Ping backend uniquement si l’upload passe par l’API (ex. suppression de fond).
+      // Sinon upload Firebase direct → pas de dépendance au backend (catalogue créateur, etc.).
+      if (needUpload && stripBackground) {
         try {
           final api = ref.read(apiServiceProvider);
           final healthUrl = api.baseUrl.replaceAll('/api/v1', '/health');
-          final testResponse = await http.get(Uri.parse(healthUrl)).timeout(const Duration(seconds: 5));
+          final testResponse =
+              await http.get(Uri.parse(healthUrl)).timeout(const Duration(seconds: 15));
           if (testResponse.statusCode != 200) {
             throw Exception('Backend non disponible');
           }
@@ -420,7 +553,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         success = await ref.read(garmentNotifierProvider.notifier).addGarment(
               userId: uid,
               name: name,
-              brand: _brandController.text.trim(),
+              brand: brand,
               colors: _selectedColors,
               category: _selectedCategory,
               styleTags: styleTags,
@@ -430,7 +563,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               material: material,
               imageBytesList: imageBytesList,
               imageNames: imageNames,
-              removeBackground: premium && _removeBackground,
+              removeBackground: stripBackground,
+              collectionId: collectionId,
             );
       } else {
         final keptUrls = _slots.where((s) => s.networkUrl != null).map((s) => s.networkUrl!).toList();
@@ -438,13 +572,13 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               uid: uid,
               garmentId: widget.garment!.id,
               name: name,
-              brand: _brandController.text.trim(),
+              brand: brand,
               colors: _selectedColors,
               category: _selectedCategory,
               keptImageUrls: keptUrls,
               newImageBytesList: imageBytesList,
               newImageNames: imageNames,
-              removeBackground: premium && _removeBackground,
+              removeBackground: stripBackground,
             );
       }
 
@@ -531,6 +665,362 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         });
       }
     }
+  }
+
+  /// Sélecteur de collection : bottom sheet (évite les bugs du DropdownButtonFormField).
+  Future<void> _openCollectionPicker(
+    BuildContext context,
+    List<CollectionModel> collections,
+  ) async {
+    if (collections.isEmpty) return;
+    if (widget.creatorCatalogMode) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
+    final chosenId = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      enableDrag: true,
+      builder: (ctx) {
+        final bottom = MediaQuery.paddingOf(ctx).bottom;
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(ctx).height * 0.55,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x1A000000),
+                blurRadius: 24,
+                offset: Offset(0, -4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textHint.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 18, 22, 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.folder_special_rounded, color: AppColors.accent.withValues(alpha: 0.9), size: 26),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Choisir une collection',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.fromLTRB(12, 4, 12, 16 + bottom),
+                  itemCount: collections.length,
+                  separatorBuilder: (_, __) =>
+                      Divider(height: 1, color: AppColors.divider.withValues(alpha: 0.45)),
+                  itemBuilder: (_, i) {
+                    final c = collections[i];
+                    final selected = c.id == _selectedCollectionId;
+                    final dateLine =
+                        c.startDate.isNotEmpty ? '${c.startDate} → ${c.endDate}' : '';
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () => Navigator.pop(ctx, c.id),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? AppColors.accent.withValues(alpha: 0.14)
+                                      : AppColors.surfaceVariant.withValues(alpha: 0.45),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.collections_bookmark_rounded,
+                                  color: selected ? AppColors.accent : AppColors.textHint,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      c.name,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                    if (dateLine.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        dateLine,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textHint.withValues(alpha: 0.95),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (selected)
+                                const Icon(Icons.check_circle_rounded, color: AppColors.accent, size: 24)
+                              else
+                                Icon(Icons.chevron_right_rounded,
+                                    color: AppColors.textHint.withValues(alpha: 0.7)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (chosenId != null && mounted) {
+      setState(() => _selectedCollectionId = chosenId);
+    }
+    _unfocusAfterCreatorCatalogSheet();
+  }
+
+  Widget _buildExistingCollectionPicker(List<CollectionModel> sorted) {
+    CollectionModel? selected;
+    if (_selectedCollectionId != null && _selectedCollectionId!.isNotEmpty) {
+      for (final c in sorted) {
+        if (c.id == _selectedCollectionId) {
+          selected = c;
+          break;
+        }
+      }
+    }
+
+    if (sorted.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 22),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Crée d’abord une collection depuis ton catalogue marque.',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final subtitle =
+        selected != null && selected.startDate.isNotEmpty ? '${selected.startDate} → ${selected.endDate}' : null;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openCollectionPicker(context, sorted),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.divider.withValues(alpha: 0.85), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.graphite.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.folder_open_rounded, color: AppColors.accent, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selected?.name ?? 'Choisir une collection',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
+                          color: selected != null ? AppColors.textPrimary : AppColors.textHint,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textHint.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.textHint.withValues(alpha: 0.8), size: 28),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCollectionSection(String uid) {
+    final collectionsAsync = ref.watch(collectionsProvider(uid));
+    return collectionsAsync.when(
+      data: (collections) {
+        final sorted = List<CollectionModel>.from(collections)
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _creatingCollection || sorted.isEmpty) return;
+          final id = _selectedCollectionId;
+          if (id != null && id.isNotEmpty && !sorted.any((c) => c.id == id)) {
+            setState(() => _selectedCollectionId = sorted.first.id);
+          }
+        });
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Collection',
+              style: AppTextStyles.heading3,
+            ),
+            const SizedBox(height: 8),
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment<bool>(
+                  value: false,
+                  label: Text('Existante'),
+                  icon: Icon(Icons.folder_open_outlined, size: 18),
+                ),
+                ButtonSegment<bool>(
+                  value: true,
+                  label: Text('Nouvelle'),
+                  icon: Icon(Icons.create_new_folder_outlined, size: 18),
+                ),
+              ],
+              selected: {_creatingCollection},
+              style: SegmentedButton.styleFrom(
+                selectedForegroundColor: AppColors.white,
+                selectedBackgroundColor: AppColors.accent,
+                foregroundColor: AppColors.textSecondary,
+                backgroundColor: AppColors.surfaceVariant.withValues(alpha: 0.35),
+                side: BorderSide(color: AppColors.divider.withValues(alpha: 0.65)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+              ),
+              showSelectedIcon: false,
+              onSelectionChanged: (s) {
+                setState(() => _creatingCollection = s.first);
+              },
+            ),
+            const SizedBox(height: 14),
+            if (!_creatingCollection)
+              _buildExistingCollectionPicker(sorted)
+            else ...[
+              TextField(
+                controller: _newCollectionNameController,
+                scrollPadding: EdgeInsets.zero,
+                decoration: const InputDecoration(
+                  hintText: 'Nom de la collection',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _collectionStartController,
+                      scrollPadding: EdgeInsets.zero,
+                      decoration: const InputDecoration(
+                        labelText: 'Début (AAAA-MM-JJ)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _collectionEndController,
+                      scrollPadding: EdgeInsets.zero,
+                      decoration: const InputDecoration(
+                        labelText: 'Fin (AAAA-MM-JJ)',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        );
+      },
+      loading: () => const LinearProgressIndicator(),
+      error: (e, _) => Text('Collections : $e', style: const TextStyle(color: AppColors.error)),
+    );
   }
 
   Widget _buildPhotoPreview() {
@@ -673,23 +1163,27 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   }
 
   Widget _buildAiSwitchSection(BuildContext context, bool isPremium) {
+    if (widget.creatorCatalogMode) {
+      return const SizedBox.shrink();
+    }
     final tiles = Column(
       children: [
-        SwitchListTile.adaptive(
-          value: _removeBackground,
-          onChanged: !isPremium || _aiAnalyzing
-              ? null
-              : (value) => setState(() => _removeBackground = value),
-          contentPadding: EdgeInsets.zero,
-          title: const Text(
-            'Supprimer l’arrière-plan',
-            style: AppTextStyles.bodySecondary,
+        if (!widget.creatorCatalogMode)
+          SwitchListTile.adaptive(
+            value: _removeBackground,
+            onChanged: !isPremium || _aiAnalyzing
+                ? null
+                : (value) => setState(() => _removeBackground = value),
+            contentPadding: EdgeInsets.zero,
+            title: const Text(
+              'Supprimer l’arrière-plan',
+              style: AppTextStyles.bodySecondary,
+            ),
+            subtitle: const Text(
+              'Utilise l’IA pour isoler le vêtement. Décoche si tu veux garder le fond.',
+              style: TextStyle(fontSize: 12, color: AppColors.textHint),
+            ),
           ),
-          subtitle: const Text(
-            'Utilise l’IA pour isoler le vêtement. Décoche si tu veux garder le fond.',
-            style: TextStyle(fontSize: 12, color: AppColors.textHint),
-          ),
-        ),
         SwitchListTile.adaptive(
           value: _useAiAnalysis,
           onChanged: !isPremium || _aiAnalyzing
@@ -730,181 +1224,283 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<UserModel?>>(currentUserProvider, (prev, next) {
-      if (!mounted || widget.garment != null) return;
+      if (!mounted) return;
       final user = next.valueOrNull;
+      if (widget.creatorCatalogMode) {
+        if (user != null) {
+          final label = creatorCatalogBrandLabel(user);
+          if (label.isNotEmpty && mounted) {
+            setState(() => _brandController.text = label);
+          }
+        }
+        if (_removeBackground && mounted) {
+          setState(() => _removeBackground = false);
+        }
+        return;
+      }
+      if (widget.garment != null) return;
       if (user != null && !user.isPremium && _removeBackground) {
         setState(() => _removeBackground = false);
       }
     });
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 20),
-              decoration: BoxDecoration(
-                color: AppColors.textHint.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text(
-                    widget.garment == null ? 'Nouveau vêtement' : 'Modifier le vêtement',
-                    style: AppTextStyles.heading2.copyWith(fontSize: 22),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                    color: AppColors.textSecondary,
-                  ),
-                ],
-              ),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildPhotoPreview(),
-                    const SizedBox(height: 10),
-                    if (_slots.length < _kMaxGarmentImages)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: _aiAnalyzing ? null : _openPickSources,
-                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 20),
-                          label: Text(
-                            _slots.isEmpty
-                                ? 'Ajouter des photos'
-                                : 'Ajouter d’autres photos (${_slots.length}/$_kMaxGarmentImages)',
-                          ),
-                          style: TextButton.styleFrom(foregroundColor: AppColors.accent),
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                    _buildAiSwitchSection(context, ref.watch(isPremiumProvider)),
-                    const SizedBox(height: 24),
-                    TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        hintText: 'Nom / description',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(12)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    BrandSelector(
-                      controller: _brandController,
-                      initialValue: widget.garment?.brand,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Couleurs', style: AppTextStyles.heading3),
-                    const SizedBox(height: 8),
-                    MultiColorSelector(
-                      key: ValueKey('colors_${_selectedColors.join("_")}'),
-                      initialColors: _selectedColors,
-                      onColorsChanged: (colors) {
-                        setState(() => _selectedColors = colors);
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Catégorie', style: AppTextStyles.heading3),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: categories.map((cat) {
-                        final selected = _selectedCategory == cat.key;
-                        return ChoiceChip(
-                          label: Text(cat.label),
-                          avatar: Icon(cat.icon, size: 18),
-                          selected: selected,
-                          selectedColor: AppColors.accent,
-                          labelStyle: TextStyle(
-                            color: selected ? AppColors.white : AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          onSelected: (_) => setState(() => _selectedCategory = cat.key),
-                        );
-                      }).toList(),
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.error, width: 1),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.error_outline, color: AppColors.error, size: 20),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _error!,
-                                style: const TextStyle(
-                                  color: AppColors.error,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _loading ? null : _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                        child: _loading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
-                              )
-                            : Text(
-                                widget.garment == null ? 'Enregistrer' : 'Modifier',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ),
-            ),
-          ],
+    final bottomPad =
+        24.0 + MediaQuery.viewPaddingOf(context).bottom;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded, size: 24),
+          onPressed: () => Navigator.of(context).pop(),
         ),
+        title: Text(
+          widget.garment == null ? 'Nouveau vêtement' : 'Modifier le vêtement',
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
       ),
+      body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
+        padding: EdgeInsets.fromLTRB(20, 0, 20, bottomPad),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+                      _buildPhotoPreview(),
+                      if (_slots.isNotEmpty && _slots.length < _kMaxGarmentImages) ...[
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: _aiAnalyzing ? null : _openPickSources,
+                            icon: const Icon(Icons.add_photo_alternate_outlined, size: 20),
+                            label: Text(
+                              'Ajouter d’autres photos (${_slots.length}/$_kMaxGarmentImages)',
+                            ),
+                            style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      _buildAiSwitchSection(context, ref.watch(isPremiumProvider)),
+                      const SizedBox(height: 24),
+                      const Text('Nom', style: AppTextStyles.heading3),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _nameController,
+                        focusNode: widget.creatorCatalogMode ? _creatorCatalogNameFocusNode : null,
+                        onTap: widget.creatorCatalogMode
+                            ? () {
+                                _creatorCatalogNameFocusNode?.canRequestFocus = true;
+                                _creatorCatalogNameFocusNode?.requestFocus();
+                              }
+                            : null,
+                        scrollPadding: EdgeInsets.zero,
+                        decoration: const InputDecoration(
+                          hintText: 'Nom / description',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.all(Radius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (!widget.creatorCatalogMode) ...[
+                        BrandSelector(
+                          controller: _brandController,
+                          initialValue: widget.garment?.brand,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      const Text('Couleurs', style: AppTextStyles.heading3),
+                      const SizedBox(height: 8),
+                      MultiColorSelector(
+                        key: ValueKey('colors_${_selectedColors.join("_")}'),
+                        initialColors: _selectedColors,
+                        onColorsChanged: (colors) {
+                          setState(() => _selectedColors = colors);
+                        },
+                      ),
+                      if (widget.requireCollection) ...[
+                        const SizedBox(height: 24),
+                        _buildCollectionSection(ref.watch(authServiceProvider).uid),
+                      ],
+                      const SizedBox(height: 24),
+                      const Text('Catégorie', style: AppTextStyles.heading3),
+                      const SizedBox(height: 12),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          const spacing = 10.0;
+                          final tileW = (constraints.maxWidth - spacing) / 2;
+                          return Wrap(
+                            alignment: WrapAlignment.center,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: spacing,
+                            runSpacing: spacing,
+                            children: categories.map((cat) {
+                              final selected = _selectedCategory == cat.key;
+                              final fg =
+                                  selected ? AppColors.white : AppColors.textSecondary;
+                              final bg = selected
+                                  ? AppColors.accent
+                                  : AppColors.surfaceVariant.withValues(alpha: 0.4);
+                              final border = selected
+                                  ? AppColors.accent
+                                  : AppColors.divider.withValues(alpha: 0.65);
+                              return SizedBox(
+                                width: tileW,
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () =>
+                                        setState(() => _selectedCategory = cat.key),
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 160),
+                                      curve: Curves.easeOutCubic,
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                        horizontal: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: bg,
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: border,
+                                          width: selected ? 2 : 1,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            height: 24,
+                                            width: 24,
+                                            child: Center(
+                                              child: GarmentCategoryGlyph(
+                                                categoryKey: cat.key,
+                                                color: fg,
+                                                size: 20,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            cat.label,
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              height: 1.2,
+                                              letterSpacing: -0.2,
+                                              color: fg,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                      if (_error != null) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.error, width: 1),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  _error!,
+                                  style: const TextStyle(
+                                    color: AppColors.error,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _loading ? null : _save,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accent,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          child: _loading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                                )
+                              : Text(
+                                  widget.garment == null ? 'Enregistrer' : 'Modifier',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
     );
   }
+}
+
+/// Même présentation que la création de look : route plein écran, transition depuis le bas,
+/// fermeture par la croix (pas de sheet ni swipe pour fermer).
+Future<void> pushAddGarmentRoute(
+  BuildContext context, {
+  GarmentModel? garment,
+  bool requireCollection = false,
+  String? initialCollectionId,
+  bool creatorCatalogMode = false,
+}) {
+  return Navigator.of(context).push<void>(
+    PageRouteBuilder<void>(
+      pageBuilder: (_, __, ___) => AddGarmentSheet(
+        garment: garment,
+        requireCollection: requireCollection,
+        initialCollectionId: initialCollectionId,
+        creatorCatalogMode: creatorCatalogMode,
+      ),
+      transitionsBuilder: (_, anim, __, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+          child: child,
+        );
+      },
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+  );
 }

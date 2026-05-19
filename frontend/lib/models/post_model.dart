@@ -28,6 +28,11 @@ class PostModel {
   final String createdAt;
   /// Dénormalisé : statut premium de l’auteur au moment du post.
   final bool authorIsPremium;
+  final String postKind;
+  final bool isSponsored;
+  final bool isActive;
+  final String collectionId;
+  final String previewImageUrl;
 
   const PostModel({
     this.id = '',
@@ -42,7 +47,17 @@ class PostModel {
     this.likedBy = const [],
     this.createdAt = '',
     this.authorIsPremium = false,
+    this.postKind = 'organic',
+    this.isSponsored = false,
+    this.isActive = true,
+    this.collectionId = '',
+    this.previewImageUrl = '',
   });
+
+  bool get isOrganic => postKind != 'sponsored' && !isSponsored;
+
+  String get displayImageUrl =>
+      previewImageUrl.isNotEmpty ? previewImageUrl : imageUrl;
 
   factory PostModel.fromMap(Map<String, dynamic> map, {String? docId}) {
     final refs = (map['garment_refs'] as List? ?? [])
@@ -61,6 +76,11 @@ class PostModel {
       likedBy: List<String>.from(map['liked_by'] ?? []),
       createdAt: map['created_at'] ?? '',
       authorIsPremium: map['author_is_premium'] == true,
+      postKind: map['post_kind'] as String? ?? 'organic',
+      isSponsored: map['is_sponsored'] == true,
+      isActive: map['is_active'] != false,
+      collectionId: map['collection_id'] ?? '',
+      previewImageUrl: map['preview_image_url'] ?? '',
     );
   }
 
@@ -76,7 +96,39 @@ class PostModel {
         'liked_by': likedBy,
         'created_at': createdAt,
         'author_is_premium': authorIsPremium,
+        'post_kind': postKind,
+        'is_sponsored': isSponsored,
+        'is_active': isActive,
+        'collection_id': collectionId,
+        'preview_image_url': previewImageUrl,
       };
 
   bool isLikedBy(String uid) => likedBy.contains(uid);
+
+  PostModel copyWith({
+    String? id,
+    bool? isActive,
+    String? caption,
+    String? previewImageUrl,
+  }) {
+    return PostModel(
+      id: id ?? this.id,
+      userId: userId,
+      username: username,
+      userPhotoUrl: userPhotoUrl,
+      imageUrl: imageUrl,
+      outfitId: outfitId,
+      garmentRefs: garmentRefs,
+      caption: caption ?? this.caption,
+      likes: likes,
+      likedBy: likedBy,
+      createdAt: createdAt,
+      authorIsPremium: authorIsPremium,
+      postKind: postKind,
+      isSponsored: isSponsored,
+      isActive: isActive ?? this.isActive,
+      collectionId: collectionId,
+      previewImageUrl: previewImageUrl ?? this.previewImageUrl,
+    );
+  }
 }

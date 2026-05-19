@@ -13,6 +13,8 @@ import '../../models/post_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/post_provider.dart';
+import '../../providers/inspiration_feed_dev_provider.dart';
+import '../../data/mock_explore_feed_posts.dart';
 import '../../providers/friendship_provider.dart';
 import '../../providers/widget_launch_provider.dart';
 import '../home/home_screen.dart';
@@ -66,6 +68,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
   void _toggleFeed(bool friends) {
     if (_showFriends == friends) return;
     setState(() => _showFriends = friends);
+    ref.read(inspirationExplorerVisibleProvider.notifier).state = !friends;
     _horizontalPageController.animateToPage(
       friends ? 0 : 1,
       duration: const Duration(milliseconds: 280),
@@ -99,7 +102,11 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
           PageView(
             controller: _horizontalPageController,
             physics: const NeverScrollableScrollPhysics(),
-            onPageChanged: (i) => setState(() => _showFriends = i == 0),
+            onPageChanged: (i) {
+              setState(() => _showFriends = i == 0);
+              ref.read(inspirationExplorerVisibleProvider.notifier).state =
+                  i == 1;
+            },
             children: [
               _FriendsFeed(
                 uid: uid,
@@ -759,35 +766,19 @@ class _ExploreFeed extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final postsAsync = ref.watch(postsProvider);
+    final postsAsync = ref.watch(exploreFeedProvider);
 
     return postsAsync.when(
       data: (posts) {
-        final now = DateTime.now();
-        final todayStart = DateTime(now.year, now.month, now.day);
-        final todayEnd = todayStart.add(const Duration(days: 1));
-        final todayPosts = posts.where((p) {
-          final dt = DateTime.tryParse(p.createdAt)?.toLocal();
-          if (dt == null) return false;
-          return dt.isAfter(todayStart) && dt.isBefore(todayEnd);
-        }).toList();
-
-        // Mon post en premier
-        todayPosts.sort((a, b) {
-          if (a.userId == uid && b.userId != uid) return -1;
-          if (b.userId == uid && a.userId != uid) return 1;
-          return 0;
-        });
-
-        if (todayPosts.isEmpty) {
+        if (posts.isEmpty) {
           return const _EmptyFeedMessage(
             icon: Icons.explore_outlined,
-            title: 'Aucun post aujourd\'hui',
-            subtitle: 'Sois le premier à partager ton outfit du jour !',
+            title: 'Aucun post à explorer',
+            subtitle: 'Reviens plus tard pour découvrir de nouveaux looks.',
           );
         }
         return _ContinuousFeed(
-          posts: todayPosts,
+          posts: posts,
           uid: uid,
           onDoubleTap: onDoubleTap,
           onScrollStart: onScrollStart,
@@ -853,6 +844,7 @@ class _ContinuousFeed extends ConsumerWidget {
 
           final post = posts[index];
           return _InspoPostCard(
+            key: ValueKey<String>('explore_${index}_${post.id}'),
             post: post,
             uid: uid,
             onLike: () {
@@ -982,6 +974,7 @@ class _InspoPostCard extends StatefulWidget {
   final void Function(String caption)? onEditCaption;
 
   const _InspoPostCard({
+    super.key,
     required this.post,
     required this.uid,
     required this.onLike,
@@ -1470,6 +1463,31 @@ class _InspoPostCardState extends State<_InspoPostCard>
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
+                            if (!isDevMockExplorePostId(widget.post.id) &&
+                                (widget.post.isSponsored ||
+                                    widget.post.postKind == 'sponsored')) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.campaign_outlined,
+                                    size: 12,
+                                    color: AppColors.primary.withValues(alpha: 0.85),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Sponsorisé',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary.withValues(alpha: 0.92),
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -1506,8 +1524,8 @@ class _InspoPostCardState extends State<_InspoPostCard>
           GestureDetector(
             onDoubleTap: _onDoubleTapImage,
             child: AspectRatio(
-              // Un peu moins haut que 4/5 pour que la carte tienne mieux à l’écran.
-              aspectRatio: 7 / 8,
+              // Ratio plus « portrait » pour mieux voir les photos verticales.
+              aspectRatio: 2 / 3,
               child: Stack(
                 fit: StackFit.expand,
                 children: [

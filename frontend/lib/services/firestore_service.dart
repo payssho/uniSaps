@@ -5,6 +5,8 @@ import '../models/garment_model.dart';
 import '../models/outfit_model.dart';
 import '../models/post_model.dart';
 import '../models/friend_request_model.dart';
+import '../models/collection_model.dart';
+import '../data/mock_explore_feed_posts.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -124,6 +126,45 @@ class FirestoreService {
     await _outfitCol(uid).doc(outfitId).delete();
   }
 
+  // ── Collections (compte créateur) ───────────────────────────────────
+
+  CollectionReference<Map<String, dynamic>> _collectionCol(String uid) =>
+      _db.collection('users').doc(uid).collection('collections');
+
+  Future<String> addCollection(CollectionModel collection) async {
+    final ref = await _collectionCol(collection.userId).add(collection.toMap());
+    return ref.id;
+  }
+
+  Future<List<CollectionModel>> getCollections(String uid) async {
+    final snap = await _collectionCol(uid)
+        .orderBy('created_at', descending: true)
+        .get();
+    return snap.docs
+        .map((d) => CollectionModel.fromMap(d.data(), docId: d.id))
+        .toList();
+  }
+
+  Future<List<GarmentModel>> getGarmentsByCollectionId(String uid, String collectionId) async {
+    if (collectionId.isEmpty) return [];
+    final snap =
+        await _garmentCol(uid).where('collection_id', isEqualTo: collectionId).get();
+    return snap.docs.map((d) => GarmentModel.fromMap(d.data(), docId: d.id)).toList();
+  }
+
+  Future<void> deleteCollectionDocument(String uid, String collectionId) async {
+    await _collectionCol(uid).doc(collectionId).delete();
+  }
+
+  Stream<List<CollectionModel>> collectionsStream(String uid) {
+    return _collectionCol(uid)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => CollectionModel.fromMap(d.data(), docId: d.id))
+            .toList());
+  }
+
   // ── Posts ──────────────────────────────────────────────────────────
 
   final _postCol = FirebaseFirestore.instance.collection('posts');
@@ -152,7 +193,53 @@ class FirestoreService {
             snap.docs.map((d) => PostModel.fromMap(d.data(), docId: d.id)).toList());
   }
 
+  /// Posts sponsorisés actifs pour le fil Explorer (indépendamment des X derniers posts).
+  ///
+  /// Ne pas dériver de [postsStream] avec une petite limite globale : les publications
+  /// organiques récentes poussaient les pubs hors fenêtre et elles n’apparaissaient jamais.
+  Stream<List<PostModel>> sponsoredActivePostsStream({int limit = 50}) {
+    return _postCol
+        .where('is_sponsored', isEqualTo: true)
+        .limit(200)
+        .snapshots()
+        .map((snap) {
+          final list = snap.docs
+              .map((d) => PostModel.fromMap(d.data(), docId: d.id))
+              .where((p) =>
+                  p.isActive &&
+                  !isDevMockExplorePostId(p.id) &&
+                  (p.isSponsored || p.postKind == 'sponsored'))
+              .toList();
+          list.sort((a, b) {
+            final da = DateTime.tryParse(a.createdAt) ?? DateTime(1970);
+            final db = DateTime.tryParse(b.createdAt) ?? DateTime(1970);
+            return db.compareTo(da);
+          });
+          return list.take(limit).toList();
+        });
+  }
+
+  Stream<List<PostModel>> creatorPostsStream(String uid, {int limit = 80}) {
+    return _postCol
+        .where('user_id', isEqualTo: uid)
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => PostModel.fromMap(d.data(), docId: d.id))
+            .where((p) => p.postKind == 'sponsored' || p.isSponsored)
+            .toList());
+  }
+
+  Future<void> updatePost(String postId, Map<String, dynamic> data) async {
+    await _postCol.doc(postId).update(data);
+  }
+
   Future<bool> toggleLike(String postId, String uid) async {
+    // Posts factices Explorer (dev) : pas de document Firestore.
+    if (isDevMockExplorePostId(postId)) {
+      return false;
+    }
     final ref = _postCol.doc(postId);
     final snap = await ref.get();
     final likedBy = List<String>.from(snap.data()?['liked_by'] ?? []);
@@ -173,10 +260,12 @@ class FirestoreService {
 
   Future<void> deletePost(String postId) async {
     if (postId.isEmpty) throw Exception('ID du post invalide.');
+    if (isDevMockExplorePostId(postId)) return;
     await _postCol.doc(postId).delete();
   }
 
   Future<void> updatePostCaption(String postId, String caption) async {
+    if (isDevMockExplorePostId(postId)) return;
     await _postCol.doc(postId).update({'caption': caption});
   }
 

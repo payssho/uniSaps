@@ -20,6 +20,7 @@ import '../../providers/weather_provider.dart';
 import '../../services/weather_service.dart';
 import '../../widgets/premium_upgrade_dialog.dart';
 import '../../widgets/storage_aware_cached_image.dart';
+import '../../widgets/garment_category_glyph.dart';
 import '../creations/creation_screen.dart';
 import '../weather/weather_detail_sheet.dart';
 
@@ -1319,19 +1320,23 @@ class _SuggestionPieceCard extends StatelessWidget {
                         ),
                         errorWidget: (_, __) => ColoredBox(
                           color: AppColors.surfaceVariant,
-                          child: Icon(
-                            categoryIcon(garment.category),
-                            size: 40,
-                            color: AppColors.textHint,
+                          child: Center(
+                            child: GarmentCategoryGlyph(
+                              categoryKey: garment.category,
+                              size: 40,
+                              color: AppColors.textHint,
+                            ),
                           ),
                         ),
                       )
                     : ColoredBox(
                         color: AppColors.surfaceVariant,
-                        child: Icon(
-                          categoryIcon(garment.category),
-                          size: 40,
-                          color: AppColors.textHint,
+                        child: Center(
+                          child: GarmentCategoryGlyph(
+                            categoryKey: garment.category,
+                            size: 40,
+                            color: AppColors.textHint,
+                          ),
                         ),
                       ),
               ),

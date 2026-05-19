@@ -20,9 +20,59 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
   List<ColorOption> _selectedColors = [];
   List<ColorOption> _suggestions = [];
   bool _showSuggestions = false;
+  /// false = 1er tap : liste visible sans clavier · true = 2e tap : saisie / filtre.
   bool _isSearchMode = false;
   final FocusNode _focusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
+  /// Regroupe champ + liste : tap ailleurs sur le formulaire ferme le picker sans confondre avec le scroll dans la liste.
+  final Object _pickerTapGroup = Object();
+
+  void _onFocusNodeChanged() {
+    // Ne pas fermer la liste au blur en mode browse : le scroll du dropdown enlève souvent le focus du TextField.
+    if (!_focusNode.hasFocus && _isSearchMode) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted && !_focusNode.hasFocus) {
+          setState(() {
+            _showSuggestions = false;
+            _isSearchMode = false;
+          });
+        }
+      });
+    }
+  }
+
+  void _closePickerFromOutside() {
+    if (!_showSuggestions) return;
+    setState(() {
+      _showSuggestions = false;
+      _isSearchMode = false;
+    });
+    _focusNode.unfocus();
+  }
+
+  void _handleTap() {
+    final blocked = _selectedColors.length >= 3 &&
+        !_selectedColors.any((c) => c.name.toLowerCase() == 'multicolore');
+    if (blocked) return;
+
+    if (!_showSuggestions) {
+      setState(() {
+        _suggestions = ColorService.quickPickColors();
+        _showSuggestions = true;
+        _isSearchMode = false;
+      });
+    } else if (!_isSearchMode) {
+      setState(() => _isSearchMode = true);
+      Future.microtask(() {
+        if (mounted) {
+          _focusNode.unfocus();
+          Future.delayed(const Duration(milliseconds: 50), () {
+            if (mounted) _focusNode.requestFocus();
+          });
+        }
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -30,7 +80,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
     if (widget.initialColors.isNotEmpty) {
       _loadInitialColors();
     }
-    _focusNode.addListener(_onFocusChanged);
+    _focusNode.addListener(_onFocusNodeChanged);
   }
 
   @override
@@ -44,22 +94,9 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
     }
   }
 
-  void _onFocusChanged() {
-    if (!_focusNode.hasFocus) {
-      Future.delayed(const Duration(milliseconds: 150), () {
-        if (mounted && !_focusNode.hasFocus) {
-          setState(() {
-            _showSuggestions = false;
-            _isSearchMode = false;
-          });
-        }
-      });
-    }
-  }
-
   @override
   void dispose() {
-    _focusNode.removeListener(_onFocusChanged);
+    _focusNode.removeListener(_onFocusNodeChanged);
     _focusNode.dispose();
     _searchController.dispose();
     super.dispose();
@@ -79,7 +116,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
   void _onSearchChanged(String value) {
     if (value.isEmpty) {
       setState(() {
-        _suggestions = ColorService.getColors().take(20).toList();
+        _suggestions = ColorService.quickPickColors();
         _showSuggestions = _focusNode.hasFocus;
       });
       return;
@@ -108,6 +145,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
       setState(() {
         _selectedColors = [color];
         _showSuggestions = false;
+        _isSearchMode = false;
       });
       widget.onColorsChanged(['Multicolore']);
       _searchController.clear();
@@ -137,6 +175,9 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
       _showSuggestions = false;
       _isSearchMode = false;
     });
+    Future.delayed(const Duration(milliseconds: 80), () {
+      if (mounted) _focusNode.unfocus();
+    });
   }
 
   void _removeColor(ColorOption color) {
@@ -148,9 +189,12 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return TapRegion(
+      groupId: _pickerTapGroup,
+      onTapOutside: (_) => _closePickerFromOutside(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
         // Couleurs sélectionnées
         if (_selectedColors.isNotEmpty)
           Wrap(
@@ -213,35 +257,16 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
         TextField(
           controller: _searchController,
           focusNode: _focusNode,
+          scrollPadding: EdgeInsets.zero,
           readOnly: !_isSearchMode,
           onChanged: _isSearchMode ? _onSearchChanged : null,
-          onTap: () {
-            if (!_showSuggestions) {
-              // 1er tap : ouvrir le dropdown sans clavier
-              setState(() {
-                _suggestions = ColorService.getColors().take(20).toList();
-                _showSuggestions = true;
-                _isSearchMode = false;
-              });
-            } else if (!_isSearchMode) {
-              // 2ème tap : activer la recherche avec clavier
-              setState(() => _isSearchMode = true);
-              Future.microtask(() {
-                if (mounted) {
-                  _focusNode.unfocus();
-                  Future.delayed(const Duration(milliseconds: 50), () {
-                    if (mounted) _focusNode.requestFocus();
-                  });
-                }
-              });
-            }
-          },
+          onTap: _handleTap,
           decoration: InputDecoration(
             hintText: _selectedColors.length >= 3
                 ? 'Maximum 3 couleurs atteint'
                 : _showSuggestions && !_isSearchMode
                     ? 'Appuie à nouveau pour filtrer…'
-                    : 'Ajouter une couleur (max 3)',
+                    : 'Rechercher ou choisir une couleur (max 3)',
             prefixIcon: const Padding(
               padding: EdgeInsets.all(12),
               child: Icon(Icons.palette_outlined, size: 22, color: AppColors.textHint),
@@ -252,38 +277,18 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
                     onPressed: () {
                       _searchController.clear();
                       setState(() {
-                        _suggestions = ColorService.getColors().take(20).toList();
-                        _isSearchMode = false;
+                        _suggestions = ColorService.quickPickColors();
+                        _showSuggestions = true;
                       });
                     },
                   )
-                : _showSuggestions && !_isSearchMode
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: Icon(Icons.keyboard_outlined, size: 20, color: AppColors.textHint),
-                      )
-                    : null,
+                : null,
             border: const OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(12)),
             ),
           ),
           enabled: _selectedColors.length < 3 || _selectedColors.any((c) => c.name.toLowerCase() == 'multicolore'),
         ),
-        // Indication du 2ème tap
-        if (_showSuggestions && !_isSearchMode)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 4),
-            child: Row(
-              children: [
-                const Icon(Icons.touch_app_outlined, size: 13, color: AppColors.textHint),
-                const SizedBox(width: 4),
-                Text(
-                  'Appuie à nouveau sur le champ pour filtrer',
-                  style: TextStyle(fontSize: 11, color: AppColors.textHint.withOpacity(0.8)),
-                ),
-              ],
-            ),
-          ),
         // Suggestions
         if (_showSuggestions && _suggestions.isNotEmpty)
           Container(
@@ -382,6 +387,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
         if (_showSuggestions &&
             _suggestions.isEmpty &&
             _searchController.text.isNotEmpty &&
+            _isSearchMode &&
             _focusNode.hasFocus)
           Container(
             margin: const EdgeInsets.only(top: 4),
@@ -407,7 +413,8 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
               ],
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -29,12 +29,32 @@ void main() {
       }
     });
 
+    // ── quickPickColors ────────────────────────────────────────────────────
+
+    test('quickPickColors met les basiques en tête (Noir, Blanc, Bleu)', () {
+      final qp = ColorService.quickPickColors();
+      expect(qp, isNotEmpty);
+      expect(qp.first.name, 'Noir');
+      expect(qp.map((c) => c.name).take(3).toList(), ['Noir', 'Blanc', 'Bleu']);
+    });
+
+    test('quickPickColors ne répète pas les nuances de gris', () {
+      final qp = ColorService.quickPickColors();
+      final names = qp.map((c) => c.name).toList();
+      expect(names.where((n) => n.toLowerCase().contains('gris')).length, 1);
+    });
+
+    test('quickPickColors : une seule entrée bleue dans les courantes', () {
+      final qp = ColorService.quickPickColors();
+      final names = qp.map((c) => c.name.toLowerCase()).toList();
+      expect(names.where((n) => n.contains('bleu')).length, 1);
+    });
+
     // ── searchColors ──────────────────────────────────────────────────────
 
-    test('searchColors("") retourne les 20 premières couleurs', () {
+    test('searchColors("") retourne les couleurs rapides (sans texte)', () {
       final results = ColorService.searchColors('');
-      expect(results.length, 20);
-      expect(results, ColorService.getColors().take(20).toList());
+      expect(results, ColorService.quickPickColors());
     });
 
     test('searchColors filtre par nom (insensible à la casse)', () {

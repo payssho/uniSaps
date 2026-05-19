@@ -183,5 +183,29 @@ void main() {
       const user = UserModel();
       expect(user.isFriendWith('anyone'), false);
     });
+
+    test('compte créateur et abonnement actif', () {
+      final user = UserModel.fromMap({
+        'account_type': 'creator',
+        'creator_subscription_status': 'active',
+        'creator_subscription_expires_at':
+            DateTime.now().add(const Duration(days: 10)).toIso8601String(),
+        'creator_bio': 'Marque test',
+        'linked_user_uid': 'uid-perso',
+      });
+      expect(user.isCreator, true);
+      expect(user.isCreatorSubscriptionActive, true);
+      expect(user.creatorBio, 'Marque test');
+      expect(user.linkedUserUid, 'uid-perso');
+    });
+
+    test('displayAvatarUrl préfère le logo créateur', () {
+      final user = UserModel.fromMap({
+        'account_type': 'creator',
+        'profile_photo_url': 'https://profil.jpg',
+        'creator_logo_url': 'https://logo.jpg',
+      });
+      expect(user.displayAvatarUrl, 'https://logo.jpg');
+    });
   });
 }
