@@ -15,17 +15,11 @@ class CreatorDressingScreen extends ConsumerWidget {
   const CreatorDressingScreen({super.key});
 
   void _showAddGarment(BuildContext context, {String? collectionId}) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      enableDrag: false,
-      isDismissible: false,
-      backgroundColor: Colors.transparent,
-      builder: (_) => AddGarmentSheet(
-        requireCollection: true,
-        initialCollectionId: collectionId,
-        creatorCatalogMode: true,
-      ),
+    pushAddGarmentRoute(
+      context,
+      requireCollection: true,
+      initialCollectionId: collectionId,
+      creatorCatalogMode: true,
     );
   }
 
@@ -43,18 +37,12 @@ class CreatorDressingScreen extends ConsumerWidget {
         garment: garment,
         onEdit: () {
           Navigator.pop(sheetCtx);
-          showModalBottomSheet<void>(
-            context: context,
-            isScrollControlled: true,
-            enableDrag: false,
-            isDismissible: false,
-            backgroundColor: Colors.transparent,
-            builder: (_) => AddGarmentSheet(
-              garment: garment,
-              requireCollection: true,
-              initialCollectionId: garment.collectionId,
-              creatorCatalogMode: true,
-            ),
+          pushAddGarmentRoute(
+            context,
+            garment: garment,
+            requireCollection: true,
+            initialCollectionId: garment.collectionId,
+            creatorCatalogMode: true,
           );
         },
         onDelete: () async {

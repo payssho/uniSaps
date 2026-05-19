@@ -198,25 +198,11 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
   }
 
   void _showAddGarmentSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      enableDrag: false,
-      isDismissible: false,
-      builder: (_) => const AddGarmentSheet(),
-    );
+    pushAddGarmentRoute(context);
   }
 
   void _showEditGarmentSheet(GarmentModel garment) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      enableDrag: false,
-      isDismissible: false,
-      builder: (_) => AddGarmentSheet(garment: garment),
-    );
+    pushAddGarmentRoute(context, garment: garment);
   }
 
   Future<bool?> _confirmDelete(GarmentModel garment) async {

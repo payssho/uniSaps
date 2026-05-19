@@ -1,4 +1,3 @@
-import 'dart:math' show min;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1237,69 +1236,30 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       }
     });
 
-    final mediaQuery = MediaQuery.of(context);
-    final screenH = mediaQuery.size.height;
-    final keyboardInset = mediaQuery.viewInsets.bottom;
-    // Une seule adaptation à la zone au-dessus du clavier : pas d’insets aussi dans le padding du scroll (ça doublait l’animation et sautait au focus).
-    final sheetHeight =
-        min(screenH * 0.94, screenH - keyboardInset).clamp(280.0, screenH);
+    final bottomPad =
+        24.0 + MediaQuery.viewPaddingOf(context).bottom;
 
-    return MediaQuery.removeViewInsets(
-      removeBottom: true,
-      context: context,
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded, size: 24),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          widget.garment == null ? 'Nouveau vêtement' : 'Modifier le vêtement',
+        ),
+        centerTitle: true,
+        elevation: 0,
         backgroundColor: Colors.transparent,
-        body: Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            height: sheetHeight,
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: SafeArea(
-              top: true,
-              bottom: false,
-              child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(top: 12, bottom: 20),
-                  decoration: BoxDecoration(
-                    color: AppColors.textHint.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Text(
-                      widget.garment == null ? 'Nouveau vêtement' : 'Modifier le vêtement',
-                      style: AppTextStyles.heading2.copyWith(fontSize: 22),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                      color: AppColors.textSecondary,
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+      ),
+      body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
+        padding: EdgeInsets.fromLTRB(20, 0, 20, bottomPad),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                       _buildPhotoPreview(),
                       if (_slots.isNotEmpty && _slots.length < _kMaxGarmentImages) ...[
                         const SizedBox(height: 10),
@@ -1502,13 +1462,37 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-    ),
     );
   }
+}
+
+/// Même présentation que la création de look : route plein écran, transition depuis le bas,
+/// fermeture par la croix (pas de sheet ni swipe pour fermer).
+Future<void> pushAddGarmentRoute(
+  BuildContext context, {
+  GarmentModel? garment,
+  bool requireCollection = false,
+  String? initialCollectionId,
+  bool creatorCatalogMode = false,
+}) {
+  return Navigator.of(context).push<void>(
+    PageRouteBuilder<void>(
+      pageBuilder: (_, __, ___) => AddGarmentSheet(
+        garment: garment,
+        requireCollection: requireCollection,
+        initialCollectionId: initialCollectionId,
+        creatorCatalogMode: creatorCatalogMode,
+      ),
+      transitionsBuilder: (_, anim, __, child) {
+        return SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+          child: child,
+        );
+      },
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+  );
 }
