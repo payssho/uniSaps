@@ -197,6 +197,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      enableDrag: false,
       builder: (_) => const AddGarmentSheet(),
     );
   }
@@ -206,6 +207,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      enableDrag: false,
       builder: (_) => AddGarmentSheet(garment: garment),
     );
   }

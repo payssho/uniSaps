@@ -18,6 +18,7 @@ class CreatorDressingScreen extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
       builder: (_) => AddGarmentSheet(
         requireCollection: true,
@@ -44,6 +45,7 @@ class CreatorDressingScreen extends ConsumerWidget {
           showModalBottomSheet<void>(
             context: context,
             isScrollControlled: true,
+            enableDrag: false,
             backgroundColor: Colors.transparent,
             builder: (_) => AddGarmentSheet(
               garment: garment,
