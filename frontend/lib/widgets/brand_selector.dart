@@ -100,7 +100,7 @@ class _BrandSelectorState extends State<BrandSelector> {
           controller: widget.controller,
           focusNode: _focusNode,
           onChanged: _onTextChanged,
-          scrollPadding: const EdgeInsets.only(bottom: 120),
+          scrollPadding: EdgeInsets.zero,
           onTap: () {
             if (widget.controller.text.isNotEmpty) {
               _onTextChanged(widget.controller.text);

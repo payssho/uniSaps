@@ -98,7 +98,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   }
 
   void _scheduleScrollFocusedIntoView() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    void scrollFieldToTopOfForm() {
       if (!mounted) return;
       if (!_formScrollController.hasClients) return;
       final ctx = FocusManager.instance.primaryFocus?.context;
@@ -106,14 +106,20 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       final ro = ctx.findRenderObject();
       if (ro == null || !ro.attached) return;
       try {
-        // Cible uniquement le scroll du formulaire (évite de faire bouger la route modale).
+        // Pas de scrollPadding sur les TextField : évite le double-scroll Flutter + modal.
+        // On place le champ actif le plus haut possible dans le viewport du formulaire.
         _formScrollController.position.ensureVisible(
           ro,
-          alignment: 0.22,
-          duration: const Duration(milliseconds: 260),
+          alignment: 0.0,
+          duration: const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
         );
       } catch (_) {}
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Après ouverture du clavier / recalcul du sheet (viewInsets).
+      Future.delayed(const Duration(milliseconds: 100), scrollFieldToTopOfForm);
     });
   }
 
@@ -663,60 +669,331 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     }
   }
 
+  /// Sélecteur de collection : bottom sheet (évite les bugs du DropdownButtonFormField).
+  Future<void> _openCollectionPicker(
+    BuildContext context,
+    List<CollectionModel> collections,
+  ) async {
+    if (collections.isEmpty) return;
+    final chosenId = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      enableDrag: true,
+      builder: (ctx) {
+        final bottom = MediaQuery.paddingOf(ctx).bottom;
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(ctx).height * 0.55,
+          ),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x1A000000),
+                blurRadius: 24,
+                offset: Offset(0, -4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.textHint.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 18, 22, 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.folder_special_rounded, color: AppColors.accent.withValues(alpha: 0.9), size: 26),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'Choisir une collection',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.fromLTRB(12, 4, 12, 16 + bottom),
+                  itemCount: collections.length,
+                  separatorBuilder: (_, __) =>
+                      Divider(height: 1, color: AppColors.divider.withValues(alpha: 0.45)),
+                  itemBuilder: (_, i) {
+                    final c = collections[i];
+                    final selected = c.id == _selectedCollectionId;
+                    final dateLine =
+                        c.startDate.isNotEmpty ? '${c.startDate} → ${c.endDate}' : '';
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: () => Navigator.pop(ctx, c.id),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? AppColors.accent.withValues(alpha: 0.14)
+                                      : AppColors.surfaceVariant.withValues(alpha: 0.45),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.collections_bookmark_rounded,
+                                  color: selected ? AppColors.accent : AppColors.textHint,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      c.name,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                    if (dateLine.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        dateLine,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textHint.withValues(alpha: 0.95),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              if (selected)
+                                const Icon(Icons.check_circle_rounded, color: AppColors.accent, size: 24)
+                              else
+                                Icon(Icons.chevron_right_rounded,
+                                    color: AppColors.textHint.withValues(alpha: 0.7)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    if (chosenId != null && mounted) {
+      setState(() => _selectedCollectionId = chosenId);
+    }
+  }
+
+  Widget _buildExistingCollectionPicker(List<CollectionModel> sorted) {
+    CollectionModel? selected;
+    if (_selectedCollectionId != null && _selectedCollectionId!.isNotEmpty) {
+      for (final c in sorted) {
+        if (c.id == _selectedCollectionId) {
+          selected = c;
+          break;
+        }
+      }
+    }
+
+    if (sorted.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.warning.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 22),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Crée d’abord une collection depuis ton catalogue marque.',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final subtitle =
+        selected != null && selected.startDate.isNotEmpty ? '${selected.startDate} → ${selected.endDate}' : null;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openCollectionPicker(context, sorted),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.divider.withValues(alpha: 0.85), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.graphite.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.folder_open_rounded, color: AppColors.accent, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selected?.name ?? 'Choisir une collection',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.2,
+                          color: selected != null ? AppColors.textPrimary : AppColors.textHint,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textHint.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.textHint.withValues(alpha: 0.8), size: 28),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCollectionSection(String uid) {
     final collectionsAsync = ref.watch(collectionsProvider(uid));
     return collectionsAsync.when(
       data: (collections) {
         final sorted = List<CollectionModel>.from(collections)
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _creatingCollection || sorted.isEmpty) return;
+          final id = _selectedCollectionId;
+          if (id != null && id.isNotEmpty && !sorted.any((c) => c.id == id)) {
+            setState(() => _selectedCollectionId = sorted.first.id);
+          }
+        });
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Collection', style: AppTextStyles.heading3),
-            const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(
-                  child: SegmentedButton<bool>(
-                    segments: const [
-                      ButtonSegment(value: false, label: Text('Existante')),
-                      ButtonSegment(value: true, label: Text('Nouvelle')),
-                    ],
-                    selected: {_creatingCollection},
-                    onSelectionChanged: (s) {
-                      setState(() => _creatingCollection = s.first);
-                    },
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.layers_rounded, color: AppColors.accent, size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Collection',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.35,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            if (!_creatingCollection)
-              DropdownButtonFormField<String>(
-                value: _selectedCollectionId?.isNotEmpty == true
-                    ? _selectedCollectionId
-                    : null,
-                decoration: const InputDecoration(
-                  hintText: 'Choisir une collection',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment<bool>(
+                  value: false,
+                  label: Text('Existante'),
+                  icon: Icon(Icons.folder_open_outlined, size: 18),
                 ),
-                items: sorted
-                    .map(
-                      (c) => DropdownMenuItem(
-                        value: c.id,
-                        child: Text(c.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedCollectionId = v),
-              )
+                ButtonSegment<bool>(
+                  value: true,
+                  label: Text('Nouvelle'),
+                  icon: Icon(Icons.create_new_folder_outlined, size: 18),
+                ),
+              ],
+              selected: {_creatingCollection},
+              style: SegmentedButton.styleFrom(
+                selectedForegroundColor: AppColors.white,
+                selectedBackgroundColor: AppColors.accent,
+                foregroundColor: AppColors.textSecondary,
+                backgroundColor: AppColors.surfaceVariant.withValues(alpha: 0.35),
+                side: BorderSide(color: AppColors.divider.withValues(alpha: 0.65)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+              ),
+              showSelectedIcon: false,
+              onSelectionChanged: (s) {
+                setState(() => _creatingCollection = s.first);
+              },
+            ),
+            const SizedBox(height: 14),
+            if (!_creatingCollection)
+              _buildExistingCollectionPicker(sorted)
             else ...[
               TextField(
                 controller: _newCollectionNameController,
                 focusNode: _newCollectionFocusNode,
-                scrollPadding: const EdgeInsets.only(bottom: 160),
+                scrollPadding: EdgeInsets.zero,
                 decoration: const InputDecoration(
                   hintText: 'Nom de la collection',
                   border: OutlineInputBorder(
@@ -731,7 +1008,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                     child: TextField(
                       controller: _collectionStartController,
                       focusNode: _collectionStartFocusNode,
-                      scrollPadding: const EdgeInsets.only(bottom: 160),
+                      scrollPadding: EdgeInsets.zero,
                       decoration: const InputDecoration(
                         labelText: 'Début (AAAA-MM-JJ)',
                         border: OutlineInputBorder(
@@ -745,7 +1022,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                     child: TextField(
                       controller: _collectionEndController,
                       focusNode: _collectionEndFocusNode,
-                      scrollPadding: const EdgeInsets.only(bottom: 160),
+                      scrollPadding: EdgeInsets.zero,
                       decoration: const InputDecoration(
                         labelText: 'Fin (AAAA-MM-JJ)',
                         border: OutlineInputBorder(
@@ -1006,13 +1283,15 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(top: 12, bottom: 20),
-                decoration: BoxDecoration(
-                  color: AppColors.textHint.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12, bottom: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.textHint.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
               Padding(
@@ -1062,7 +1341,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                       TextField(
                         controller: _nameController,
                         focusNode: _nameFocusNode,
-                        scrollPadding: const EdgeInsets.only(bottom: 160),
+                        scrollPadding: EdgeInsets.zero,
                         decoration: const InputDecoration(
                           hintText: 'Nom / description',
                           border: OutlineInputBorder(

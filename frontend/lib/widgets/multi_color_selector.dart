@@ -217,7 +217,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
         TextField(
           controller: _searchController,
           focusNode: _focusNode,
-          scrollPadding: const EdgeInsets.only(bottom: 160),
+          scrollPadding: EdgeInsets.zero,
           onChanged: _onSearchChanged,
           onTap: () {
             if (!_showSuggestions) {
