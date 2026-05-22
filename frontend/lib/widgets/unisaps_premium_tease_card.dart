@@ -30,7 +30,7 @@ class UnisapsPremiumTeaseCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.workspace_premium_rounded,
                       color: AppColors.accent,
                       size: 22,

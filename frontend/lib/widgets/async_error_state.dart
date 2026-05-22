@@ -27,7 +27,7 @@ class AsyncErrorState extends StatelessWidget {
               color: AppColors.textHint.withValues(alpha: 0.45),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Impossible de charger',
               style: AppTextStyles.heading3,
               textAlign: TextAlign.center,

@@ -592,15 +592,15 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                       child: InkWell(
                         borderRadius: BorderRadius.circular(12),
                         onTap: () => _pickGarment(zoneKey, catKey),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
                               horizontal: 12, vertical: 8),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(Icons.add_rounded,
                                   size: 18, color: AppColors.accent),
-                              const SizedBox(width: 4),
+                              SizedBox(width: 4),
                               Text(
                                 'Ajouter',
                                 style: TextStyle(
@@ -986,7 +986,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
+                              const Text(
                                 'Obligatoire pour créer un look',
                                 style: TextStyle(
                                   fontSize: 12,

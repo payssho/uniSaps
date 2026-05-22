@@ -1135,14 +1135,14 @@ class _InspoPostCardState extends State<_InspoPostCard>
                       ),
                       leading: const Icon(Icons.edit_outlined,
                           color: AppColors.accent),
-                      title: Text(
+                      title: const Text(
                         'Modifier la légende',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      subtitle: Text(
+                      subtitle: const Text(
                         'Texte visible sous la photo',
                         style: AppTextStyles.caption,
                       ),
@@ -1307,7 +1307,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ).createShader(bounds),
-            child: Icon(
+            child: const Icon(
               Icons.favorite_rounded,
               size: 98,
               color: AppColors.white,
@@ -1443,7 +1443,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
                             Text(
                               '@${widget.post.username}',
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w800,
                                 fontSize: 15,
                                 letterSpacing: -0.25,

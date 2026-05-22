@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
-import '../core/constants/categories.dart';
 import '../services/firebase_storage_display_url.dart';
 import 'storage_aware_cached_image.dart';
 import 'garment_category_glyph.dart';

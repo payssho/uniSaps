@@ -39,12 +39,12 @@ class MorningOutfitBanner extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
+            const Text(
               'Quel look pour aujourd’hui ?',
               style: AppTextStyles.heading3,
             ),
             const SizedBox(height: 6),
-            Text(
+            const Text(
               'Choisis comment parcourir tes tenues.',
               style: AppTextStyles.caption,
             ),
