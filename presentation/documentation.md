@@ -270,16 +270,17 @@ final list = await api.suggestOutfits(
 
 ### 4.5 Workflow agents IA (développement)
 
-Développement assisté par **agents spécialisés** dans Cursor :
+Développement assisté par **trois agents spécialisés** dans Cursor (fichiers `.cursor/agents/`, guide `.cursor/AGENTS.md`) :
 
 
-| Agent               | Mission                                               | Livrables             |
-| ------------------- | ----------------------------------------------------- | --------------------- |
-| **Back**            | FastAPI, `ai_service`, routes, déploiement Vercel     | `backend/app/`        |
-| **Front**           | Écrans Flutter, providers, intégration Firebase       | `frontend/lib/`       |
-| **Design**          | `AppColors`, `AppTheme`, contraintes 320px, tutoriels | `core/theme`, widgets |
-| **Data / Firebase** | Schéma Firestore, `firestore.rules`, index            | Racine projet         |
+| Agent                 | Mission                                                                 | Livrables principaux                                      |
+| --------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------- |
+| **unisaps-backend**   | FastAPI métier (hors `/ai/*`), JWT, upload, creator, `firestore.rules`, Vercel | `backend/app/`, `firestore.rules`                         |
+| **unisaps-ia**        | Gemini vision, scoring rule-based, routes `/ai/*`, premium, intégration client IA | `ai_service.py`, `ai.py`, `api_service.dart`, sheets IA   |
+| **unisaps-frontend**  | UI/UX mobile, thème, écrans, widgets, Riverpod, Firestore client, 320px | `frontend/lib/`, `core/theme`, widgets                    |
 
+
+**Séparation IA / backend** : l'agent backend ne modifie pas `ai_service.py` ni les routes `/ai/*` ; l'agent IA porte toute la chaîne vision + suggestions + garde premium.
 
 **Exemple de prompt « chef de projet » (extrait du cahier des charges initial) :**
 
@@ -292,7 +293,7 @@ créer des tenues, outfit du jour, streak, réseau social Inspiration.
 [… contraintes responsive, IA, streak 00h00, structure /models /services …]
 ```
 
-Chaque agent recevait un sous-ensemble (ex. « implémente `outfits_screen.dart` avec tabs Bibliothèque / Tinder / IA, sans débordement texte »).
+Chaque agent reçoit un sous-ensemble ciblé (ex. agent **unisaps-frontend** : « implémente `outfits_screen.dart` avec tabs Bibliothèque / Swipe / IA, sans débordement texte » ; agent **unisaps-ia** : « enrichis `_score()` avec les attributs Gemini des vêtements »).
 
 ---
 
