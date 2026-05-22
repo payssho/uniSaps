@@ -15,6 +15,8 @@ import '../../widgets/category_chip.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/garment_detail_sheet.dart';
 import '../../widgets/add_garment_sheet.dart';
+import '../../widgets/async_error_state.dart';
+import '../../widgets/loading_shimmer_grid.dart';
 
 class DressingScreen extends ConsumerStatefulWidget {
   const DressingScreen({super.key});
@@ -160,17 +162,25 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                             Text(
                               hasItemsInCat && !noFilters
                                   ? 'Aucun résultat'
-                                  : 'Aucun vetement',
+                                  : 'Aucun vêtement',
                               style: AppTextStyles.bodySecondary,
                             ),
                             const SizedBox(height: 6),
                             Text(
                               hasItemsInCat && !noFilters
                                   ? 'Essaie un autre nom, marque ou couleur.'
-                                  : 'Ajoute ton premier vetement !',
+                                  : 'Ajoute ton premier vêtement !',
                               style: AppTextStyles.caption,
                               textAlign: TextAlign.center,
                             ),
+                            if (!hasItemsInCat && noFilters) ...[
+                              const SizedBox(height: 20),
+                              FilledButton.icon(
+                                onPressed: _showAddGarmentSheet,
+                                icon: const Icon(Icons.add, size: 20),
+                                label: const Text('Ajouter un vêtement'),
+                              ),
+                            ],
                           ],
                         ),
                       );
@@ -186,10 +196,12 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                       itemCount: filtered.length,
                       itemBuilder: (_, i) {
                         final garment = filtered[i];
-                        return GarmentCard(
+                        final card = GarmentCard(
                           garment: garment,
                           onTap: () => _showGarmentDetails(garment),
-                        )
+                        );
+                        if (i > 11) return card;
+                        return card
                             .animate()
                             .fadeIn(
                               duration: 90.ms,
@@ -205,8 +217,10 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                       },
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('Erreur: $e')),
+                  loading: () => const LoadingShimmerGrid(),
+                  error: (e, _) => AsyncErrorState(
+                        onRetry: () => ref.invalidate(garmentsProvider(uid)),
+                      ),
                 ),
               ),
             ],
@@ -215,13 +229,18 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 16, right: 16),
-        child: FloatingActionButton.extended(
+        child: Semantics(
+          label: 'Ajouter un vêtement',
+          button: true,
+          child: FloatingActionButton.extended(
           heroTag: 'dressing_fab',
+          tooltip: 'Ajouter un vêtement',
           backgroundColor: AppColors.accent,
           elevation: 6,
           onPressed: () => _showAddGarmentSheet(),
           icon: const Icon(Icons.add, color: AppColors.white, size: 24),
           label: const Text('Ajouter', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
+        ),
         ),
       ),
     );

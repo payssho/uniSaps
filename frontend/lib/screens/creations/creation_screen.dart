@@ -70,6 +70,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
 
   bool _weatherDropdownOpen = false;
   bool _seasonDropdownOpen = false;
+  int _creationStep = 0;
 
   static bool _isMultiZone(String zoneKey) =>
       zoneKey == 'torso' || zoneKey == 'wrist';
@@ -829,6 +830,45 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Row(
+                children: List.generate(3, (i) {
+                  final active = _creationStep == i;
+                  final labels = ['Pièces', 'Nom & photo', 'Météo'];
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(left: i == 0 ? 0 : 4),
+                      child: Material(
+                        color: active
+                            ? AppColors.accent.withValues(alpha: 0.12)
+                            : AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(10),
+                        child: InkWell(
+                          onTap: () => setState(() => _creationStep = i),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Text(
+                              labels[i],
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: active
+                                    ? AppColors.accent
+                                    : AppColors.textHint,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+            if (_creationStep == 1) ...[
             // --- Photo section (mandatory, prominent) ---
             GestureDetector(
               onTap: _uploadingPhoto ? null : _showPhotoSourcePicker,
@@ -958,7 +998,66 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
               ),
             ),
 
-            // --- Name field ---
+            ],
+            if (_creationStep == 0) ...[
+            // --- Section title ---
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+              child: Row(
+                children: [
+                  const Text(
+                    'Pièces du look',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: pieceCount > 0
+                          ? AppColors.accent.withValues(alpha: 0.1)
+                          : AppColors.surfaceVariant,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '$pieceCount',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: pieceCount > 0
+                            ? AppColors.accent
+                            : AppColors.textHint,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ...zones.asMap().entries.map((entry) {
+              final i = entry.key;
+              final z = entry.value;
+              final (zoneKey, label, icon, catKey) = z;
+              return _zoneTile(
+                zoneKey: zoneKey,
+                label: label,
+                zoneIcon: icon,
+                catKey: catKey,
+              )
+                  .animate()
+                  .fadeIn(duration: 300.ms, delay: (50 * i).ms)
+                  .slideX(
+                    begin: 0.04,
+                    end: 0,
+                    duration: 300.ms,
+                    delay: (50 * i).ms,
+                  );
+            }),
+            ],
+            if (_creationStep == 1) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
               child: TextField(
@@ -980,66 +1079,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 ),
               ),
             ),
-
-            // --- Section title ---
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-              child: Row(
-                children: [
-                  const Text(
-                    'Pièces du look',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: pieceCount > 0
-                          ? AppColors.accent.withOpacity(0.1)
-                          : AppColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$pieceCount',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: pieceCount > 0
-                            ? AppColors.accent
-                            : AppColors.textHint,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // --- Zone cards ---
-            ...zones.asMap().entries.map((entry) {
-              final i = entry.key;
-              final z = entry.value;
-              final (zoneKey, label, icon, catKey) = z;
-              return _zoneTile(
-                zoneKey: zoneKey,
-                label: label,
-                zoneIcon: icon,
-                catKey: catKey,
-              )
-                  .animate()
-                  .fadeIn(duration: 300.ms, delay: (50 * i).ms)
-                  .slideX(
-                    begin: 0.04,
-                    end: 0,
-                    duration: 300.ms,
-                    delay: (50 * i).ms,
-                  );
-            }),
-
+            ],
+            if (_creationStep == 2) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 28, 16, 0),
               child: _MultiSelectDropdownTile(
@@ -1090,8 +1131,28 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 }),
               ),
             ),
-
-            const SizedBox(height: 100),
+            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Row(
+                children: [
+                  if (_creationStep > 0)
+                    OutlinedButton(
+                      onPressed: () =>
+                          setState(() => _creationStep = _creationStep - 1),
+                      child: const Text('Précédent'),
+                    ),
+                  const Spacer(),
+                  if (_creationStep < 2)
+                    FilledButton(
+                      onPressed: () =>
+                          setState(() => _creationStep = _creationStep + 1),
+                      child: const Text('Suivant'),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 80),
           ],
         ),
       ),

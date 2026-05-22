@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_colors.dart';
+import '../providers/ui_navigation_provider.dart';
+import '../screens/home/home_screen.dart';
 
-Future<void> showPremiumUpgradeDialog(BuildContext context) {
+Future<void> showPremiumUpgradeDialog(
+  BuildContext context, {
+  WidgetRef? ref,
+}) {
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -35,14 +41,54 @@ Future<void> showPremiumUpgradeDialog(BuildContext context) {
           ),
         ],
       ),
-      content: const Text(
-        'L’analyse IA des photos de vêtements et les suggestions d’outfits par IA sont réservées aux abonnés UniSaps+. '
-        'Le paiement pourra être ajouté plus tard - pour l’instant, contacte l’équipe ou modifie ton statut dans Firestore pour tester.',
-        style: TextStyle(
-          height: 1.45,
-          fontSize: 15,
-          color: AppColors.textSecondary,
-        ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _bullet('Analyse IA de tes photos de vêtements'),
+          _bullet('3 suggestions d’outfits chaque matin'),
+          _bullet('Badge premium sur ton profil'),
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '1 € / mois',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'ou 5 € à vie (achat unique)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Active UniSaps+ depuis ton profil (onglet Compte).',
+            style: TextStyle(
+              height: 1.4,
+              fontSize: 13,
+              color: AppColors.textHint.withValues(alpha: 0.95),
+            ),
+          ),
+        ],
       ),
       actions: [
         TextButton(
@@ -53,12 +99,42 @@ Future<void> showPremiumUpgradeDialog(BuildContext context) {
           ),
         ),
         FilledButton(
-          onPressed: () => Navigator.pop(ctx),
+          onPressed: () {
+            Navigator.pop(ctx);
+            if (ref != null) {
+              ref.read(selectedTabProvider.notifier).state = 3;
+              ref.read(profileInfosTabRequestProvider.notifier).state++;
+            }
+          },
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.accent,
             foregroundColor: AppColors.white,
           ),
-          child: const Text('Compris'),
+          child: const Text('Voir UniSaps+'),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _bullet(String text) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.check_circle_rounded,
+            size: 18, color: AppColors.accent),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.35,
+              color: AppColors.textPrimary,
+            ),
+          ),
         ),
       ],
     ),

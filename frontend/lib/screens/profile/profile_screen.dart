@@ -16,6 +16,9 @@ import '../../providers/friendship_provider.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/premium_avatar_ring.dart';
+import '../../widgets/async_error_state.dart';
+import '../../providers/ui_navigation_provider.dart';
+import '../../providers/theme_mode_provider.dart';
 import '../inspiration/user_profile_screen.dart';
 import '../inspiration/search_users_screen.dart';
 
@@ -37,11 +40,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   late TabController _tabController;
   /// Indique s’il reste du contenu scrollable vers le bas dans l’onglet actif.
   bool _scrollMoreBelow = false;
+  bool _friendRequestSnackShown = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(_onProfileTabChanged);
   }
 
@@ -88,6 +92,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       if (!widget.embeddedInMainNav || next <= 0) return;
       if (_tabController.index == 3) return;
       if (prev != null && prev > 0) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _tabController.animateTo(3);
+        if (!_friendRequestSnackShown) {
+          _friendRequestSnackShown = true;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Nouvelle demande d’ami'),
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      });
+    });
+
+    ref.listen(profileInfosTabRequestProvider, (prev, next) {
+      if (next == (prev ?? 0)) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _tabController.animateTo(3);
       });
@@ -156,8 +178,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                               _StatsTab(uid: user.uid, user: user),
                               _OutfitsTab(uid: user.uid),
                               _GalleryTab(uid: user.uid),
-                              _FriendsTab(user: user),
-                              _InfosTab(
+                              _AccountTab(
                                 user: user,
                                 onLogout: () async {
                                   await ref
@@ -676,12 +697,8 @@ class _ProfileTabRail extends StatefulWidget {
       short: 'Souvenirs',
     ),
     (
-      icon: Icons.group_rounded,
-      short: 'Amis',
-    ),
-    (
       icon: Icons.manage_accounts_rounded,
-      short: 'Infos',
+      short: 'Compte',
     ),
   ];
 
@@ -1003,7 +1020,7 @@ class _StatsTab extends ConsumerWidget {
                     childAspectRatio: constraints.maxWidth > 400 ? 1.15 : 0.95,
                     children: [
                       StatCard(
-                          label: 'Vetements',
+                          label: 'Vêtements',
                           value: '${counts[0]}',
                           icon: Icons.checkroom),
                       StatCard(
@@ -1233,7 +1250,9 @@ class _OutfitsTab extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erreur: $e')),
+      error: (e, _) => AsyncErrorState(
+            onRetry: () => ref.invalidate(outfitsProvider(uid)),
+          ),
     );
   }
 }
@@ -1371,7 +1390,7 @@ class _OutfitSummarySheetState extends ConsumerState<_OutfitSummarySheet> {
                   final pieces = snapshot.data ?? [];
                   if (pieces.isEmpty) {
                     return const Text(
-                      'Aucun vetement associe.',
+                      'Aucun vêtement associé.',
                       style: AppTextStyles.bodySecondary,
                     );
                   }
@@ -1547,7 +1566,9 @@ class _GalleryTab extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Erreur: $e')),
+      error: (e, _) => AsyncErrorState(
+            onRetry: () => ref.invalidate(outfitsProvider(uid)),
+          ),
     );
   }
 }
@@ -1660,10 +1681,45 @@ class _MemoryDetailSheet extends StatelessWidget {
   }
 }
 
+class _AccountTab extends ConsumerWidget {
+  final UserModel user;
+  final VoidCallback onLogout;
+
+  const _AccountTab({required this.user, required this.onLogout});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
+            child: Text('Amis', style: AppTextStyles.heading3),
+          ),
+          _FriendsTab(user: user, embeddedInAccount: true),
+          const Divider(height: 32, indent: 20, endIndent: 20),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Text('Paramètres', style: AppTextStyles.heading3),
+          ),
+          _InfosTab(
+            user: user,
+            onLogout: onLogout,
+            embeddedInAccount: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FriendsTab extends ConsumerStatefulWidget {
   final UserModel user;
+  final bool embeddedInAccount;
 
-  const _FriendsTab({required this.user});
+  const _FriendsTab({required this.user, this.embeddedInAccount = false});
 
   @override
   ConsumerState<_FriendsTab> createState() => _FriendsTabState();
@@ -1710,9 +1766,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
   Widget build(BuildContext context) {
     final requestsAsync = ref.watch(receivedRequestsProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
+    final body = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           requestsAsync.when(
@@ -1818,7 +1872,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
             ),
             child: SwitchListTile.adaptive(
               title: const Text(
-                'Compte prive',
+                'Compte privé',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
               ),
               subtitle: Text(
@@ -1977,7 +2031,16 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                   ),
                 ))),
         ],
-      ),
+      );
+    if (widget.embeddedInAccount) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: body,
+      );
+    }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: body,
     );
   }
 
@@ -2015,8 +2078,13 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
 class _InfosTab extends ConsumerStatefulWidget {
   final UserModel user;
   final VoidCallback onLogout;
+  final bool embeddedInAccount;
 
-  const _InfosTab({required this.user, required this.onLogout});
+  const _InfosTab({
+    required this.user,
+    required this.onLogout,
+    this.embeddedInAccount = false,
+  });
 
   @override
   ConsumerState<_InfosTab> createState() => _InfosTabState();
@@ -2208,10 +2276,19 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
+    final themeMode = ref.watch(themeModeProvider);
+    final body = Column(
         children: [
+          SwitchListTile(
+            title: const Text('Mode sombre'),
+            subtitle: const Text('Confort visuel en faible luminosité'),
+            value: themeMode == ThemeMode.dark,
+            onChanged: (on) {
+              ref.read(themeModeProvider.notifier).state =
+                  on ? ThemeMode.dark : ThemeMode.light;
+            },
+          ),
+          const Divider(height: 24),
           _InfoRow(label: 'Email', value: widget.user.email),
           _InfoRow(label: 'Pseudo', value: widget.user.username),
           _InfoRow(label: 'Nom', value: widget.user.displayName),
@@ -2226,7 +2303,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
           _InfoRow(label: 'Amis', value: '${widget.user.friends.length}'),
           _InfoRow(
               label: 'Compte',
-              value: widget.user.isPrivate ? 'Prive' : 'Public'),
+              value: widget.user.isPrivate ? 'Privé' : 'Public'),
           _InfoRow(
             label: 'UniSaps+',
             value: widget.user.isPremium ? 'Actif' : 'Gratuit',
@@ -2348,7 +2425,16 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
             textAlign: TextAlign.center,
           ),
         ],
-      ),
+      );
+    if (widget.embeddedInAccount) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: body,
+      );
+    }
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: body,
     );
   }
 }

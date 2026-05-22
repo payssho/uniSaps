@@ -1212,7 +1212,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => showPremiumUpgradeDialog(context),
+              onTap: () => showPremiumUpgradeDialog(context, ref: ref),
               child: const SizedBox.expand(),
             ),
           ),

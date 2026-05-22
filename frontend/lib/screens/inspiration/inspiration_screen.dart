@@ -21,6 +21,9 @@ import '../home/home_screen.dart';
 import 'search_users_screen.dart';
 import 'user_profile_screen.dart';
 import '../../widgets/premium_avatar_ring.dart';
+import '../../widgets/async_error_state.dart';
+import '../../widgets/loading_shimmer_grid.dart';
+import '../../widgets/inspiration/empty_feed_message.dart';
 
 class InspirationScreen extends ConsumerStatefulWidget {
   const InspirationScreen({super.key});
@@ -101,7 +104,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
           // Horizontal PageView: Amis / Explorer (swipeable)
           PageView(
             controller: _horizontalPageController,
-            physics: const NeverScrollableScrollPhysics(),
+            physics: const ClampingScrollPhysics(),
             onPageChanged: (i) {
               setState(() => _showFriends = i == 0);
               ref.read(inspirationExplorerVisibleProvider.notifier).state =
@@ -515,7 +518,9 @@ class _FeedToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     const pad = 4.0;
     const pillW = (_FeedToggle._w - pad * 3) / 2;
-    return SizedBox(
+    return Semantics(
+      label: 'Fil Inspiration : ${showFriends ? "Amis" : "Explorer"}',
+      child: SizedBox(
       width: _FeedToggle._w,
       height: 44,
       child: Stack(
@@ -612,6 +617,7 @@ class _FeedToggle extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -625,29 +631,34 @@ class _PublishButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.primary,
-      borderRadius: BorderRadius.circular(22),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_rounded, color: AppColors.white.withValues(alpha: 0.95), size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Publier',
-                style: TextStyle(
-                  color: AppColors.white.withValues(alpha: 0.98),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  letterSpacing: 0.1,
+    return Semantics(
+      label: 'Publier mon look du jour',
+      button: true,
+      child: Material(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(22),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_rounded,
+                    color: AppColors.white.withValues(alpha: 0.95), size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Publier',
+                  style: TextStyle(
+                    color: AppColors.white.withValues(alpha: 0.98),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    letterSpacing: 0.1,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -678,7 +689,7 @@ class _FriendsFeed extends ConsumerWidget {
     return postsAsync.when(
       data: (posts) {
         if (user != null && user!.friends.isEmpty) {
-          return _EmptyFeedMessage(
+          return EmptyFeedMessage(
             icon: Icons.people_outline,
             title: 'Aucun ami pour le moment',
             subtitle: 'Recherche des utilisateurs pour les ajouter !',
@@ -719,7 +730,7 @@ class _FriendsFeed extends ConsumerWidget {
         });
 
         if (todayPosts.isEmpty) {
-          return const _EmptyFeedMessage(
+          return const EmptyFeedMessage(
             icon: Icons.article_outlined,
             title: 'Aucun post de tes amis aujourd\'hui',
             subtitle: 'Reviens demain ou invite tes amis à publier.',
@@ -733,17 +744,10 @@ class _FriendsFeed extends ConsumerWidget {
           onScrollStart: onScrollStart,
         );
       },
-      loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.accent)),
-      error: (e, _) => Center(
-          child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          'Erreur: $e',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-      )),
+      loading: () => const LoadingShimmerFeed(),
+      error: (e, _) => AsyncErrorState(
+            onRetry: () => ref.invalidate(friendsPostsProvider),
+          ),
     );
   }
 }
@@ -771,7 +775,7 @@ class _ExploreFeed extends ConsumerWidget {
     return postsAsync.when(
       data: (posts) {
         if (posts.isEmpty) {
-          return const _EmptyFeedMessage(
+          return const EmptyFeedMessage(
             icon: Icons.explore_outlined,
             title: 'Aucun post à explorer',
             subtitle: 'Reviens plus tard pour découvrir de nouveaux looks.',
@@ -784,17 +788,10 @@ class _ExploreFeed extends ConsumerWidget {
           onScrollStart: onScrollStart,
         );
       },
-      loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.accent)),
-      error: (e, _) => Center(
-          child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          'Erreur: $e',
-          textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
-      )),
+      loading: () => const LoadingShimmerFeed(),
+      error: (e, _) => AsyncErrorState(
+            onRetry: () => ref.invalidate(exploreFeedProvider),
+          ),
     );
   }
 }
@@ -1712,63 +1709,6 @@ class _InspoPostCardState extends State<_InspoPostCard>
 }
 
 // ---------------------------------------------------------------------------
-// Empty feed message
-// ---------------------------------------------------------------------------
-class _EmptyFeedMessage extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Widget? action;
-
-  const _EmptyFeedMessage({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    this.action,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 72,
-              color: AppColors.textHint.withValues(alpha: 0.28),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              title,
-              style: TextStyle(
-                color: AppColors.textSecondary.withValues(alpha: 0.92),
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: AppColors.textHint.withValues(alpha: 0.82),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            if (action != null) ...[
-              const SizedBox(height: 20),
-              action!,
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Post detail sheet
 // ---------------------------------------------------------------------------
 class _PostDetailSheet extends StatelessWidget {
@@ -2104,9 +2044,8 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
         padding: EdgeInsets.all(40),
         child: Center(child: CircularProgressIndicator()),
       ),
-      error: (e, _) => Padding(
-        padding: const EdgeInsets.all(40),
-        child: Center(child: Text('Erreur: $e')),
+      error: (e, _) => AsyncErrorState(
+        onRetry: () => ref.invalidate(receivedRequestsProvider),
       ),
     );
   }

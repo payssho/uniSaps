@@ -75,9 +75,14 @@ Je prévois d'inviter des **marques de vêtements françaises indépendantes** (
 
 - Stats, galerie, paramètres, activation UniSaps+.
 
+### Navigation principale
+
+Quatre onglets dans `HomeScreen` : **Dressing · Outfits · Inspiration · Profil**.  
+La création de tenue se fait via le **FAB « Ajouter un fit »** sur Outfits (mode Bibliothèque), qui ouvre `creation_screen.dart` — pas de 5e onglet « Créer ».
+
 ### Transversal
 
-- Auth Firebase, onboarding, tutoriels, widgets Android, CI (`flutter test`).
+- Auth Firebase, onboarding, tutoriels (4 étapes dont publication sur Inspiration), widgets Android, CI (`flutter test`).
 
 ---
 

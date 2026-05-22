@@ -116,7 +116,7 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nouveau vetement'),
+        title: const Text('Nouveau vêtement'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),

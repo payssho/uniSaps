@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../core/constants/app_colors.dart';
+import '../core/constants/app_radii.dart';
 import '../core/constants/app_text_styles.dart';
 import '../models/post_model.dart';
 import 'premium_avatar_ring.dart';
@@ -46,7 +47,7 @@ class PostCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadii.card),
           boxShadow: [
             BoxShadow(
               color: AppColors.graphite.withValues(alpha: 0.06),

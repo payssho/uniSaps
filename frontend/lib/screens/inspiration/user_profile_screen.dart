@@ -318,7 +318,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                     children: [
                       Icon(Icons.lock_outline, size: 14, color: AppColors.textHint),
                       SizedBox(width: 4),
-                      Text('Prive', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+                      Text('Privé', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
                     ],
                   ),
                 ),

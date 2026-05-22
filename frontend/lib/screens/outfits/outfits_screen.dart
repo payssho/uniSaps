@@ -23,13 +23,15 @@ import '../../widgets/storage_aware_cached_image.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../creations/creation_screen.dart';
 import '../weather/weather_detail_sheet.dart';
+import '../../widgets/async_error_state.dart';
+import '../../widgets/outfits/morning_outfit_banner.dart';
+import '../../widgets/outfits/outfits_mode_toggle.dart';
+import '../../widgets/unisaps_premium_tease_card.dart';
 
 /// Suggestions biblio IA (persistées pendant la session pour l’état vide + la feuille).
 final biblioAiSuggestionsProvider =
     StateProvider<List<Map<String, String>>>((ref) => []);
 final biblioAiLoadingProvider = StateProvider<bool>((ref) => false);
-
-enum _Mode { swipe, biblio }
 
 class OutfitsScreen extends ConsumerStatefulWidget {
   const OutfitsScreen({super.key});
@@ -39,7 +41,8 @@ class OutfitsScreen extends ConsumerStatefulWidget {
 }
 
 class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
-  _Mode _mode = _Mode.biblio;
+  OutfitsViewMode _mode = OutfitsViewMode.biblio;
+  bool _morningPathChosen = false;
 
   @override
   void initState() {
@@ -49,7 +52,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
       if (!mounted) return;
       final wantSwipe = ref.read(outfitsIsSwipeModeProvider);
       if (wantSwipe) {
-        setState(() => _mode = _Mode.swipe);
+        setState(() => _mode = OutfitsViewMode.swipe);
       } else {
         ref.read(outfitsIsSwipeModeProvider.notifier).state = false;
       }
@@ -140,24 +143,60 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                       onAdd: _openCreation,
                       showAdd: false,
                     ),
-                    const SizedBox(height: 4),
-                    _ModeToggle(
-                      mode: _mode,
-                      onChanged: (m) {
-                        setState(() => _mode = m);
-                        // Met à jour le provider global en réaction à l'interaction utilisateur
-                        Future.microtask(() {
-                          if (mounted) {
-                            ref
-                                .read(outfitsIsSwipeModeProvider.notifier)
-                                .state = m == _Mode.swipe;
+                    if (!_morningPathChosen)
+                      MorningOutfitBanner(
+                        isPremium: isPremium,
+                        onSwipe: () {
+                          setState(() {
+                            _morningPathChosen = true;
+                            _mode = OutfitsViewMode.swipe;
+                          });
+                          ref.read(outfitsIsSwipeModeProvider.notifier).state =
+                              true;
+                        },
+                        onBibliotheque: () {
+                          setState(() {
+                            _morningPathChosen = true;
+                            _mode = OutfitsViewMode.biblio;
+                          });
+                          ref.read(outfitsIsSwipeModeProvider.notifier).state =
+                              false;
+                        },
+                        onAiSuggestions: () {
+                          if (!isPremium) {
+                            showPremiumUpgradeDialog(context, ref: ref);
+                            return;
                           }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 8),
+                          final g = garmentsAsync.valueOrNull;
+                          if (g == null) return;
+                          final cache = {for (final x in g) x.id: x};
+                          _openAiSuggestionsSheet(
+                            context,
+                            uid: uid,
+                            garmentCache: cache,
+                          );
+                        },
+                      ),
+                    if (_morningPathChosen) ...[
+                      const SizedBox(height: 4),
+                      OutfitsModeToggle(
+                        mode: _mode,
+                        onChanged: (m) {
+                          setState(() => _mode = m);
+                          Future.microtask(() {
+                            if (mounted) {
+                              ref
+                                  .read(outfitsIsSwipeModeProvider.notifier)
+                                  .state = m == OutfitsViewMode.swipe;
+                            }
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ] else
+                      const SizedBox(height: 8),
                     Expanded(
-                      child: _mode == _Mode.swipe
+                      child: _mode == OutfitsViewMode.swipe
                           ? _SwipeMode(
                               key: ValueKey(
                                   orderedOutfits.map((o) => o.id).join('|')),
@@ -179,6 +218,13 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                               outfits: orderedOutfits,
                               todayContext: todayCtx,
                               garmentCache: garmentCache,
+                              onOpenAiSuggestions: isPremium
+                                  ? () => _openAiSuggestionsSheet(
+                                        context,
+                                        uid: uid,
+                                        garmentCache: garmentCache,
+                                      )
+                                  : null,
                               onChoose: (outfit) {
                                 ref
                                     .read(outfitNotifierProvider.notifier)
@@ -198,21 +244,33 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Erreur: $e')),
+              error: (e, _) => AsyncErrorState(
+                    onRetry: () {
+                      ref.invalidate(outfitsProvider(uid));
+                      ref.invalidate(garmentsProvider(uid));
+                    },
+                  ),
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Erreur: $e')),
+          error: (e, _) => AsyncErrorState(
+                onRetry: () => ref.invalidate(outfitsProvider(uid)),
+              ),
         ),
       ),
-      floatingActionButton: dailyOutfitId.isEmpty && _mode == _Mode.biblio
+      floatingActionButton: dailyOutfitId.isEmpty && _mode == OutfitsViewMode.biblio
           ? Padding(
               padding: const EdgeInsets.only(bottom: 16, right: 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  FloatingActionButton.small(
+                  Semantics(
+                    label: isPremium
+                        ? 'Suggestions IA'
+                        : 'UniSaps+ requis pour les suggestions IA',
+                    button: true,
+                    child: FloatingActionButton.small(
                     heroTag: 'outfits_ai_sheet',
                     tooltip: isPremium ? 'Suggestions IA' : 'UniSaps+ requis',
                     backgroundColor: isPremium
@@ -222,7 +280,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                     elevation: 6,
                     onPressed: () {
                       if (!isPremium) {
-                        showPremiumUpgradeDialog(context);
+                        showPremiumUpgradeDialog(context, ref: ref);
                         return;
                       }
                       final u = ref.read(authServiceProvider).uid;
@@ -239,9 +297,14 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                     child:
                         const Icon(Icons.auto_awesome_rounded, size: 22),
                   ),
+                  ),
                   const SizedBox(height: 12),
-                  FloatingActionButton.extended(
+                  Semantics(
+                    label: 'Ajouter un fit',
+                    button: true,
+                    child: FloatingActionButton.extended(
                     heroTag: 'outfits_fab',
+                    tooltip: 'Créer une tenue',
                     backgroundColor: AppColors.accent,
                     elevation: 6,
                     onPressed: _openCreation,
@@ -253,6 +316,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                  ),
                   ),
                 ],
               ),
@@ -391,103 +455,6 @@ class _Header extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Mode toggle (Swipe / Biblio)
-// ---------------------------------------------------------------------------
-class _ModeToggle extends StatelessWidget {
-  final _Mode mode;
-  final ValueChanged<_Mode> onChanged;
-
-  const _ModeToggle({required this.mode, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: [
-            _ModeChip(
-              icon: Icons.swipe_rounded,
-              label: 'Swipe',
-              active: mode == _Mode.swipe,
-              onTap: () => onChanged(_Mode.swipe),
-            ),
-            _ModeChip(
-              icon: Icons.grid_view_rounded,
-              label: 'Biblio',
-              active: mode == _Mode.biblio,
-              onTap: () => onChanged(_Mode.biblio),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ModeChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  const _ModeChip({
-    required this.icon,
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: active ? AppColors.accent : Colors.transparent,
-            borderRadius: BorderRadius.circular(11),
-            boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: AppColors.accent.withOpacity(0.25),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon,
-                  size: 17,
-                  color: active ? AppColors.white : AppColors.textHint),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: active ? AppColors.white : AppColors.textHint,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -883,6 +850,7 @@ class _BiblioMode extends ConsumerWidget {
   final ValueChanged<OutfitModel> onChoose;
   final ValueChanged<OutfitModel> onDelete;
   final VoidCallback onAdd;
+  final VoidCallback? onOpenAiSuggestions;
 
   const _BiblioMode({
     required this.outfits,
@@ -891,6 +859,7 @@ class _BiblioMode extends ConsumerWidget {
     required this.onChoose,
     required this.onDelete,
     required this.onAdd,
+    this.onOpenAiSuggestions,
   });
 
   @override
@@ -900,8 +869,22 @@ class _BiblioMode extends ConsumerWidget {
       return _EmptyState(onAdd: onAdd);
     }
 
+    final isPremium = ref.watch(isPremiumProvider);
+
     return CustomScrollView(
       slivers: [
+        SliverToBoxAdapter(
+          child: UnisapsPremiumTeaseCard(
+            isPremium: isPremium,
+            onTap: () {
+              if (isPremium) {
+                onOpenAiSuggestions?.call();
+              } else {
+                showPremiumUpgradeDialog(context, ref: ref);
+              }
+            },
+          ),
+        ),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
           sliver: SliverGrid(
