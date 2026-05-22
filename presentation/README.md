@@ -24,11 +24,13 @@ Chaque matin je perds du temps à choisir quoi porter ; j'oublie des pièces et 
 
 ### Mes personas
 
-| Persona | Profil | Besoin principal |
-|---------|--------|------------------|
-| **Léa, 24 ans** | Étudiante en design | Ne pas répéter la même tenue ; inspiration rapide |
-| **Karim, 31 ans** | Consultant | Tenue pro selon la météo ; peu de temps le matin |
-| **Sophie, 28 ans** | Créatrice de contenu | 1 post/jour, galerie, visibilité premium |
+
+| Persona            | Profil               | Besoin principal                                  |
+| ------------------ | -------------------- | ------------------------------------------------- |
+| **Léa, 24 ans**    | Étudiante en design  | Ne pas répéter la même tenue ; inspiration rapide |
+| **Karim, 31 ans**  | Consultant           | Tenue pro selon la météo ; peu de temps le matin  |
+| **Sophie, 28 ans** | Créatrice de contenu | 1 post/jour, galerie, visibilité premium          |
+
 
 ---
 
@@ -38,10 +40,12 @@ Chaque matin je perds du temps à choisir quoi porter ; j'oublie des pièces et 
 
 J'ai structuré un abonnement **UniSaps+** pour les fonctionnalités IA :
 
-| Offre | Prix | Inclus |
-|-------|------|--------|
-| Mensuel | **1 € / mois** | Analyse IA des vêtements + suggestions d'outfits IA |
-| À vie | **5 €** (unique) | Même périmètre, sans abonnement |
+
+| Offre   | Prix             | Inclus                                              |
+| ------- | ---------------- | --------------------------------------------------- |
+| Mensuel | **1 € / mois**   | Analyse IA des vêtements + suggestions d'outfits IA |
+| À vie   | **5 €** (unique) | Même périmètre, sans abonnement                     |
+
 
 Le statut est porté par `account_tier` (`premium`) dans Firestore ; l'encaissement store (Google Play) est l'étape suivante pour la mise en production commerciale.
 
@@ -54,20 +58,25 @@ Je prévois d'inviter des **marques de vêtements françaises indépendantes** (
 ## Fonctionnalités
 
 ### Dressing
+
 - Catalogue par catégories, photos multiples, marques, couleurs.
 - **UniSaps+** : analyse IA (Gemini) à l'ajout d'un vêtement.
 
 ### Outfits
+
 - Composition 6 zones, météo Open-Meteo, outfit du jour, swipe, streak.
 - **UniSaps+** : suggestions IA (prompt + styles).
 
 ### Inspiration
+
 - Feed Explorer / Amis, likes, 1 post/jour, amis, profils.
 
 ### Profil
+
 - Stats, galerie, paramètres, activation UniSaps+.
 
 ### Transversal
+
 - Auth Firebase, onboarding, tutoriels, widgets Android, CI (`flutter test`).
 
 ---
@@ -130,12 +139,14 @@ flutter build appbundle --release
 
 ## Limites et suites
 
-| Limite actuelle | Ma piste |
-|-----------------|----------|
-| Paiement store à finaliser | Google Play Billing pour 1 € et 5 € |
+
+| Limite actuelle            | Ma piste                                    |
+| -------------------------- | ------------------------------------------- |
+| Paiement store à finaliser | Google Play Billing pour 1 € et 5 €         |
 | Comptes Créateur non codés | `account_type`, pub posts, mixage feed 1/10 |
-| Reset streak côté client | Cloud Function minuit |
-| Pas de tests E2E | `integration_test` |
+| Reset streak côté client   | Cloud Function minuit                       |
+| Pas de tests E2E           | `integration_test`                          |
+
 
 ---
 
@@ -163,18 +174,32 @@ Voir `rapport-production.md` (section 2) - dont mon cahier des charges Outfit Ma
 # #######################################################
 ```
 
+### Agents Cursor (développement)
+
+Trois agents spécialisés dans le dépôt pour cibler chaque couche du projet. Dans le chat Cursor, tape `@` puis choisis l’agent :
+
+
+| Mention             | Mission                                                                         |
+| ------------------- | ------------------------------------------------------------------------------- |
+| `@unisaps-backend`  | API FastAPI métier (hors IA), upload, Créateur, `firestore.rules`, Vercel       |
+| `@unisaps-ia`       | Gemini vision, suggestions rule-based, routes `/ai/*`, UniSaps+, flux client IA |
+| `@unisaps-frontend` | UI/UX Flutter, thème, écrans, widgets, Riverpod, responsive 320 px              |
+
+
+Index et matrice de périmètres : `[.cursor/AGENTS.md](../.cursor/AGENTS.md)`. Détail : section 4.5 de `documentation.md`.
+
 ---
 
 ## Documentation
 
-| Fichier | Contenu |
-|---------|---------|
-| [documentation.md](./documentation.md) | Doc technique (source PDF) |
+
+| Fichier                                          | Contenu                                  |
+| ------------------------------------------------ | ---------------------------------------- |
+| [documentation.md](./documentation.md)           | Doc technique (source PDF)               |
+| `[.cursor/AGENTS.md](../.cursor/AGENTS.md)`      | Index des agents Cursor (`@unisaps-*`)   |
 | [rapport-production.md](./rapport-production.md) | Genèse du projet, versions, monétisation |
-| [GENERER_PDF.md](./GENERER_PDF.md) | Export PDF |
+| [GENERER_PDF.md](./GENERER_PDF.md)               | Export PDF                               |
+
 
 ---
 
-## Rendu
-
-Mail à **adrien.escourrou.prof@gmail.com** : nom, lien Git, présentation orale. Sans mail : **−2 points**. Après le 13/05/2026 23h59 : **0** technique.

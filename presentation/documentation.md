@@ -268,21 +268,36 @@ final list = await api.suggestOutfits(
 **Estimation ordre de grandeur (100 users actifs, 5 vêtements analysés/mois) :**  
 ≈ 500 appels Gemini/mois → reste dans le gratuit ou quelques euros. Un LLM par suggestion multiplierait par 30× les appels.
 
-### 4.5 Workflow agents IA (développement)
+### 4.5 Workflow agents Cursor (développement)
 
-Développement assisté par **trois agents spécialisés** dans Cursor (fichiers `.cursor/agents/`, guide `.cursor/AGENTS.md`) :
+Développement assisté par **trois agents spécialisés** invocables dans le chat Cursor via `@` :
 
+| Mention `@` | Fichier prompt | Mission | Livrables principaux |
+| ----------- | -------------- | ------- | -------------------- |
+| **unisaps-backend** | `.cursor/agents/unisaps-backend.md` | FastAPI métier (hors `/ai/*`), JWT, upload, creator, `firestore.rules`, Vercel | `backend/app/` (sauf `ai.py`, `ai_service.py`), `firestore.rules` |
+| **unisaps-ia** | `.cursor/agents/unisaps-ia.md` | Gemini vision, scoring rule-based, routes `/ai/*`, garde UniSaps+, intégration client IA | `ai_service.py`, `ai.py`, `api_service.dart`, `add_garment_sheet.dart`, `outfits_screen.dart` |
+| **unisaps-frontend** | `.cursor/agents/unisaps-frontend.md` | UI/UX mobile, thème, écrans, widgets, Riverpod, Firestore client, 320 px | `frontend/lib/`, `core/theme`, widgets |
 
-| Agent                 | Mission                                                                 | Livrables principaux                                      |
-| --------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------- |
-| **unisaps-backend**   | FastAPI métier (hors `/ai/*`), JWT, upload, creator, `firestore.rules`, Vercel | `backend/app/`, `firestore.rules`                         |
-| **unisaps-ia**        | Gemini vision, scoring rule-based, routes `/ai/*`, premium, intégration client IA | `ai_service.py`, `ai.py`, `api_service.dart`, sheets IA   |
-| **unisaps-frontend**  | UI/UX mobile, thème, écrans, widgets, Riverpod, Firestore client, 320px | `frontend/lib/`, `core/theme`, widgets                    |
+Index, matrice de périmètres et exemples : [`.cursor/AGENTS.md`](../.cursor/AGENTS.md).
 
+**Séparation IA / backend** : `@unisaps-backend` ne modifie pas `ai_service.py` ni `api/routes/ai.py` ; `@unisaps-ia` porte toute la chaîne vision + suggestions + premium. Le client Flutter utilise Firestore pour le CRUD ; l’API sert surtout à l’IA et à l’upload.
 
-**Séparation IA / backend** : l'agent backend ne modifie pas `ai_service.py` ni les routes `/ai/*` ; l'agent IA porte toute la chaîne vision + suggestions + garde premium.
+#### Comment choisir son agent
 
-**Exemple de prompt « chef de projet » (extrait du cahier des charges initial) :**
+- Endpoint REST, règles Firestore, Storage, déploiement Vercel → **`@unisaps-backend`**
+- Analyse photo, `_score()`, suggestions, Gemini, dialog premium → **`@unisaps-ia`**
+- Écran, widget, navigation, design, feed, streak, swipe → **`@unisaps-frontend`**
+- Tâche mixte : commencer par l’agent dominant, puis enchaîner un second `@` si nécessaire
+
+#### Exemples de prompts par agent
+
+**Backend** — `@unisaps-backend` Durcis `POST /creator/activate-subscription` : vérifie le token Firebase, écrit `account_type: creator` et renvoie un JSON aligné avec le modèle user côté Flutter.
+
+**IA** — `@unisaps-ia` Dans `ai_service.py`, ajoute un bonus `_score()` quand `material` du vêtement correspond à la saison active ; garde 3 suggestions via `suggest_multiple` et la garde premium sur `POST /ai/suggest`.
+
+**Frontend** — `@unisaps-frontend` Sur `outfits_screen.dart`, améliore l’onglet Swipe : carte tenue pleine largeur, pas d’overflow à 320 px, bouton « Choisir pour aujourd’hui » visible après le swipe.
+
+**Exemple de prompt « chef de projet » (cahier des charges initial) :**
 
 ```
 # Application de Gestion de Garde-Robe (Outfit Manager)
@@ -293,7 +308,7 @@ créer des tenues, outfit du jour, streak, réseau social Inspiration.
 [… contraintes responsive, IA, streak 00h00, structure /models /services …]
 ```
 
-Chaque agent reçoit un sous-ensemble ciblé (ex. agent **unisaps-frontend** : « implémente `outfits_screen.dart` avec tabs Bibliothèque / Swipe / IA, sans débordement texte » ; agent **unisaps-ia** : « enrichis `_score()` avec les attributs Gemini des vêtements »).
+Découper ensuite par agent : frontend pour la navigation et les écrans, IA pour Gemini et le scoring, backend pour les routes métier et `firestore.rules`.
 
 ---
 
