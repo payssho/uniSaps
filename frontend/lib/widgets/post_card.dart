@@ -5,6 +5,7 @@ import '../core/constants/app_radii.dart';
 import '../core/constants/app_text_styles.dart';
 import '../models/post_model.dart';
 import 'premium_avatar_ring.dart';
+import 'post_garment_refs.dart';
 
 /// Présentation de la carte : pleine largeur ou tuile de grille (2 colonnes).
 enum PostCardLayout {
@@ -182,22 +183,18 @@ class PostCard extends StatelessWidget {
                     Text(post.caption, style: AppTextStyles.body),
                   ],
                   if (post.garmentRefs.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: post.garmentRefs.map((ref) {
-                        final text = [ref.brand, ref.name].where((s) => s.isNotEmpty).join(' - ');
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(text, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                        );
-                      }).toList(),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Pièces du look',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                        color: AppColors.textSecondary.withValues(alpha: 0.9),
+                      ),
                     ),
+                    const SizedBox(height: 8),
+                    PostGarmentRefsStrip(refs: post.garmentRefs),
                   ],
                 ],
               ),
@@ -374,26 +371,11 @@ class PostCard extends StatelessWidget {
                     ),
                   ],
                   if (post.garmentRefs.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: post.garmentRefs.take(2).map((ref) {
-                        final text = [ref.brand, ref.name].where((s) => s.isNotEmpty).join(' · ');
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant.withValues(alpha: 0.85),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            text,
-                            style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        );
-                      }).toList(),
+                    const SizedBox(height: 8),
+                    PostGarmentRefsStrip(
+                      refs: post.garmentRefs,
+                      maxVisible: 4,
+                      compact: true,
                     ),
                   ],
                 ],

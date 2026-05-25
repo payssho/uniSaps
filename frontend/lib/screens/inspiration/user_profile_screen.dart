@@ -13,6 +13,7 @@ import '../../providers/friendship_provider.dart';
 import '../../providers/post_provider.dart';
 import '../../services/firestore_service.dart';
 import '../../widgets/post_card.dart';
+import '../../widgets/post_detail_sheet.dart';
 import '../../widgets/premium_avatar_ring.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../../core/constants/categories.dart';
@@ -796,81 +797,7 @@ class _PostsTab extends ConsumerWidget {
   }
 
   void _showPostDetails(BuildContext context, PostModel post) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _SimplePostDetail(post: post),
-    );
-  }
-}
-
-class _SimplePostDetail extends StatelessWidget {
-  final PostModel post;
-  const _SimplePostDetail({required this.post});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40, height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 16),
-            decoration: BoxDecoration(
-              color: AppColors.textHint.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (post.imageUrl.isNotEmpty)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: CachedNetworkImage(
-                        imageUrl: post.imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                      ),
-                    ),
-                  if (post.caption.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    Text(post.caption, style: AppTextStyles.body),
-                  ],
-                  if (post.garmentRefs.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    ...post.garmentRefs.map((r) {
-                      final text = [r.brand, r.name].where((s) => s.isNotEmpty).join(' - ');
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.checkroom, size: 16, color: AppColors.textHint),
-                            const SizedBox(width: 8),
-                            Text(text, style: AppTextStyles.caption),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    PostDetailSheet.show(context, post);
   }
 }
 

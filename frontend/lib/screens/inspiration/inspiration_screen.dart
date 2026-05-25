@@ -24,6 +24,10 @@ import '../../widgets/premium_avatar_ring.dart';
 import '../../widgets/async_error_state.dart';
 import '../../widgets/loading_shimmer_grid.dart';
 import '../../widgets/inspiration/empty_feed_message.dart';
+import '../../widgets/storage_aware_cached_image.dart';
+import '../../widgets/garment_category_glyph.dart';
+import '../../widgets/post_garment_refs.dart';
+import '../../widgets/post_detail_sheet.dart';
 
 class InspirationScreen extends ConsumerStatefulWidget {
   const InspirationScreen({super.key});
@@ -321,186 +325,324 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
+        final viewInsets = MediaQuery.viewInsetsOf(ctx).bottom;
+        final maxSheetH = MediaQuery.sizeOf(ctx).height * 0.92;
+        final previewImageH =
+            (MediaQuery.sizeOf(ctx).height * 0.34).clamp(180.0, 300.0);
+
         return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text('Publier l\'outfit du jour',
-                      style: AppTextStyles.heading3),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close,
-                        color: AppColors.textSecondary),
-                    onPressed: () => Navigator.pop(ctx),
+          padding: EdgeInsets.only(bottom: viewInsets),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxSheetH),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: AspectRatio(
-                  aspectRatio: 3 / 4,
-                  child: CachedNetworkImage(
-                    imageUrl: postImageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(
-                      color: AppColors.surfaceVariant,
-                      child: const Center(
-                        child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2)),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Publier l\'outfit du jour',
+                                style: AppTextStyles.heading3,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close,
+                                  color: AppColors.textSecondary),
+                              onPressed: () => Navigator.pop(ctx),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: previewImageH,
+                            child: StorageAwareCachedImage(
+                              imageUrl: postImageUrl,
+                              fit: BoxFit.cover,
+                              loadingWidget: Container(
+                                color: AppColors.surfaceVariant,
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (_, __) => Container(
+                                color: AppColors.surfaceVariant,
+                                child: const Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppColors.textHint,
+                                  size: 40,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          outfit.name.isNotEmpty
+                              ? outfit.name
+                              : 'Mon outfit du jour',
+                          style: AppTextStyles.body
+                              .copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        if (garments.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          Text(
+                            'Pièces du look',
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: 118,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: garments.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 10),
+                              itemBuilder: (_, i) => _DailyPostGarmentTile(
+                                garment: garments[i],
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: captionController,
+                          maxLines: 3,
+                          minLines: 1,
+                          decoration: InputDecoration(
+                            hintText: 'Légende (optionnel)...',
+                            filled: true,
+                            fillColor: AppColors.surfaceVariant
+                                .withValues(alpha: 0.45),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: AppColors.scrimLight,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          final result = await ref
+                              .read(postNotifierProvider.notifier)
+                              .createPostFromDaily(
+                                user: user,
+                                outfit: outfit,
+                                garments: garments,
+                                caption: captionController.text.trim(),
+                              );
+                          if (!mounted) return;
+                          if (result == 'ok') {
+                            _toggleFeed(false);
+                            ScaffoldMessenger.of(context)
+                              ..clearSnackBars()
+                              ..showSnackBar(
+                                SnackBar(
+                                  content: const Row(
+                                    children: [
+                                      Icon(Icons.check_circle,
+                                          color: AppColors.white, size: 18),
+                                      SizedBox(width: 10),
+                                      Text('Outfit publié !',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                  backgroundColor: AppColors.success,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(14)),
+                                  margin: const EdgeInsets.fromLTRB(
+                                      16, 0, 16, 16),
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                          } else if (result == 'already_posted') {
+                            ScaffoldMessenger.of(context)
+                              ..clearSnackBars()
+                              ..showSnackBar(
+                                SnackBar(
+                                  content: const Row(
+                                    children: [
+                                      Icon(Icons.info_outline,
+                                          color: AppColors.white, size: 18),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          'Tu as déjà publié ton outfit aujourd\'hui !',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: AppColors.warning,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(14)),
+                                  margin: const EdgeInsets.fromLTRB(
+                                      16, 0, 16, 16),
+                                  duration: const Duration(seconds: 4),
+                                ),
+                              );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Erreur lors de la publication.')),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: const Text(
+                          'Publier',
+                          style: TextStyle(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                outfit.name.isNotEmpty ? outfit.name : 'Mon outfit du jour',
-                style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              if (garments.isNotEmpty)
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: garments.map((g) {
-                    final text = [g.brand, g.name]
-                        .where((s) => s.isNotEmpty)
-                        .join(' - ');
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(text,
-                          style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary)),
-                    );
-                  }).toList(),
-                ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: captionController,
-                maxLines: 3,
-                minLines: 1,
-                decoration: const InputDecoration(
-                  hintText: 'Légende (optionnel)...',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12))),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    final result = await ref
-                        .read(postNotifierProvider.notifier)
-                        .createPostFromDaily(
-                          user: user,
-                          outfit: outfit,
-                          garments: garments,
-                          caption: captionController.text.trim(),
-                        );
-                    if (!mounted) return;
-                    if (result == 'ok') {
-                      _toggleFeed(false);
-                      ScaffoldMessenger.of(context)
-                        ..clearSnackBars()
-                        ..showSnackBar(
-                          SnackBar(
-                            content: const Row(
-                              children: [
-                                Icon(Icons.check_circle,
-                                    color: AppColors.white, size: 18),
-                                SizedBox(width: 10),
-                                Text('Outfit publié !',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                            backgroundColor: AppColors.success,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                            margin:
-                                const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            duration: const Duration(seconds: 3),
-                          ),
-                        );
-                    } else if (result == 'already_posted') {
-                      ScaffoldMessenger.of(context)
-                        ..clearSnackBars()
-                        ..showSnackBar(
-                          SnackBar(
-                            content: const Row(
-                              children: [
-                                Icon(Icons.info_outline,
-                                    color: AppColors.white, size: 18),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    'Tu as déjà publié ton outfit aujourd\'hui !',
-                                    style: TextStyle(fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            backgroundColor: AppColors.warning,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                            margin:
-                                const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            duration: const Duration(seconds: 4),
-                          ),
-                        );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Erreur lors de la publication.')),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: const Text(
-                    'Publier',
-                    style: TextStyle(
-                        color: AppColors.white, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
   }
 
+}
+
+/// Vignette pièce dans la preview de publication outfit du jour.
+class _DailyPostGarmentTile extends StatelessWidget {
+  final GarmentModel garment;
+
+  const _DailyPostGarmentTile({required this.garment});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = [garment.brand, garment.name]
+        .where((s) => s.isNotEmpty)
+        .join('\n');
+
+    return SizedBox(
+      width: 76,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 76,
+              height: 76,
+              child: garment.imageUrl.isNotEmpty
+                  ? StorageAwareCachedImage(
+                      imageUrl: garment.imageUrl,
+                      fit: BoxFit.cover,
+                      loadingWidget: Container(
+                        color: AppColors.surfaceVariant,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (_, __) => Container(
+                        color: AppColors.surfaceVariant,
+                        alignment: Alignment.center,
+                        child: GarmentCategoryGlyph(
+                          categoryKey: garment.category,
+                          size: 28,
+                          color: AppColors.textHint,
+                        ),
+                      ),
+                    )
+                  : Container(
+                      color: AppColors.surfaceVariant,
+                      alignment: Alignment.center,
+                      child: GarmentCategoryGlyph(
+                        categoryKey: garment.category,
+                        size: 28,
+                        color: AppColors.textHint,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label.isNotEmpty ? label : 'Pièce',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1078,12 +1220,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
   }
 
   void _showPostDetails(BuildContext context, PostModel post) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _PostDetailSheet(post: post),
-    );
+    PostDetailSheet.show(context, post);
   }
 
   Future<void> _showPostMenu() async {
@@ -1614,24 +1751,29 @@ class _InspoPostCardState extends State<_InspoPostCard>
                         _showPostDetails(context, widget.post),
                     icon: const Icon(
                       Icons.checkroom_rounded,
-                      size: 20,
-                      color: AppColors.textSecondary,
+                      size: 18,
+                      color: AppColors.accent,
                     ),
-                    label: const Text(
-                      'Détails',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                    label: Text(
+                      'Détails · ${widget.post.garmentRefs.length}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
                     ),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: AppColors.accent,
                       backgroundColor:
-                          AppColors.surfaceVariant.withValues(alpha: 0.55),
+                          AppColors.accent.withValues(alpha: 0.1),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 8,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: AppColors.accent.withValues(alpha: 0.25),
+                        ),
                       ),
                     ),
                   ),
@@ -1658,41 +1800,25 @@ class _InspoPostCardState extends State<_InspoPostCard>
                 right: 14,
                 bottom: 14,
               ),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: widget.post.garmentRefs.take(4).map((refItem) {
-                  final text = [refItem.brand, refItem.name]
-                      .where((s) => s.isNotEmpty)
-                      .join(' · ');
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pièces du look',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                      color: AppColors.textSecondary.withValues(alpha: 0.95),
                     ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.surfaceVariant.withValues(alpha: 0.92),
-                          AppColors.surface,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      border: Border.all(color: AppColors.scrimLight),
-                    ),
-                    child: Text(
-                      text,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11.5,
-                        color:
-                            AppColors.textSecondary.withValues(alpha: 0.95),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                  ),
+                  const SizedBox(height: 8),
+                  PostGarmentRefsStrip(
+                    refs: widget.post.garmentRefs,
+                    onViewAll: () =>
+                        _showPostDetails(context, widget.post),
+                  ),
+                ],
               ),
             ),
         ],
@@ -1705,134 +1831,6 @@ class _InspoPostCardState extends State<_InspoPostCard>
           duration: 360.ms,
           curve: Curves.easeOutCubic,
         );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Post detail sheet
-// ---------------------------------------------------------------------------
-class _PostDetailSheet extends StatelessWidget {
-  final PostModel post;
-
-  const _PostDetailSheet({required this.post});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints:
-          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 20),
-            decoration: BoxDecoration(
-              color: AppColors.textHint.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Flexible(
-            child: SingleChildScrollView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              UserProfileScreen(userId: post.userId),
-                        ),
-                      );
-                    },
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 22,
-                          backgroundColor: AppColors.surfaceVariant,
-                          backgroundImage: post.userPhotoUrl.isNotEmpty
-                              ? CachedNetworkImageProvider(post.userPhotoUrl)
-                              : null,
-                          child: post.userPhotoUrl.isEmpty
-                              ? Text(
-                                  post.username.isNotEmpty
-                                      ? post.username[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textHint),
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(post.username,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16)),
-                              if (post.createdAt.isNotEmpty)
-                                Text(post.createdAt.substring(0, 10),
-                                    style: AppTextStyles.caption),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (post.caption.isNotEmpty) ...[
-                    Text(post.caption, style: AppTextStyles.body),
-                    const SizedBox(height: 16),
-                  ],
-                  if (post.garmentRefs.isNotEmpty) ...[
-                    const Text('Pièces du fit',
-                        style: AppTextStyles.heading3),
-                    const SizedBox(height: 8),
-                    Column(
-                      children: post.garmentRefs.map<Widget>((ref) {
-                        final text = [ref.brand, ref.name]
-                            .where((s) => s.isNotEmpty)
-                            .join(' - ');
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.checkroom,
-                                size: 20, color: AppColors.textHint),
-                          ),
-                          title: Text(text,
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500)),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
