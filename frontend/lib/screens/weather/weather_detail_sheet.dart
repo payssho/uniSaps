@@ -9,6 +9,7 @@ import '../../core/constants/weather_catalog.dart';
 import '../../models/daily_weather_summary.dart';
 import '../../providers/weather_provider.dart';
 import '../../services/weather_service.dart';
+import '../../l10n/l10n_context.dart';
 
 /// Feuille détaillée météo du jour pour la **position actuelle**.
 ///
@@ -190,7 +191,9 @@ class _Header extends StatelessWidget {
     final minMax = formatTempRange(weather.tempMin, weather.tempMax);
     final city = weather.cityName.isNotEmpty
         ? weather.cityName
-        : (fetch.usedFallbackLocation ? 'Paris (approx.)' : 'Position');
+        : (fetch.usedFallbackLocation
+            ? context.l10n.weatherLocationParis
+            : context.l10n.weatherLocationPosition);
 
     return Container(
       decoration: BoxDecoration(
@@ -263,12 +266,12 @@ class _Header extends StatelessWidget {
                               )
                             : const Icon(Icons.refresh_rounded,
                                 color: AppColors.white),
-                        tooltip: 'Actualiser à ma position',
+                        tooltip: context.l10n.weatherRefresh,
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).maybePop(),
                         icon: const Icon(Icons.close, color: AppColors.white),
-                        tooltip: 'Fermer',
+                        tooltip: context.l10n.weatherClose,
                       ),
                     ],
                   ),
@@ -319,7 +322,7 @@ class _Header extends StatelessWidget {
                             if (apparent != null) ...[
                               const SizedBox(height: 2),
                               Text(
-                                'Ressenti $apparent°',
+                                '${context.l10n.weatherFeelsLikeShort} $apparent°',
                                 style: TextStyle(
                                   color: AppColors.white.withOpacity(0.92),
                                   fontWeight: FontWeight.w500,
@@ -388,7 +391,7 @@ class _SunArcCard extends StatelessWidget {
             icon: isDay
                 ? Icons.wb_sunny_outlined
                 : Icons.nights_stay_outlined,
-            label: isDay ? 'Course du soleil' : 'Nuit en cours',
+            label: isDay ? context.l10n.weatherSunCourse : context.l10n.weatherNightInProgress,
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -407,12 +410,12 @@ class _SunArcCard extends StatelessWidget {
             children: [
               _TimeLabel(
                 icon: Icons.wb_twilight_rounded,
-                label: 'Lever',
+                label: context.l10n.weatherSunrise,
                 value: _fmtTime(sunrise),
               ),
               _TimeLabel(
                 icon: Icons.nightlight_round,
-                label: 'Coucher',
+                label: context.l10n.weatherSunset,
                 value: _fmtTime(sunset),
                 alignEnd: true,
               ),
@@ -570,17 +573,19 @@ class _HourlyTimelineCardState extends State<_HourlyTimelineCard> {
   Widget build(BuildContext context) {
     final hours = _todayHours(widget.weather);
     if (hours.isEmpty) {
-      return const _SectionCard(
+      return _SectionCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _SectionTitle(
               icon: Icons.timeline_rounded,
-              label: 'Heure par heure',
+              label: context.l10n.weatherHourly,
             ),
-            SizedBox(height: 12),
-            Text('Données horaires indisponibles.',
-                style: AppTextStyles.caption),
+            const SizedBox(height: 12),
+            Text(
+              context.l10n.weatherHourlyUnavailable,
+              style: AppTextStyles.caption,
+            ),
           ],
         ),
       );
@@ -800,7 +805,7 @@ class _StatsCard extends StatelessWidget {
               Expanded(
                 child: _StatTile(
                   icon: Icons.thermostat_rounded,
-                  label: 'Ressenti',
+                  label: context.l10n.weatherFeelsLike,
                   value: apparent != null ? '$apparent°' : '-',
                 ),
               ),
@@ -808,7 +813,7 @@ class _StatsCard extends StatelessWidget {
               Expanded(
                 child: _StatTile(
                   icon: Icons.air_rounded,
-                  label: 'Vent',
+                  label: context.l10n.weatherWind,
                   value: wind != null ? '$wind km/h' : '-',
                 ),
               ),
@@ -816,7 +821,7 @@ class _StatsCard extends StatelessWidget {
               Expanded(
                 child: _StatTile(
                   icon: Icons.water_drop_outlined,
-                  label: 'Humidité',
+                  label: context.l10n.weatherHumidity,
                   value: humidity != null ? '$humidity %' : '-',
                 ),
               ),
@@ -893,18 +898,22 @@ class _RainSummaryCard extends StatelessWidget {
     final String message;
     final IconData icon;
     final Color color;
+    final l10n = context.l10n;
     if (totalMm < 0.1 && maxPop < 20) {
-      message = 'Aucune pluie prévue aujourd\'hui.';
+      message = l10n.weatherNoRainToday;
       icon = Icons.wb_sunny_outlined;
       color = const Color(0xFFFFA000);
     } else if (rainyHours.isEmpty) {
-      message = 'Risque modéré de pluie (max $maxPop %).';
+      message = l10n.weatherModerateRainRisk(maxPop);
       icon = Icons.grain_rounded;
       color = AppColors.stormyTeal;
     } else {
       final firstRainy = rainyHours.first.time;
-      message =
-          'Pluie probable à partir de ${_fmtTime(firstRainy)} (max $maxPop %, ~${totalMm.toStringAsFixed(1)} mm).';
+      message = l10n.weatherRainLikelyFrom(
+        totalMm.toStringAsFixed(1),
+        maxPop,
+        _fmtTime(firstRainy),
+      );
       icon = Icons.umbrella_rounded;
       color = AppColors.yaleBlue;
     }
@@ -961,8 +970,8 @@ class _FooterMeta extends StatelessWidget {
           Flexible(
             child: Text(
               fetch.usedFallbackLocation
-                  ? 'Position approximative - mis à jour à $updated'
-                  : 'Données Open-Meteo - mis à jour à $updated',
+                  ? context.l10n.weatherApproxPositionUpdated(updated)
+                  : context.l10n.weatherOpenMeteoUpdated(updated),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 11,
@@ -988,20 +997,20 @@ class _WeatherLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       controller: scrollController,
-      children: const [
-        SizedBox(height: 80),
-        Center(
+      children: [
+        const SizedBox(height: 80),
+        const Center(
           child: SizedBox(
             width: 36,
             height: 36,
             child: CircularProgressIndicator(),
           ),
         ),
-        SizedBox(height: 18),
+        const SizedBox(height: 18),
         Center(
           child: Text(
-            'Localisation et récupération de la météo…',
-            style: TextStyle(
+            context.l10n.weatherLoadingLocation,
+            style: const TextStyle(
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
             ),
@@ -1031,11 +1040,11 @@ class _WeatherErrorView extends StatelessWidget {
         Icon(Icons.cloud_off_rounded,
             size: 48, color: AppColors.textHint.withOpacity(0.6)),
         const SizedBox(height: 16),
-        const Center(
+        Center(
           child: Text(
-            'Impossible de récupérer la météo.',
+            context.l10n.weatherFetchFailed,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -1060,7 +1069,7 @@ class _WeatherErrorView extends StatelessWidget {
           child: ElevatedButton.icon(
             onPressed: onRetry,
             icon: const Icon(Icons.refresh_rounded),
-            label: const Text('Réessayer'),
+            label: Text(context.l10n.commonRetry),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accent,
               foregroundColor: AppColors.white,

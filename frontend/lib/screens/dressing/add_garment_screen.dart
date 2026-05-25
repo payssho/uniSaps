@@ -1,14 +1,17 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
+import '../../l10n/domain_l10n.dart';
+import '../../l10n/l10n_context.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
-import '../../widgets/platform_image.dart';
 import '../../widgets/garment_category_glyph.dart';
+import '../../widgets/platform_image.dart';
 
 class AddGarmentScreen extends ConsumerStatefulWidget {
   const AddGarmentScreen({super.key});
@@ -21,8 +24,8 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
   final _nameController = TextEditingController();
   final _brandController = TextEditingController();
   final _colorController = TextEditingController();
-  String _selectedCategory = 'top';
   XFile? _imageFile;
+  String _selectedCategory = 'top';
   String? _error;
   bool _loading = false;
 
@@ -35,44 +38,50 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
   }
 
   Future<void> _pickImage() async {
+    final l10n = context.l10n;
     final picker = ImagePicker();
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt_outlined),
-                title: const Text('Prendre une photo'),
-                onTap: () => Navigator.pop(context, ImageSource.camera),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Choisir depuis la galerie'),
-                onTap: () => Navigator.pop(context, ImageSource.gallery),
-              ),
-            ],
+      builder: (sheetCtx) {
+        final sheetL10n = sheetCtx.l10n;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: Text(sheetL10n.pickerCamera),
+                  onTap: () => Navigator.pop(sheetCtx, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: Text(sheetL10n.pickerGallery),
+                  onTap: () => Navigator.pop(sheetCtx, ImageSource.gallery),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
     if (source == null) return;
-    final picked = await picker.pickImage(source: source, maxWidth: 1200, imageQuality: 95);
+    final picked =
+        await picker.pickImage(source: source, maxWidth: 1200, imageQuality: 95);
     if (picked != null) {
       setState(() => _imageFile = picked);
     }
   }
 
   Future<void> _save() async {
+    final l10n = context.l10n;
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Le nom est obligatoire.');
+      setState(() => _error = l10n.garmentNameRequired);
       return;
     }
     setState(() {
@@ -99,7 +108,8 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
           imageBytesList: imageBytes != null && imageName != null
               ? [imageBytes]
               : const [],
-          imageNames: imageBytes != null && imageName != null ? [imageName] : const [],
+          imageNames:
+              imageBytes != null && imageName != null ? [imageName] : const [],
         );
 
     if (mounted) {
@@ -107,16 +117,18 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
       if (success) {
         Navigator.pop(context);
       } else {
-        setState(() => _error = 'Erreur lors de l\'enregistrement.');
+        setState(() => _error = l10n.garmentSaveError);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nouveau vêtement'),
+        title: Text(l10n.dressingNewGarment),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -154,18 +166,21 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
                                   color: AppColors.error,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.close, size: 16, color: AppColors.white),
+                                child: const Icon(Icons.close,
+                                    size: 16, color: AppColors.white),
                               ),
                             ),
                           ),
                         ],
                       )
-                    : const Column(
+                    : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add_a_photo_outlined, size: 40, color: AppColors.textHint),
-                          SizedBox(height: 8),
-                          Text('Ajouter une photo', style: AppTextStyles.caption),
+                          const Icon(Icons.add_a_photo_outlined,
+                              size: 40, color: AppColors.textHint),
+                          const SizedBox(height: 8),
+                          Text(l10n.garmentAddPhotoCaption,
+                              style: AppTextStyles.caption),
                         ],
                       ),
               ),
@@ -173,20 +188,21 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
             const SizedBox(height: 28),
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(hintText: 'Nom / description'),
+              decoration:
+                  InputDecoration(hintText: l10n.garmentNameDescHint),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _brandController,
-              decoration: const InputDecoration(hintText: 'Marque'),
+              decoration: InputDecoration(hintText: l10n.garmentBrandHint),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _colorController,
-              decoration: const InputDecoration(hintText: 'Couleur'),
+              decoration: InputDecoration(hintText: l10n.garmentColorHint),
             ),
             const SizedBox(height: 24),
-            const Text('Categorie', style: AppTextStyles.heading3),
+            Text(l10n.garmentCategoryTitle, style: AppTextStyles.heading3),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -194,16 +210,18 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
               children: categories.map((cat) {
                 final selected = _selectedCategory == cat.key;
                 return ChoiceChip(
-                  label: Text(cat.label),
+                  label: Text(categoryLabelL10n(l10n, cat.key)),
                   avatar: GarmentCategoryGlyph(
                     categoryKey: cat.key,
-                    color: selected ? AppColors.white : AppColors.textSecondary,
+                    color:
+                        selected ? AppColors.white : AppColors.textSecondary,
                     size: 18,
                   ),
                   selected: selected,
                   selectedColor: AppColors.accent,
                   labelStyle: TextStyle(
-                    color: selected ? AppColors.white : AppColors.textSecondary,
+                    color:
+                        selected ? AppColors.white : AppColors.textSecondary,
                     fontWeight: FontWeight.w500,
                   ),
                   onSelected: (_) => setState(() => _selectedCategory = cat.key),
@@ -213,20 +231,25 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
             if (_error != null) ...[
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.1),
+                  color: AppColors.error.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.error, width: 1),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                    const Icon(Icons.error_outline,
+                        color: AppColors.error, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         _error!,
-                        style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                            color: AppColors.error,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
@@ -240,10 +263,12 @@ class _AddGarmentScreenState extends ConsumerState<AddGarmentScreen> {
                 onPressed: _loading ? null : _save,
                 child: _loading
                     ? const SizedBox(
-                        height: 20, width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppColors.white),
                       )
-                    : const Text('Enregistrer'),
+                    : Text(l10n.commonSave),
               ),
             ),
             const SizedBox(height: 24),

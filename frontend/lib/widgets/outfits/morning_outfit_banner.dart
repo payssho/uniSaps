@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../l10n/l10n_context.dart';
 
 /// Bandeau de choix du parcours matin (Swipe vs Bibliothèque).
 class MorningOutfitBanner extends StatelessWidget {
@@ -19,6 +20,7 @@ class MorningOutfitBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Container(
@@ -39,13 +41,13 @@ class MorningOutfitBanner extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Quel look pour aujourd’hui ?',
+            Text(
+              l10n.outfitsMorningTitle,
               style: AppTextStyles.heading3,
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Choisis comment parcourir tes tenues.',
+            Text(
+              l10n.outfitsMorningSubtitle,
               style: AppTextStyles.caption,
             ),
             const SizedBox(height: 14),
@@ -55,7 +57,7 @@ class MorningOutfitBanner extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: onSwipe,
                     icon: const Icon(Icons.swipe_rounded, size: 20),
-                    label: const Text('Swiper'),
+                    label: Text(l10n.outfitsMorningSwipe),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -63,7 +65,7 @@ class MorningOutfitBanner extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: onBibliotheque,
                     icon: const Icon(Icons.grid_view_rounded, size: 20),
-                    label: const Text('Bibliothèque'),
+                    label: Text(l10n.outfitsMorningBiblio),
                   ),
                 ),
               ],
@@ -79,8 +81,8 @@ class MorningOutfitBanner extends StatelessWidget {
                 ),
                 label: Text(
                   isPremium
-                      ? 'Suggestions UniSaps+'
-                      : 'Découvrir les suggestions UniSaps+',
+                      ? l10n.outfitsMorningAi
+                      : l10n.outfitsMorningAiDiscover,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: isPremium ? AppColors.accent : AppColors.textSecondary,

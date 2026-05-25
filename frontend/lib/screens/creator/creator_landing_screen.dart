@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../l10n/l10n_context.dart';
 
 class CreatorLandingScreen extends StatelessWidget {
   const CreatorLandingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -35,13 +38,12 @@ class CreatorLandingScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                'Espace marque',
+                l10n.creatorLandingTitle,
                 style: AppTextStyles.heading1.copyWith(fontSize: 28),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Présente ton catalogue sur uniSaps : collections, vêtements et '
-                'publications sponsorisées visibles dans le fil Inspiration des utilisateurs.',
+              Text(
+                l10n.creatorLandingDesc,
                 style: AppTextStyles.bodySecondary,
               ),
               const Spacer(),
@@ -49,14 +51,14 @@ class CreatorLandingScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => context.push('/creator/checkout'),
-                  child: const Text('Continuer'),
+                  child: Text(l10n.languageContinue),
                 ),
               ),
               const SizedBox(height: 12),
               Center(
                 child: TextButton(
                   onPressed: () => context.go('/login'),
-                  child: const Text('Retour à la connexion'),
+                  child: Text(l10n.creatorBackToLogin),
                 ),
               ),
               const SizedBox(height: 24),

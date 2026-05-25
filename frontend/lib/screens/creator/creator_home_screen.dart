@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'creator_dressing_screen.dart';
 import 'creator_posts_screen.dart';
 import 'creator_profile_screen.dart';
+import '../../l10n/l10n_context.dart';
 
 final creatorTabProvider = StateProvider<int>((ref) => 0);
 
@@ -29,6 +30,7 @@ class _CreatorHomeScreenState extends ConsumerState<CreatorHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final tab = ref.watch(creatorTabProvider);
 
     return Scaffold(
@@ -45,21 +47,21 @@ class _CreatorHomeScreenState extends ConsumerState<CreatorHomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: tab,
         onDestinationSelected: _goTo,
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.checkroom_outlined),
-            selectedIcon: Icon(Icons.checkroom),
-            label: 'Vêtements',
+            icon: const Icon(Icons.checkroom_outlined),
+            selectedIcon: const Icon(Icons.checkroom),
+            label: l10n.creatorTabGarments,
           ),
           NavigationDestination(
-            icon: Icon(Icons.campaign_outlined),
-            selectedIcon: Icon(Icons.campaign),
-            label: 'Posts',
+            icon: const Icon(Icons.campaign_outlined),
+            selectedIcon: const Icon(Icons.campaign),
+            label: l10n.creatorTabPosts,
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profil',
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: l10n.creatorTabProfile,
           ),
         ],
       ),

@@ -16,6 +16,7 @@ import '../../widgets/post_card.dart';
 import '../../widgets/premium_avatar_ring.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../../core/constants/categories.dart';
+import '../../l10n/l10n_context.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -150,8 +151,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                 children: [
                   const Icon(Icons.check_circle, color: AppColors.white, size: 18),
                   const SizedBox(width: 10),
-                  Text('Demande envoyée à @${_targetUser!.username} !',
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                  Text(
+                    context.l10n.inspoFriendRequestSentExclaim(
+                      _targetUser!.username,
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
               backgroundColor: AppColors.success,
@@ -167,7 +172,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       setState(() => _actionLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur : $e'),
+          content: Text(context.l10n.commonErrorDetail(e)),
           backgroundColor: AppColors.error,
         ),
       );
@@ -214,7 +219,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-        body: const Center(child: Text('Utilisateur introuvable', style: AppTextStyles.bodySecondary)),
+        body: Center(
+          child: Text(
+            context.l10n.userProfileNotFound,
+            style: AppTextStyles.bodySecondary,
+          ),
+        ),
       );
     }
 
@@ -272,13 +282,13 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                           child: const Icon(Icons.lock_outline, size: 36, color: AppColors.textHint),
                         ),
                         const SizedBox(height: 20),
-                        const Text(
-                          'Compte prive',
+                        Text(
+                          context.l10n.profilePrivateAccount,
                           style: AppTextStyles.heading3,
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'Ajoute cet utilisateur en ami pour voir son contenu.',
+                        Text(
+                          context.l10n.userProfilePrivateViewBody,
                           style: AppTextStyles.bodySecondary,
                           textAlign: TextAlign.center,
                         ),
@@ -313,12 +323,15 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                     color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.lock_outline, size: 14, color: AppColors.textHint),
-                      SizedBox(width: 4),
-                      Text('Privé', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+                      const Icon(Icons.lock_outline, size: 14, color: AppColors.textHint),
+                      const SizedBox(width: 4),
+                      Text(
+                        context.l10n.userProfilePrivate,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+                      ),
                     ],
                   ),
                 ),
@@ -354,13 +367,13 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
             children: [
               _StatBadge(
                 value: '${user.friends.length}',
-                label: 'Amis',
+                label: context.l10n.profileFriendsLabel,
                 onTap: () => _openProfileFriendsList(user, isMe),
               ),
               const SizedBox(width: 28),
-              _StatBadge(value: '${user.currentStreak}', label: 'Streak'),
+              _StatBadge(value: '${user.currentStreak}', label: context.l10n.statStreak),
               const SizedBox(width: 28),
-              _StatBadge(value: '${user.bestStreak}', label: 'Best'),
+              _StatBadge(value: '${user.bestStreak}', label: context.l10n.statBest),
             ],
           ),
         ],
@@ -382,7 +395,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = OutlinedButton.icon(
           onPressed: () => _showRemoveDialog(),
           icon: const Icon(Icons.check, size: 18, color: AppColors.success),
-          label: const Text('Ami', style: TextStyle(color: AppColors.success)),
+          label: Text(context.l10n.userProfileFriend, style: const TextStyle(color: AppColors.success)),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: AppColors.success),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -393,7 +406,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = OutlinedButton.icon(
           onPressed: null,
           icon: const Icon(Icons.hourglass_empty, size: 18),
-          label: const Text('Demande envoyee'),
+          label: Text(context.l10n.userProfileRequestSent),
           style: OutlinedButton.styleFrom(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -403,7 +416,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = ElevatedButton.icon(
           onPressed: _acceptRequest,
           icon: const Icon(Icons.person_add, size: 18, color: AppColors.white),
-          label: const Text('Accepter', style: TextStyle(color: AppColors.white)),
+          label: Text(context.l10n.userProfileAccept, style: const TextStyle(color: AppColors.white)),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -414,7 +427,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = ElevatedButton.icon(
           onPressed: _sendRequest,
           icon: const Icon(Icons.person_add_outlined, size: 18, color: AppColors.white),
-          label: const Text('Ajouter en ami', style: TextStyle(color: AppColors.white)),
+          label: Text(context.l10n.userProfileAddFriend, style: const TextStyle(color: AppColors.white)),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accent,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -434,21 +447,24 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Retirer cet ami ?'),
+        title: Text(ctx.l10n.profileRemoveFriendTitle),
         content: Text(
-          'Retirer @${_targetUser!.username} de ta liste d\'amis ?',
+          '${ctx.l10n.profileRemoveFriendBodyPrefix}@${_targetUser!.username}${ctx.l10n.profileRemoveFriendBodySuffix}',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
+            child: Text(ctx.l10n.commonCancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _removeFriend();
             },
-            child: const Text('Retirer', style: TextStyle(color: AppColors.error)),
+            child: Text(
+              ctx.l10n.profileRemoveFriendAction,
+              style: const TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -614,8 +630,10 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                   Expanded(
                     child: Text(
                       widget.profileUser.username.isNotEmpty
-                          ? 'Amis de @${widget.profileUser.username}'
-                          : 'Amis',
+                          ? context.l10n.userProfileFriendsOf(
+                              widget.profileUser.username,
+                            )
+                          : context.l10n.profileFriendsLabel,
                       style: AppTextStyles.heading3,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -639,16 +657,22 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Text('Impossible de charger la liste : ${snap.error}', style: AppTextStyles.bodySecondary),
+                        child: Text(
+                          context.l10n.userProfileFriendsLoadFailed(snap.error!),
+                          style: AppTextStyles.bodySecondary,
+                        ),
                       ),
                     );
                   }
                   final friends = _orderLikeProfile(snap.data ?? []);
                   if (friends.isEmpty) {
-                    return const Center(
+                    return Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Text('Aucun ami pour le moment', style: AppTextStyles.bodySecondary),
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          context.l10n.userProfileNoFriendsYet,
+                          style: AppTextStyles.bodySecondary,
+                        ),
                       ),
                     );
                   }
@@ -668,9 +692,19 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                       Widget? trailing;
                       if (widget.showAddActions && myUser != null && !isSelf) {
                         if (isFriend) {
-                          trailing = const Text('Ami', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.success));
+                          trailing = Text(
+                            context.l10n.userProfileFriend,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.success,
+                            ),
+                          );
                         } else if (pendingSent != null) {
-                          trailing = Text('En attente', style: AppTextStyles.caption.copyWith(color: AppColors.textHint));
+                          trailing = Text(
+                            context.l10n.userProfilePending,
+                            style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
+                          );
                         } else if (pendingRecv != null) {
                           trailing = busy
                               ? const SizedBox(
@@ -683,7 +717,7 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                                 )
                               : TextButton(
                                   onPressed: () => _acceptRequest(pendingRecv),
-                                  child: const Text('Accepter'),
+                                  child: Text(context.l10n.userProfileAccept),
                                 );
                         } else {
                           trailing = busy
@@ -697,7 +731,7 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                                 )
                               : TextButton(
                                   onPressed: () => _sendRequest(u),
-                                  child: const Text('Ajouter'),
+                                  child: Text(context.l10n.commonAdd),
                                 );
                         }
                       }
@@ -736,7 +770,10 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                                 ),
                               ),
                               if (isSelf)
-                                Text('Toi', style: AppTextStyles.caption.copyWith(color: AppColors.textHint))
+                                Text(
+                                  context.l10n.inspoChipYou,
+                                  style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
+                                )
                               else if (trailing != null)
                                 trailing,
                             ],
@@ -770,7 +807,7 @@ class _PostsTab extends ConsumerWidget {
           children: [
             Icon(Icons.article_outlined, size: 56, color: AppColors.textHint.withOpacity(0.3)),
             const SizedBox(height: 12),
-            const Text('Aucun post', style: AppTextStyles.bodySecondary),
+            Text(context.l10n.userProfileNoPosts, style: AppTextStyles.bodySecondary),
           ],
         ),
       );
@@ -888,7 +925,7 @@ class _DressingTab extends StatelessWidget {
           children: [
             Icon(Icons.checkroom_outlined, size: 56, color: AppColors.textHint.withOpacity(0.3)),
             const SizedBox(height: 12),
-            const Text('Dressing vide', style: AppTextStyles.bodySecondary),
+            Text(context.l10n.userProfileEmptyDressing, style: AppTextStyles.bodySecondary),
           ],
         ),
       );
@@ -991,7 +1028,7 @@ class _OutfitsTab extends StatelessWidget {
           children: [
             Icon(Icons.style_outlined, size: 56, color: AppColors.textHint.withOpacity(0.3)),
             const SizedBox(height: 12),
-            const Text('Aucun outfit', style: AppTextStyles.bodySecondary),
+            Text(context.l10n.profileNoOutfits, style: AppTextStyles.bodySecondary),
           ],
         ),
       );
@@ -1181,7 +1218,10 @@ class _FriendOutfitDetailSheetState
               ),
               if (outfit.lastWorn.isNotEmpty) ...[
                 const SizedBox(height: 4),
-                Text('Dernier port : ${outfit.lastWorn}', style: AppTextStyles.caption),
+                Text(
+                  '${context.l10n.profileLastWornPrefix}${outfit.lastWorn}',
+                  style: AppTextStyles.caption,
+                ),
               ],
               const SizedBox(height: 14),
               if (_heroUrl.isNotEmpty)
@@ -1221,7 +1261,10 @@ class _FriendOutfitDetailSheetState
                 ),
               if (outfit.photoUrls.length > 1) ...[
                 const SizedBox(height: 14),
-                const Text('Autres photos', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                Text(
+                  context.l10n.userProfileOtherPhotos,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
                 const SizedBox(height: 8),
                 SizedBox(
                   height: 88,
@@ -1262,12 +1305,15 @@ class _FriendOutfitDetailSheetState
                   }
                   final pieces = snap.data ?? [];
                   if (pieces.isEmpty) {
-                    return const Text('Aucune pièce liée', style: AppTextStyles.bodySecondary);
+                    return Text(
+                      context.l10n.userProfileNoLinkedPieces,
+                      style: AppTextStyles.bodySecondary,
+                    );
                   }
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Pièces', style: AppTextStyles.heading3),
+                      Text(context.l10n.userProfilePieces, style: AppTextStyles.heading3),
                       const SizedBox(height: 10),
                       ...pieces.map((g) {
                         return Padding(
@@ -1475,7 +1521,7 @@ class _ReadOnlyGarmentSheet extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        categoryLabel(garment.category),
+                        categoryLabel(garment.category, context.l10n),
                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent),
                       ),
                     ],
@@ -1483,7 +1529,10 @@ class _ReadOnlyGarmentSheet extends StatelessWidget {
                 ),
                 if (garment.timesWorn > 0) ...[
                   const SizedBox(width: 10),
-                  Text('${garment.timesWorn}x porté', style: AppTextStyles.caption),
+                  Text(
+                    context.l10n.userProfileTimesWorn(garment.timesWorn),
+                    style: AppTextStyles.caption,
+                  ),
                 ],
               ],
             ),

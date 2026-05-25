@@ -17,6 +17,8 @@ import '../../widgets/garment_detail_sheet.dart';
 import '../../widgets/add_garment_sheet.dart';
 import '../../widgets/async_error_state.dart';
 import '../../widgets/loading_shimmer_grid.dart';
+import '../../l10n/domain_l10n.dart';
+import '../../l10n/l10n_context.dart';
 
 class DressingScreen extends ConsumerStatefulWidget {
   const DressingScreen({super.key});
@@ -77,6 +79,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final uid = ref.watch(authServiceProvider).uid;
     final garmentsAsync = ref.watch(garmentsProvider(uid));
 
@@ -89,9 +92,9 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text('Mon Dressing', style: AppTextStyles.heading2),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(l10n.dressingMyWardrobe, style: AppTextStyles.heading2),
               ),
               const SizedBox(height: 20),
               SizedBox(
@@ -101,7 +104,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 18),
                   children: [
                     CategoryChip(
-                      label: 'Tout',
+                      label: l10n.dressingFilterAll,
                       leadingBuilder: (c) => Icon(Icons.grid_view_rounded, size: 16, color: c),
                       selected: _selectedCategory.isEmpty,
                       onTap: () => _setCategory(''),
@@ -110,7 +113,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                     ...categories.map((cat) => Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: CategoryChip(
-                            label: cat.label,
+                            label: categoryLabelL10n(l10n, cat.key),
                             leadingBuilder: (c) => GarmentCategoryGlyph(
                               categoryKey: cat.key,
                               color: c,
@@ -161,15 +164,15 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                             const SizedBox(height: 20),
                             Text(
                               hasItemsInCat && !noFilters
-                                  ? 'Aucun résultat'
-                                  : 'Aucun vêtement',
+                                  ? l10n.dressingNoResults
+                                  : l10n.dressingNoGarments,
                               style: AppTextStyles.bodySecondary,
                             ),
                             const SizedBox(height: 6),
                             Text(
                               hasItemsInCat && !noFilters
-                                  ? 'Essaie un autre nom, marque ou couleur.'
-                                  : 'Ajoute ton premier vêtement !',
+                                  ? l10n.dressingTryOtherFilters
+                                  : l10n.dressingAddFirstGarment,
                               style: AppTextStyles.caption,
                               textAlign: TextAlign.center,
                             ),
@@ -178,7 +181,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                               FilledButton.icon(
                                 onPressed: _showAddGarmentSheet,
                                 icon: const Icon(Icons.add, size: 20),
-                                label: const Text('Ajouter un vêtement'),
+                                label: Text(l10n.dressingAddGarment),
                               ),
                             ],
                           ],
@@ -230,16 +233,16 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 16, right: 16),
         child: Semantics(
-          label: 'Ajouter un vêtement',
+          label: l10n.dressingAddGarment,
           button: true,
           child: FloatingActionButton.extended(
           heroTag: 'dressing_fab',
-          tooltip: 'Ajouter un vêtement',
+          tooltip: l10n.dressingAddGarment,
           backgroundColor: AppColors.accent,
           elevation: 6,
           onPressed: () => _showAddGarmentSheet(),
           icon: const Icon(Icons.add, color: AppColors.white, size: 24),
-          label: const Text('Ajouter', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
+          label: Text(l10n.dressingAddShort, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
         ),
         ),
       ),
@@ -440,6 +443,7 @@ class _CategoryFiltersBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final brands = garmentsForOptions
         .map((g) => g.brand.trim())
         .where((b) => b.isNotEmpty)
@@ -491,7 +495,7 @@ class _CategoryFiltersBar extends StatelessWidget {
                     isDense: true,
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                    hintText: 'Nom',
+                    hintText: l10n.dressingNameHint,
                     hintStyle: hintStyle,
                     prefixIcon: Icon(Icons.search_rounded,
                         size: 16, color: AppColors.textHint.withOpacity(0.85)),
@@ -517,8 +521,9 @@ class _CategoryFiltersBar extends StatelessWidget {
                     iconSize: 18,
                     isExpanded: true,
                     items: [
-                      const DropdownMenuItem(
-                          value: '', child: Text('— Marque', style: denseStyle)),
+                      DropdownMenuItem(
+                          value: '',
+                          child: Text(l10n.dressingFilterBrand, style: denseStyle)),
                       ...brands.map(
                         (b) => DropdownMenuItem(
                           value: b,
@@ -544,8 +549,9 @@ class _CategoryFiltersBar extends StatelessWidget {
                     iconSize: 18,
                     isExpanded: true,
                     items: [
-                      const DropdownMenuItem(
-                          value: '', child: Text('— Couleur', style: denseStyle)),
+                      DropdownMenuItem(
+                          value: '',
+                          child: Text(l10n.dressingFilterColor, style: denseStyle)),
                       ...colorList.map(
                         (c) {
                           final swatch = ColorService.getColors()

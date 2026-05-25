@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
+import '../../l10n/l10n_context.dart';
 
 /// Mode d’affichage de l’écran Outfits (swipe ou bibliothèque).
 enum OutfitsViewMode { swipe, biblio }
@@ -17,6 +18,7 @@ class OutfitsModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -29,13 +31,13 @@ class OutfitsModeToggle extends StatelessWidget {
           children: [
             _OutfitsModeChip(
               icon: Icons.swipe_rounded,
-              label: 'Swipe',
+              label: l10n.outfitsModeSwipe,
               active: mode == OutfitsViewMode.swipe,
               onTap: () => onChanged(OutfitsViewMode.swipe),
             ),
             _OutfitsModeChip(
               icon: Icons.grid_view_rounded,
-              label: 'Biblio',
+              label: l10n.outfitsModeBiblio,
               active: mode == OutfitsViewMode.biblio,
               onTap: () => onChanged(OutfitsViewMode.biblio),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n_context.dart';
 import '../core/constants/app_colors.dart';
 import '../services/color_service.dart';
 
@@ -132,9 +133,9 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
   void _addColor(ColorOption color) {
     if (_selectedColors.length >= 3 && color.name.toLowerCase() != 'multicolore') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Maximum 3 couleurs autorisées'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(context.l10n.garmentMaxThreeColors),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;

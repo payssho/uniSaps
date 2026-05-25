@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_colors.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../providers/ui_navigation_provider.dart';
 import '../screens/home/home_screen.dart';
 
@@ -8,6 +9,7 @@ Future<void> showPremiumUpgradeDialog(
   BuildContext context, {
   WidgetRef? ref,
 }) {
+  final l10n = AppLocalizations.of(context)!;
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -29,10 +31,10 @@ Future<void> showPremiumUpgradeDialog(
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Passe en UniSaps+',
-              style: TextStyle(
+              l10n.premiumDialogTitleFull,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
                 height: 1.2,
@@ -45,9 +47,9 @@ Future<void> showPremiumUpgradeDialog(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _bullet('Analyse IA de tes photos de vêtements'),
-          _bullet('3 suggestions d’outfits chaque matin'),
-          _bullet('Badge premium sur ton profil'),
+          _bullet(l10n.premiumDialogBenefit1Full),
+          _bullet(l10n.premiumDialogBenefit2Full),
+          _bullet(l10n.premiumDialogBenefit3Full),
           const SizedBox(height: 14),
           Container(
             width: double.infinity,
@@ -57,21 +59,21 @@ Future<void> showPremiumUpgradeDialog(
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.divider),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '1 € / mois',
-                  style: TextStyle(
+                  l10n.premiumDialogPriceMonthlyFull,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
-                  'ou 5 € à vie (achat unique)',
-                  style: TextStyle(
+                  l10n.premiumDialogPriceLifetimeFull,
+                  style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
                   ),
@@ -81,7 +83,7 @@ Future<void> showPremiumUpgradeDialog(
           ),
           const SizedBox(height: 10),
           Text(
-            'Active UniSaps+ depuis ton profil (onglet Compte).',
+            l10n.premiumDialogActivateHint,
             style: TextStyle(
               height: 1.4,
               fontSize: 13,
@@ -93,9 +95,9 @@ Future<void> showPremiumUpgradeDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text(
-            'Plus tard',
-            style: TextStyle(fontWeight: FontWeight.w600),
+          child: Text(
+            l10n.commonLater,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
         FilledButton(
@@ -110,7 +112,7 @@ Future<void> showPremiumUpgradeDialog(
             backgroundColor: AppColors.accent,
             foregroundColor: AppColors.white,
           ),
-          child: const Text('Voir UniSaps+'),
+          child: Text(l10n.premiumDialogCta),
         ),
       ],
     ),

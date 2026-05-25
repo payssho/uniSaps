@@ -27,6 +27,8 @@ import '../../widgets/async_error_state.dart';
 import '../../widgets/outfits/morning_outfit_banner.dart';
 import '../../widgets/outfits/outfits_mode_toggle.dart';
 import '../../widgets/unisaps_premium_tease_card.dart';
+import '../../l10n/l10n_context.dart';
+import '../../l10n/domain_l10n.dart';
 
 /// Suggestions biblio IA (persistées pendant la session pour l’état vide + la feuille).
 final biblioAiSuggestionsProvider =
@@ -108,7 +110,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                     return Column(
                       children: [
                         _Header(
-                          title: 'Outfit du jour',
+                          title: context.l10n.outfitsTodayTitle,
                           streak: streak,
                           onAdd: _openCreation,
                           showAdd: false,
@@ -267,12 +269,14 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                 children: [
                   Semantics(
                     label: isPremium
-                        ? 'Suggestions IA'
-                        : 'UniSaps+ requis pour les suggestions IA',
+                        ? context.l10n.outfitsAiSuggestionsShort
+                        : context.l10n.outfitsPremiumRequiredAi,
                     button: true,
                     child: FloatingActionButton.small(
                     heroTag: 'outfits_ai_sheet',
-                    tooltip: isPremium ? 'Suggestions IA' : 'UniSaps+ requis',
+                    tooltip: isPremium
+                        ? context.l10n.outfitsAiSuggestionsShort
+                        : context.l10n.outfitsPremiumRequiredAi,
                     backgroundColor: isPremium
                         ? AppColors.secondary
                         : AppColors.textHint.withValues(alpha: 0.38),
@@ -300,17 +304,17 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                   ),
                   const SizedBox(height: 12),
                   Semantics(
-                    label: 'Ajouter un fit',
+                    label: context.l10n.outfitsAddFit,
                     button: true,
                     child: FloatingActionButton.extended(
                     heroTag: 'outfits_fab',
-                    tooltip: 'Créer une tenue',
+                    tooltip: context.l10n.outfitsCreateTooltip,
                     backgroundColor: AppColors.accent,
                     elevation: 6,
                     onPressed: _openCreation,
                     icon: const Icon(Icons.add, color: AppColors.white, size: 24),
-                    label: const Text(
-                      'Ajouter un fit',
+                    label: Text(
+                      context.l10n.outfitsAddFit,
                       style: TextStyle(
                         color: AppColors.white,
                         fontWeight: FontWeight.w600,
@@ -363,7 +367,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
       String uid, Map<String, String> suggestion) async {
     final id = await ref.read(outfitNotifierProvider.notifier).createOutfit(
           userId: uid,
-          name: 'Suggestion IA',
+          name: context.l10n.outfitsAiSuggestionName,
           garments: suggestion,
         );
     if (id != null) {
@@ -376,13 +380,13 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
 // Header with title, streak, météo compacte & add button
 // ---------------------------------------------------------------------------
 class _Header extends StatelessWidget {
-  final String title;
+  final String? title;
   final int streak;
   final VoidCallback onAdd;
   final bool showAdd;
 
   const _Header({
-    this.title = 'Mes Outfits',
+    this.title,
     required this.streak,
     required this.onAdd,
     required this.showAdd,
@@ -390,6 +394,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final rightSafe = MediaQuery.paddingOf(context).right;
     final rightPad = 20.0 + rightSafe;
     return Padding(
@@ -404,7 +409,7 @@ class _Header extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    title,
+                    title ?? l10n.outfitsMyOutfitsTitle,
                     style: AppTextStyles.heading2,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -447,9 +452,9 @@ class _Header extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: onAdd,
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text(
-                  'Ajouter un fit',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                label: Text(
+                  l10n.outfitsAddFit,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -605,7 +610,7 @@ class _CompactWeatherPill extends StatelessWidget {
     final colors = _browseHeroGradient(tags, avgC);
 
     return Semantics(
-      label: 'Météo du jour, $avg°',
+      label: '${context.l10n.outfitsWeatherTodayPrefix}$avg°',
       button: true,
       child: Material(
         color: Colors.transparent,
@@ -735,8 +740,8 @@ class _SwipeModeState extends State<_SwipeMode> {
                       curve: Curves.easeOutBack)
                   .fadeIn(duration: 300.ms),
               const SizedBox(height: 24),
-              const Text(
-                'Oups… Plus aucun choix d\'outfits,\nOn recommence ?',
+              Text(
+                context.l10n.outfitsSwipeEmpty,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 17,
@@ -749,7 +754,7 @@ class _SwipeModeState extends State<_SwipeMode> {
                 onPressed: _reset,
                 icon: const Icon(Icons.refresh_rounded,
                     size: 20, color: AppColors.white),
-                label: const Text('Recommencer'),
+                label: Text(context.l10n.outfitsRestart),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: AppColors.white,
@@ -819,7 +824,7 @@ class _SwipeModeState extends State<_SwipeMode> {
                       size: 20,
                       color: AppColors.textHint.withOpacity(0.4)),
                   const SizedBox(height: 2),
-                  Text('Swipe',
+                  Text(context.l10n.outfitsModeSwipe,
                       style: TextStyle(
                           fontSize: 10,
                           color: AppColors.textHint.withOpacity(0.4),
@@ -976,7 +981,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la génération')),
+          SnackBar(content: Text(context.l10n.outfitsGenerateError)),
         );
       }
     } finally {
@@ -986,6 +991,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final loading = ref.watch(biblioAiLoadingProvider);
     final suggestions = ref.watch(biblioAiSuggestionsProvider);
 
@@ -1040,9 +1046,9 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                         color: AppColors.accent, size: 22),
                   ),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Suggestions IA',
+                      context.l10n.outfitsAiSuggestionsShort,
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -1070,7 +1076,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                       children: stylePrompts.map((style) {
                         final sel = _selectedStyle == style;
                         return ChoiceChip(
-                          label: Text(style,
+                          label: Text(stylePromptLabelL10n(l10n, style),
                               style: TextStyle(
                                   fontSize: 12,
                                   color: sel
@@ -1090,9 +1096,9 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                       maxLines: 3,
                       minLines: 1,
                       textInputAction: TextInputAction.done,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText:
-                            'Précision (facultatif): ex. dîner chic, concert…',
+                            context.l10n.outfitsPrecisionHint,
                         prefixIcon: Icon(Icons.chat_bubble_outline,
                             size: 18),
                       ),
@@ -1112,7 +1118,9 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                             : const Icon(Icons.auto_awesome,
                                 size: 16, color: AppColors.white),
                         label: Text(
-                            loading ? 'Génération…' : 'Générer des suggestions'),
+                            loading
+                                ? context.l10n.outfitsGenerating
+                                : context.l10n.outfitsGenerateSuggestions),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           textStyle: const TextStyle(
@@ -1168,7 +1176,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Look ${lookIndex + 1}',
+                                  '${context.l10n.outfitsLookLabel}${lookIndex + 1}',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
@@ -1177,7 +1185,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                                 ),
                                 const Spacer(),
                                 Text(
-                                  '${pairs.length} pièce${pairs.length > 1 ? 's' : ''}',
+                                  '${pairs.length}${pairs.length > 1 ? context.l10n.outfitsPiecePlural : context.l10n.outfitsPieceSingular}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -1191,7 +1199,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                               Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 child: Text(
-                                  'Aucune pièce reconnue dans ton dressing pour cette suggestion.',
+                                  context.l10n.outfitsNoPiecesForSuggestion,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 13,
@@ -1227,8 +1235,8 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                                   color: AppColors.accent.withValues(alpha: 0.65),
                                 ),
                               ),
-                              label: const Text(
-                                'Choisir ce look',
+                              label: Text(
+                                context.l10n.outfitsChooseThisLook,
                                 style: TextStyle(fontWeight: FontWeight.w700),
                               ),
                             ),
@@ -1259,6 +1267,7 @@ class _SuggestionPieceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final thumbUrl = garment.imageUrls.isNotEmpty
         ? garment.imageUrls.first
         : garment.imageUrl;
@@ -1329,7 +1338,7 @@ class _SuggestionPieceCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      categoryLabel(slotKey),
+                      categoryLabelL10n(l10n, slotKey),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -1450,7 +1459,9 @@ class _OutfitPhotoCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      outfit.name.isEmpty ? 'Outfit' : outfit.name,
+                      outfit.name.isEmpty
+                          ? context.l10n.profileDefaultOutfitName
+                          : outfit.name,
                       style: const TextStyle(
                         color: AppColors.white,
                         fontSize: 20,
@@ -1461,7 +1472,7 @@ class _OutfitPhotoCard extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
-                          'Porté ${outfit.timesWorn}x',
+                          '${context.l10n.profileWornPrefix}${outfit.timesWorn}x',
                           style: TextStyle(
                             color: AppColors.white.withOpacity(0.7),
                             fontSize: 13,
@@ -1484,13 +1495,13 @@ class _OutfitPhotoCard extends StatelessWidget {
                     color: AppColors.success.withOpacity(0.92),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.auto_awesome, size: 13, color: AppColors.white),
-                      SizedBox(width: 4),
+                      const Icon(Icons.auto_awesome, size: 13, color: AppColors.white),
+                      const SizedBox(width: 4),
                       Text(
-                        "Pour aujourd'hui",
+                        context.l10n.outfitsForToday,
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -1519,7 +1530,7 @@ class _OutfitPhotoCard extends StatelessWidget {
                     Icon(Icons.touch_app_rounded,
                         size: 14, color: AppColors.white.withOpacity(0.7)),
                     const SizedBox(width: 4),
-                    Text('Détails',
+                    Text(context.l10n.inspoDetails,
                         style: TextStyle(
                             color: AppColors.white.withOpacity(0.7),
                             fontSize: 11,
@@ -1623,7 +1634,7 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
                   ),
                   child: Text(
                     widget.outfit.name.isEmpty
-                        ? 'Outfit'
+                        ? context.l10n.profileDefaultOutfitName
                         : widget.outfit.name,
                     style: const TextStyle(
                       color: AppColors.white,
@@ -1647,14 +1658,14 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
                       color: AppColors.success.withOpacity(0.95),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.wb_sunny_outlined,
+                        const Icon(Icons.wb_sunny_outlined,
                             size: 12, color: AppColors.white),
-                        SizedBox(width: 3),
+                        const SizedBox(width: 3),
                         Text(
-                          "Aujourd'hui",
+                          context.l10n.outfitsTodayBadge,
                           style: TextStyle(
                             color: AppColors.white,
                             fontSize: 10,
@@ -1855,8 +1866,8 @@ class _EmptyState extends StatelessWidget {
                     curve: Curves.easeOutBack)
                 .fadeIn(duration: 300.ms),
             const SizedBox(height: 24),
-            const Text(
-              'Aucun outfit',
+            Text(
+              context.l10n.outfitsEmptyLibraryTitle,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -1864,8 +1875,8 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Crée ton premier look en ajoutant\nune photo et tes vêtements',
+            Text(
+              context.l10n.outfitsEmptyLibrarySubtitle,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -1915,8 +1926,8 @@ class _DailyOutfitView extends StatelessWidget {
             child: TextButton.icon(
               onPressed: onAddFit,
               icon: const Icon(Icons.add, size: 18),
-              label: const Text(
-                'Ajouter un fit à la bibliothèque',
+              label: Text(
+                context.l10n.outfitsAddToLibrary,
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -1985,7 +1996,9 @@ class _DailyOutfitView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            outfit.name.isEmpty ? 'Outfit' : outfit.name,
+                            outfit.name.isEmpty
+                          ? context.l10n.profileDefaultOutfitName
+                          : outfit.name,
                             style: const TextStyle(
                               color: AppColors.white,
                               fontSize: 20,
@@ -1994,7 +2007,7 @@ class _DailyOutfitView extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Tap pour voir les détails',
+                            context.l10n.outfitsTapForDetails,
                             style: TextStyle(
                               color: AppColors.white.withOpacity(0.6),
                               fontSize: 12,
@@ -2018,7 +2031,7 @@ class _DailyOutfitView extends StatelessWidget {
                   onPressed: onTakePhoto,
                   icon: const Icon(Icons.camera_alt_outlined,
                       size: 18, color: AppColors.white),
-                  label: const Text('Photo du jour'),
+                  label: Text(context.l10n.outfitsDayPhoto),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
@@ -2031,7 +2044,7 @@ class _DailyOutfitView extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
-                  child: const Text('Changer'),
+                  child: Text(context.l10n.outfitsChangePhoto),
                 ),
               ),
             ],
@@ -2145,7 +2158,9 @@ class _OutfitDetailSheet extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            outfit.name.isEmpty ? 'Outfit' : outfit.name,
+                            outfit.name.isEmpty
+                          ? context.l10n.profileDefaultOutfitName
+                          : outfit.name,
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -2162,7 +2177,7 @@ class _OutfitDetailSheet extends StatelessWidget {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
-                              'Porté ${outfit.timesWorn}x',
+                              '${context.l10n.profileWornPrefix}${outfit.timesWorn}x',
                               style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -2179,7 +2194,7 @@ class _OutfitDetailSheet extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Pièces',
+                          Text(context.l10n.creationStepPieces,
                               style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -2260,7 +2275,7 @@ class _OutfitDetailSheet extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    categoryLabel(e.key),
+                                    categoryLabelL10n(context.l10n, e.key),
                                     style: const TextStyle(
                                         fontSize: 10,
                                         color: AppColors.textHint),
@@ -2303,27 +2318,27 @@ class _OutfitDetailSheet extends StatelessWidget {
                       child: IconButton(
                         icon: const Icon(Icons.delete_outline,
                             color: AppColors.error, size: 22),
-                        tooltip: 'Supprimer cet outfit',
+                        tooltip: context.l10n.outfitsDeleteTooltip,
                         onPressed: () async {
                           final confirm = await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20)),
-                              title: const Text('Supprimer l\'outfit ?'),
-                              content: const Text(
-                                  'Cette action est irréversible.'),
+                              title: Text(context.l10n.outfitsDeleteOutfitTitle),
+                              content: Text(
+                                  context.l10n.outfitsDeleteOutfitBody),
                               actions: [
                                 TextButton(
                                   onPressed: () =>
                                       Navigator.pop(ctx, false),
-                                  child: const Text('Annuler'),
+                                  child: Text(context.l10n.commonCancel),
                                 ),
                                 TextButton(
                                   onPressed: () => Navigator.pop(ctx, true),
                                   style: TextButton.styleFrom(
                                       foregroundColor: AppColors.error),
-                                  child: const Text('Supprimer'),
+                                  child: Text(context.l10n.commonDelete),
                                 ),
                               ],
                             ),
@@ -2347,7 +2362,7 @@ class _OutfitDetailSheet extends StatelessWidget {
                         },
                         icon: const Icon(Icons.check_circle_outline,
                             size: 20, color: AppColors.white),
-                        label: const Text('Choisir pour aujourd\'hui'),
+                        label: Text(context.l10n.outfitsChooseToday),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.success,
                           foregroundColor: AppColors.white,
@@ -2371,10 +2386,11 @@ class _OutfitDetailSheet extends StatelessWidget {
 // Streak celebration
 // ---------------------------------------------------------------------------
 void _showStreakCelebration(BuildContext context, int newStreak) {
+  final barrierLabel = context.l10n.outfitsStreakDialogBarrier;
   showGeneralDialog(
     context: context,
     barrierDismissible: false,
-    barrierLabel: 'streak',
+    barrierLabel: barrierLabel,
     barrierColor: AppColors.graphite.withOpacity(0.5),
     transitionDuration: const Duration(milliseconds: 350),
     pageBuilder: (_, __, ___) =>
@@ -2485,7 +2501,7 @@ class _StreakCelebrationOverlayState
               ),
               const SizedBox(height: 18),
               Text(
-                'Streak de ${widget.streak} jours',
+                '${context.l10n.outfitsStreakLine}${widget.streak}${context.l10n.outfitsStreakDaysSuffix}',
                 style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -2498,8 +2514,8 @@ class _StreakCelebrationOverlayState
                       end: Offset.zero,
                       duration: 300.ms),
               const SizedBox(height: 6),
-              const Text(
-                'Tu gardes la flamme, continue !',
+              Text(
+                context.l10n.outfitsStreakEncourage,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 13,

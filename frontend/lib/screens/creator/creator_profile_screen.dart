@@ -8,6 +8,7 @@ import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/creator_subscription.dart';
 import '../../providers/auth_provider.dart';
 import '../inspiration/user_profile_screen.dart';
+import '../../l10n/l10n_context.dart';
 
 class CreatorProfileScreen extends ConsumerWidget {
   const CreatorProfileScreen({super.key});
@@ -15,7 +16,7 @@ class CreatorProfileScreen extends ConsumerWidget {
   void _copyShopUrl(BuildContext context, String url) {
     Clipboard.setData(ClipboardData(text: url));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Lien boutique copié')),
+      SnackBar(content: Text(context.l10n.creatorShopLinkCopied)),
     );
   }
 
@@ -23,12 +24,13 @@ class CreatorProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(currentUserProvider);
 
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: userAsync.when(
         data: (user) {
           if (user == null) {
-            return const Center(child: Text('Non connecté'));
+            return Center(child: Text(l10n.authNotConnected));
           }
           final avatar = user.displayAvatarUrl;
           final expires = user.creatorSubscriptionExpiresAt;
@@ -71,11 +73,19 @@ class CreatorProfileScreen extends ConsumerWidget {
                       active ? Icons.verified_outlined : Icons.warning_amber_outlined,
                       color: active ? AppColors.success : AppColors.warning,
                     ),
-                    title: Text(active ? 'Abonnement actif' : 'Abonnement inactif'),
+                    title: Text(
+                      active
+                          ? l10n.creatorSubscriptionActive
+                          : l10n.creatorSubscriptionInactive,
+                    ),
                     subtitle: Text(
                       expires.isNotEmpty
-                          ? 'Expire le ${expires.substring(0, 10)}'
-                          : 'Tarif : $kCreatorMonthlyPriceLabel',
+                          ? l10n.creatorSubscriptionExpires(
+                              expires.substring(0, 10),
+                            )
+                          : l10n.creatorSubscriptionRate(
+                              kCreatorMonthlyPriceLabel,
+                            ),
                     ),
                   ),
                 ),
@@ -83,7 +93,7 @@ class CreatorProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   ListTile(
                     leading: const Icon(Icons.shopping_bag_outlined),
-                    title: const Text('Boutique'),
+                    title: Text(l10n.creatorShopTitle),
                     subtitle: Text(user.creatorShopUrl, maxLines: 1, overflow: TextOverflow.ellipsis),
                     trailing: const Icon(Icons.open_in_new, size: 18),
                     onTap: () => _copyShopUrl(context, user.creatorShopUrl),
@@ -93,7 +103,7 @@ class CreatorProfileScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   ListTile(
                     leading: const Icon(Icons.person_outline),
-                    title: const Text('Voir mon profil perso'),
+                    title: Text(l10n.creatorViewPersonalProfile),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.of(context).push(
@@ -112,14 +122,16 @@ class CreatorProfileScreen extends ConsumerWidget {
                     if (context.mounted) context.go('/login');
                   },
                   icon: const Icon(Icons.logout),
-                  label: const Text('Déconnexion'),
+                  label: Text(l10n.authSignOut),
                 ),
               ],
             ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erreur : $e')),
+        error: (e, _) => Center(
+              child: Text(l10n.commonErrorDetail(e)),
+            ),
       ),
     );
   }

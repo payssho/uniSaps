@@ -19,6 +19,9 @@ import '../../widgets/premium_avatar_ring.dart';
 import '../../widgets/async_error_state.dart';
 import '../../providers/ui_navigation_provider.dart';
 import '../../providers/theme_mode_provider.dart';
+import '../../providers/locale_provider.dart';
+import '../../l10n/l10n_context.dart';
+import '../../l10n/domain_l10n.dart';
 import '../inspiration/user_profile_screen.dart';
 import '../inspiration/search_users_screen.dart';
 
@@ -85,6 +88,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final user = ref.watch(currentUserProvider).valueOrNull;
     final requestCount = ref.watch(receivedRequestsCountProvider);
 
@@ -98,10 +102,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         if (!_friendRequestSnackShown) {
           _friendRequestSnackShown = true;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nouvelle demande d’ami'),
+            SnackBar(
+              content: Text(l10n.profileFriendRequestSnack),
               behavior: SnackBarBehavior.floating,
-              duration: Duration(seconds: 3),
+              duration: const Duration(seconds: 3),
             ),
           );
         }
@@ -135,7 +139,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     icon: const Icon(Icons.arrow_back_ios_new_rounded,
                         size: 20, color: AppColors.textPrimary),
                     onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Retour',
+                    tooltip: l10n.commonBack,
                   ),
                 ),
               ),
@@ -241,7 +245,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                               curve: Curves.easeInOutCubic,
                                             ),
                                         Text(
-                                          'Fais défiler',
+                                          l10n.profileScrollMore,
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
@@ -285,6 +289,7 @@ class _ProfileHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final displayName =
         user.displayName.isNotEmpty ? user.displayName : user.username;
     final initials = user.username.isNotEmpty
@@ -465,7 +470,7 @@ class _ProfileHero extends StatelessWidget {
                                 Padding(
                                   padding: const EdgeInsets.only(left: 6, top: 2),
                                   child: Tooltip(
-                                    message: 'Compte UniSaps+',
+                                    message: l10n.profilePremiumTooltip,
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 8,
@@ -490,17 +495,17 @@ class _ProfileHero extends StatelessWidget {
                                           ),
                                         ],
                                       ),
-                                      child: const Row(
+                                      child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(
+                                          const Icon(
                                             Icons.workspace_premium_rounded,
                                             size: 14,
                                             color: Colors.white,
                                           ),
-                                          SizedBox(width: 4),
+                                          const SizedBox(width: 4),
                                           Text(
-                                            'UniSaps+',
+                                            l10n.premiumDialogTitle,
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.w800,
@@ -516,7 +521,7 @@ class _ProfileHero extends StatelessWidget {
                               if (user.isPrivate) ...[
                                 const SizedBox(width: 4),
                                 Tooltip(
-                                  message: 'Profil privé',
+                                  message: l10n.profilePrivateTooltip,
                                   child: Padding(
                                     padding: const EdgeInsets.only(top: 2),
                                     child: Icon(
@@ -550,15 +555,15 @@ class _ProfileHero extends StatelessWidget {
                               _HeroChip(
                                 icon: Icons.local_fire_department_rounded,
                                 label:
-                                    '${user.currentStreak} j. série',
+                                    '${user.currentStreak} ${l10n.profileStreakShort}',
                                 iconColor: AppColors.warning,
                               ),
                               _HeroChip(
                                 icon: Icons.groups_rounded,
                                 label:
                                     friendCount <= 1
-                                        ? '$friendCount ami'
-                                        : '$friendCount amis',
+                                        ? '$friendCount ${l10n.profileFriendLabel}'
+                                        : '$friendCount ${l10n.profileFriendsLabel}',
                                 iconColor: AppColors.success,
                               ),
                             ],
@@ -592,8 +597,8 @@ class _ProfileHero extends StatelessWidget {
                         Expanded(
                           child: Text(
                             pendingFriendRequests == 1
-                                ? 'Une demande d’ami en attente'
-                                : '$pendingFriendRequests demandes d’amis en attente',
+                                ? l10n.profileOneFriendRequestPending
+                                : '$pendingFriendRequests ${l10n.profileFriendRequestsPending}',
                             style: AppTextStyles.body.copyWith(
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
@@ -679,27 +684,11 @@ class _ProfileTabRail extends StatefulWidget {
   final TabController controller;
   final int pendingRequests;
 
-  static const entries = <
-      ({
-        IconData icon,
-        String short,
-      })>[
-    (
-      icon: Icons.insights_rounded,
-      short: 'Stats',
-    ),
-    (
-      icon: Icons.checkroom_rounded,
-      short: 'Tenues',
-    ),
-    (
-      icon: Icons.photo_library_rounded,
-      short: 'Souvenirs',
-    ),
-    (
-      icon: Icons.manage_accounts_rounded,
-      short: 'Compte',
-    ),
+  static const entries = <IconData>[
+    Icons.insights_rounded,
+    Icons.checkroom_rounded,
+    Icons.photo_library_rounded,
+    Icons.manage_accounts_rounded,
   ];
 
   const _ProfileTabRail({
@@ -862,11 +851,27 @@ class _ProfileTabRailState extends State<_ProfileTabRail> {
     );
   }
 
+  String _tabLabel(BuildContext context, int i) {
+    final l10n = context.l10n;
+    switch (i) {
+      case 0:
+        return l10n.profileTabStats;
+      case 1:
+        return l10n.profileTabOutfits;
+      case 2:
+        return l10n.profileTabMemories;
+      case 3:
+        return l10n.profileTabAccount;
+      default:
+        return '';
+    }
+  }
+
   Widget _buildEntry(BuildContext context, int i) {
     const entries = _ProfileTabRail.entries;
     final controller = widget.controller;
     final pendingRequests = widget.pendingRequests;
-    final e = entries[i];
+    final icon = entries[i];
     final selected = controller.index == i;
     final showBadge = i == 3 && pendingRequests > 0;
 
@@ -921,7 +926,7 @@ class _ProfileTabRailState extends State<_ProfileTabRail> {
                   clipBehavior: Clip.none,
                   children: [
                     Icon(
-                      e.icon,
+                      icon,
                       size: 20,
                       color: selected
                           ? AppColors.surface
@@ -966,7 +971,7 @@ class _ProfileTabRailState extends State<_ProfileTabRail> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  e.short,
+                  _tabLabel(context, i),
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
@@ -993,6 +998,7 @@ class _StatsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     return FutureBuilder<List<int>>(
       future: Future.wait([
         ref.read(firestoreServiceProvider).garmentCount(uid),
@@ -1020,21 +1026,21 @@ class _StatsTab extends ConsumerWidget {
                     childAspectRatio: constraints.maxWidth > 400 ? 1.15 : 0.95,
                     children: [
                       StatCard(
-                          label: 'Vêtements',
+                          label: l10n.statGarments,
                           value: '${counts[0]}',
                           icon: Icons.checkroom),
                       StatCard(
-                          label: 'Outfits',
+                          label: l10n.profileTabOutfits,
                           value: '${counts[1]}',
                           icon: Icons.style,
                           color: AppColors.secondary),
                       StatCard(
-                          label: 'Portes',
+                          label: l10n.statWorn,
                           value: '${counts[2]}',
                           icon: Icons.done_all,
                           color: AppColors.success),
                       StatCard(
-                          label: 'Streak',
+                          label: l10n.statStreak,
                           value: '${user.currentStreak}',
                           icon: Icons.local_fire_department,
                           color: AppColors.warning),
@@ -1046,7 +1052,7 @@ class _StatsTab extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Center(
                   child: Text(
-                    'Meilleur streak : ${user.bestStreak} jours',
+                    '${l10n.profileBestStreakLine}${user.bestStreak}${l10n.profileStreakDaysSuffix}',
                     style: AppTextStyles.bodySecondary,
                   ),
                 ),
@@ -1067,6 +1073,7 @@ class _MostWornChart extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     return FutureBuilder<List<GarmentModel>>(
       future: ref.read(firestoreServiceProvider).mostWornGarments(uid),
       builder: (context, snapshot) {
@@ -1079,7 +1086,7 @@ class _MostWornChart extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Les plus portes', style: AppTextStyles.heading3),
+            Text(l10n.profileMostWornTitle, style: AppTextStyles.heading3),
             const SizedBox(height: 16),
             ...garments.where((g) => g.timesWorn > 0).map((g) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -1141,14 +1148,15 @@ class _OutfitsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final outfitsAsync = ref.watch(outfitsProvider(uid));
     return outfitsAsync.when(
       data: (outfits) {
         final sorted = [...outfits]
           ..sort((a, b) => b.timesWorn.compareTo(a.timesWorn));
         if (sorted.isEmpty) {
-          return const Center(
-              child: Text('Aucun outfit', style: AppTextStyles.bodySecondary));
+          return Center(
+              child: Text(l10n.profileNoOutfits, style: AppTextStyles.bodySecondary));
         }
         return ListView.separated(
           padding: const EdgeInsets.all(18),
@@ -1184,7 +1192,7 @@ class _OutfitsTab extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            o.name.isEmpty ? 'Outfit' : o.name,
+                            o.name.isEmpty ? l10n.profileDefaultOutfitName : o.name,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 15),
                             maxLines: 1,
@@ -1192,7 +1200,7 @@ class _OutfitsTab extends ConsumerWidget {
                           ),
                           if (o.lastWorn.isNotEmpty) ...[
                             const SizedBox(height: 2),
-                            Text('Dernier port : ${o.lastWorn}',
+                            Text('${l10n.profileLastWornPrefix}${o.lastWorn}',
                                 style: AppTextStyles.caption),
                           ],
                         ],
@@ -1232,7 +1240,7 @@ class _OutfitsTab extends ConsumerWidget {
                         if (o.timesWorn > 0) ...[
                           const SizedBox(height: 4),
                           Text(
-                            'Porté ${o.timesWorn}×',
+                            '${l10n.profileWornPrefix}${o.timesWorn}${l10n.profileTimesSuffix}',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -1314,6 +1322,7 @@ class _OutfitSummarySheetState extends ConsumerState<_OutfitSummarySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -1339,12 +1348,14 @@ class _OutfitSummarySheetState extends ConsumerState<_OutfitSummarySheet> {
                 ),
               ),
               Text(
-                widget.outfit.name.isEmpty ? 'Outfit' : widget.outfit.name,
+                widget.outfit.name.isEmpty
+                    ? l10n.profileDefaultOutfitName
+                    : widget.outfit.name,
                 style: AppTextStyles.heading3,
               ),
               const SizedBox(height: 4),
               if (widget.outfit.lastWorn.isNotEmpty)
-                Text('Dernier port : ${widget.outfit.lastWorn}',
+                Text('${l10n.profileLastWornPrefix}${widget.outfit.lastWorn}',
                     style: AppTextStyles.caption),
               const SizedBox(height: 12),
               if (widget.outfit.referencePhotoUrl.isNotEmpty)
@@ -1389,21 +1400,21 @@ class _OutfitSummarySheetState extends ConsumerState<_OutfitSummarySheet> {
                   }
                   final pieces = snapshot.data ?? [];
                   if (pieces.isEmpty) {
-                    return const Text(
-                      'Aucun vêtement associé.',
+                    return Text(
+                      l10n.profileNoGarmentsLinked,
                       style: AppTextStyles.bodySecondary,
                     );
                   }
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Pièces', style: AppTextStyles.heading3),
+                      Text(l10n.creationStepPieces, style: AppTextStyles.heading3),
                       const SizedBox(height: 10),
                       ...pieces.map((p) {
                         final g = p.garment;
                         final title = g != null && g.name.trim().isNotEmpty
                             ? g.name.trim()
-                            : 'Pièce introuvable';
+                            : l10n.profilePieceNotFound;
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: Row(
@@ -1432,7 +1443,7 @@ class _OutfitSummarySheetState extends ConsumerState<_OutfitSummarySheet> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      categoryLabel(p.categoryKey),
+                                      categoryLabelL10n(l10n, p.categoryKey),
                                       style: AppTextStyles.caption,
                                     ),
                                     if (g != null && g.brand.trim().isNotEmpty)
@@ -1471,6 +1482,7 @@ class _GalleryTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final outfitsAsync = ref.watch(outfitsProvider(uid));
     return outfitsAsync.when(
       data: (outfits) {
@@ -1489,7 +1501,7 @@ class _GalleryTab extends ConsumerWidget {
                 Icon(Icons.photo_library_outlined,
                     size: 56, color: AppColors.textHint.withOpacity(0.4)),
                 const SizedBox(height: 12),
-                const Text('Aucun souvenir pour l\'instant',
+                Text(l10n.profileNoMemoriesYet,
                     style: AppTextStyles.bodySecondary),
               ],
             ),
@@ -1604,6 +1616,7 @@ class _MemoryDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -1669,8 +1682,8 @@ class _MemoryDetailSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Photo prise lors du choix de l\'outfit du jour.',
+              Text(
+                l10n.profileMemoryPhotoHint,
                 style: AppTextStyles.caption,
               ),
             ],
@@ -1689,20 +1702,21 @@ class _AccountTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
-            child: Text('Amis', style: AppTextStyles.heading3),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+            child: Text(l10n.profileFriendsSection, style: AppTextStyles.heading3),
           ),
           _FriendsTab(user: user, embeddedInAccount: true),
           const Divider(height: 32, indent: 20, endIndent: 20),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text('Paramètres', style: AppTextStyles.heading3),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Text(l10n.profileSettingsSection, style: AppTextStyles.heading3),
           ),
           _InfosTab(
             user: user,
@@ -1764,6 +1778,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final requestsAsync = ref.watch(receivedRequestsProvider);
 
     final body = Column(
@@ -1777,7 +1792,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                 children: [
                   Row(
                     children: [
-                      const Text('Demandes reçues',
+                      Text(l10n.profileReceivedRequests,
                           style: AppTextStyles.heading3),
                       const SizedBox(width: 8),
                       Container(
@@ -1871,14 +1886,14 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
               border: Border.all(color: AppColors.divider),
             ),
             child: SwitchListTile.adaptive(
-              title: const Text(
-                'Compte privé',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              title: Text(
+                l10n.profilePrivateAccount,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
               ),
               subtitle: Text(
                 widget.user.isPrivate
-                    ? 'Seuls tes amis voient ton contenu'
-                    : 'Tout le monde peut voir ton contenu',
+                    ? l10n.profilePrivateFriendsOnly
+                    : l10n.profilePrivateEveryone,
                 style: AppTextStyles.caption,
               ),
               secondary: Icon(
@@ -1902,7 +1917,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
           Row(
             children: [
               Text(
-                'Mes amis (${widget.user.friends.length})',
+                '${l10n.profileMyFriendsPrefix} (${widget.user.friends.length})',
                 style: AppTextStyles.heading3,
               ),
               const Spacer(),
@@ -1916,8 +1931,8 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                 },
                 icon: const Icon(Icons.person_add_alt_1_outlined,
                     size: 18, color: AppColors.accent),
-                label: const Text(
-                  'Ajouter un ami',
+                label: Text(
+                  l10n.profileAddFriend,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: AppColors.accent,
@@ -1937,7 +1952,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                   Icon(Icons.people_outline,
                       size: 48, color: AppColors.textHint.withOpacity(0.3)),
                   const SizedBox(height: 12),
-                  const Text('Aucun ami pour le moment',
+                  Text(l10n.profileNoFriendsYet,
                       style: AppTextStyles.bodySecondary),
                 ],
               ),
@@ -1996,26 +2011,26 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                         }
                       },
                       itemBuilder: (_) => [
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'view',
                           child: Row(
                             children: [
-                              Icon(Icons.person_outline,
+                              const Icon(Icons.person_outline,
                                   size: 18, color: AppColors.textSecondary),
-                              SizedBox(width: 10),
-                              Text('Voir le profil'),
+                              const SizedBox(width: 10),
+                              Text(l10n.profileViewProfile),
                             ],
                           ),
                         ),
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'remove',
                           child: Row(
                             children: [
-                              Icon(Icons.person_remove,
+                              const Icon(Icons.person_remove,
                                   size: 18, color: AppColors.error),
-                              SizedBox(width: 10),
-                              Text('Retirer',
-                                  style: TextStyle(color: AppColors.error)),
+                              const SizedBox(width: 10),
+                              Text(l10n.profileRemoveFriendAction,
+                                  style: const TextStyle(color: AppColors.error)),
                             ],
                           ),
                         ),
@@ -2045,16 +2060,18 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
   }
 
   void _confirmRemove(UserModel friend) {
+    final l10n = context.l10n;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Retirer cet ami ?'),
-        content: Text('Retirer @${friend.username} de ta liste d\'amis ?'),
+        title: Text(l10n.profileRemoveFriendTitle),
+        content: Text(
+            '${l10n.profileRemoveFriendBodyPrefix}${friend.username}${l10n.profileRemoveFriendBodySuffix}'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
+            child: Text(l10n.commonCancel),
           ),
           TextButton(
             onPressed: () {
@@ -2066,8 +2083,8 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                 _friendUsers.removeWhere((u) => u.uid == friend.uid);
               });
             },
-            child:
-                const Text('Retirer', style: TextStyle(color: AppColors.error)),
+            child: Text(l10n.profileRemoveFriendAction,
+                style: const TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -2102,12 +2119,13 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
   }
 
   Future<void> _applyPremiumCode() async {
+    final l10n = context.l10n;
     final code = _premiumCodeController.text.trim();
     if (!isPremiumUnlockCodeValid(code)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Code incorrect.'),
+          content: Text(l10n.profileIncorrectCode),
           backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -2127,15 +2145,15 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
       _premiumCodeController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.workspace_premium_rounded,
+              const Icon(Icons.workspace_premium_rounded,
                   color: AppColors.white, size: 22),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'UniSaps+ activé ! Profite des fonctionnalités IA.',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  l10n.profilePremiumActivatedSnack,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -2151,7 +2169,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur : $e'),
+          content: Text('${l10n.profileErrorPrefix}$e'),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -2165,6 +2183,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
   }
 
   Future<void> _showDeleteAccountDialog() async {
+    final l10n = context.l10n;
     final passwordController = TextEditingController();
     bool obscure = true;
 
@@ -2175,26 +2194,26 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
         builder: (ctx, setStateDlg) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded,
+              const Icon(Icons.warning_amber_rounded,
                   color: AppColors.error, size: 24),
-              SizedBox(width: 10),
-              Text('Supprimer le compte'),
+              const SizedBox(width: 10),
+              Text(l10n.deleteAccountTitle),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Cette action est irréversible. Toutes tes données seront supprimées définitivement.',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              Text(
+                l10n.deleteAccountWarning,
+                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Confirme avec ton mot de passe :',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              Text(
+                l10n.deleteAccountConfirmPassword,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -2202,7 +2221,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                 obscureText: obscure,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'Mot de passe',
+                  hintText: l10n.authPassword,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -2222,7 +2241,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler'),
+              child: Text(l10n.commonCancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -2232,7 +2251,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Supprimer définitivement'),
+              child: Text(l10n.deleteAccountConfirmButton),
             ),
           ],
         ),
@@ -2254,10 +2273,10 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
       context.go('/login');
     } catch (e) {
       if (!mounted) return;
-      String msg = 'Erreur lors de la suppression.';
+      String msg = l10n.deleteAccountError;
       if (e.toString().contains('wrong-password') ||
           e.toString().contains('invalid-credential')) {
-        msg = 'Mot de passe incorrect.';
+        msg = l10n.profileIncorrectPassword;
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -2276,12 +2295,48 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final themeMode = ref.watch(themeModeProvider);
+    final localeCode = ref.watch(localeProvider).locale.languageCode;
     final body = Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.settingsLanguage,
+                  style: AppTextStyles.bodySecondary.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SegmentedButton<String>(
+                  segments: [
+                    ButtonSegment(
+                      value: 'fr',
+                      label: Text(l10n.settingsLanguageFrench),
+                    ),
+                    ButtonSegment(
+                      value: 'en',
+                      label: Text(l10n.settingsLanguageEnglish),
+                    ),
+                  ],
+                  selected: {localeCode},
+                  onSelectionChanged: (selected) {
+                    ref
+                        .read(localeProvider.notifier)
+                        .setLocale(Locale(selected.first));
+                  },
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 24),
           SwitchListTile(
-            title: const Text('Mode sombre'),
-            subtitle: const Text('Confort visuel en faible luminosité'),
+            title: Text(l10n.settingsDarkMode),
+            subtitle: Text(l10n.profileDarkModeSubtitle),
             value: themeMode == ThemeMode.dark,
             onChanged: (on) {
               ref.read(themeModeProvider.notifier).state =
@@ -2289,31 +2344,34 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
             },
           ),
           const Divider(height: 24),
-          _InfoRow(label: 'Email', value: widget.user.email),
-          _InfoRow(label: 'Pseudo', value: widget.user.username),
-          _InfoRow(label: 'Nom', value: widget.user.displayName),
+          _InfoRow(label: l10n.profileEmail, value: widget.user.email),
+          _InfoRow(label: l10n.profileUsername, value: widget.user.username),
+          _InfoRow(label: l10n.profileDisplayName, value: widget.user.displayName),
           _InfoRow(
-              label: 'Membre depuis',
+              label: l10n.profileMemberSince,
               value: widget.user.createdAt.isNotEmpty
                   ? widget.user.createdAt.substring(0, 10)
                   : '-'),
           _InfoRow(
-              label: 'Meilleur streak',
-              value: '${widget.user.bestStreak} jours'),
-          _InfoRow(label: 'Amis', value: '${widget.user.friends.length}'),
+              label: l10n.profileBestStreak,
+              value:
+                  '${widget.user.bestStreak}${l10n.profileStreakDaysSuffix}'),
           _InfoRow(
-              label: 'Compte',
-              value: widget.user.isPrivate ? 'Privé' : 'Public'),
+              label: l10n.profileFriendsLabel,
+              value: '${widget.user.friends.length}'),
           _InfoRow(
-            label: 'UniSaps+',
-            value: widget.user.isPremium ? 'Actif' : 'Gratuit',
+              label: l10n.profileTabAccount,
+              value: accountVisibilityL10n(l10n, widget.user.isPrivate)),
+          _InfoRow(
+            label: l10n.premiumDialogTitle,
+            value: premiumStatusL10n(l10n, widget.user.isPremium),
           ),
           if (!widget.user.isPremium) ...[
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Code d’activation',
+                l10n.profileActivationCodeLabel,
                 style: AppTextStyles.bodySecondary.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -2326,7 +2384,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
               autocorrect: false,
               obscureText: true,
               decoration: InputDecoration(
-                hintText: 'Entre ton code UniSaps+',
+                hintText: l10n.profilePremiumCodeHint,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -2355,14 +2413,14 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                           color: AppColors.white,
                         ),
                       )
-                    : const Row(
+                    : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.workspace_premium_outlined, size: 20),
-                          SizedBox(width: 8),
+                          const Icon(Icons.workspace_premium_outlined, size: 20),
+                          const SizedBox(width: 8),
                           Text(
-                            'Activer UniSaps+',
-                            style: TextStyle(fontWeight: FontWeight.w600),
+                            l10n.profileActivateUniSaps,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -2381,8 +2439,8 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               onPressed: widget.onLogout,
-              child: const Text('Se déconnecter',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+              child: Text(l10n.profileLogOut,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
             ),
           ),
           const SizedBox(height: 12),
@@ -2404,21 +2462,21 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppColors.error),
                     )
-                  : const Row(
+                  : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.delete_forever_outlined, size: 18),
-                        SizedBox(width: 8),
-                        Text('Supprimer le compte',
-                            style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Icon(Icons.delete_forever_outlined, size: 18),
+                        const SizedBox(width: 8),
+                        Text(l10n.profileDeleteAccount,
+                            style: const TextStyle(fontWeight: FontWeight.w600)),
                       ],
                     ),
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Cette action est irréversible.',
-            style: TextStyle(
+          Text(
+            l10n.profileDeleteIrreversible,
+            style: const TextStyle(
               fontSize: 11,
               color: AppColors.textHint,
             ),

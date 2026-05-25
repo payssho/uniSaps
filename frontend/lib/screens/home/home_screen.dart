@@ -17,6 +17,7 @@ import '../inspiration/search_users_screen.dart';
 import '../outfits/outfits_screen.dart';
 import '../dressing/dressing_screen.dart';
 import '../profile/profile_screen.dart';
+import '../../l10n/l10n_context.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 0);
 
@@ -35,13 +36,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _tutorialStarted = false;
   int _currentTab = 0;
 
-  /// Message affiché quand l’utilisateur tente d’ouvrir un onglet verrouillé.
-  String _lockMessage(int index, bool hasGarments, bool hasOutfits) {
+  String _lockMessage(int index) {
+    final l10n = context.l10n;
     switch (index) {
       case 1:
-        return 'Ajoute un vêtement à ton dressing pour débloquer cette section';
+        return l10n.lockTabAddGarment;
       case 2:
-        return 'Crée ton premier outfit pour débloquer cette section';
+        return l10n.lockTabCreateOutfit;
       default:
         return '';
     }
@@ -69,21 +70,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  void _showLockedTabSnackBar(
-    int lockedIndex, {
-    required bool hasGarments,
-    required bool hasOutfits,
-  }) {
+  void _showLockedTabSnackBar(int lockedIndex) {
+    final l10n = context.l10n;
     SnackBarAction? action;
     if (lockedIndex == 1) {
       action = SnackBarAction(
-        label: 'Dressing',
+        label: l10n.snackActionDressing,
         textColor: AppColors.white,
         onPressed: () => _goToTab(0),
       );
     } else if (lockedIndex == 2) {
       action = SnackBarAction(
-        label: 'Outfits',
+        label: l10n.snackActionOutfits,
         textColor: AppColors.white,
         onPressed: () => _goToTab(1),
       );
@@ -98,7 +96,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  _lockMessage(lockedIndex, hasGarments, hasOutfits),
+                  _lockMessage(lockedIndex),
                   style: const TextStyle(fontSize: 13),
                 ),
               ),
@@ -201,11 +199,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (tabUnlocked[index]) {
         _goToTab(index);
       } else {
-        _showLockedTabSnackBar(
-          index,
-          hasGarments: hasGarments,
-          hasOutfits: hasOutfits,
-        );
+        _showLockedTabSnackBar(index);
       }
     }
 
@@ -231,11 +225,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         );
                       }
                     });
-                    _showLockedTabSnackBar(
-                      index,
-                      hasGarments: hasGarments,
-                      hasOutfits: hasOutfits,
-                    );
+                    _showLockedTabSnackBar(index);
                   } else {
                     setState(() => _currentTab = index);
                     ref.read(selectedTabProvider.notifier).state = index;
@@ -463,14 +453,20 @@ class _BottomNavBar extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _tabs = [
-    (Icons.checkroom_outlined, Icons.checkroom, 'Dressing'),
-    (Icons.style_outlined, Icons.style, 'Outfits'),
-    (Icons.explore_outlined, Icons.explore, 'Inspiration'),
+  static const _tabIcons = [
+    (Icons.checkroom_outlined, Icons.checkroom),
+    (Icons.style_outlined, Icons.style),
+    (Icons.explore_outlined, Icons.explore),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final tabLabels = [
+      l10n.navDressing,
+      l10n.navOutfits,
+      l10n.navInspiration,
+    ];
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -487,8 +483,9 @@ class _BottomNavBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Row(
             children: [
-              ...List.generate(_tabs.length, (i) {
-                final (icon, activeIcon, label) = _tabs[i];
+              ...List.generate(_tabIcons.length, (i) {
+                final (icon, activeIcon) = _tabIcons[i];
+                final label = tabLabels[i];
                 return Expanded(
                   child: _NavItem(
                     icon: icon,
@@ -554,7 +551,7 @@ class _NavProfileBubble extends StatelessWidget {
             : AppColors.textHint;
 
     return Semantics(
-      label: 'Profil',
+      label: context.l10n.navProfile,
       button: true,
       selected: selected,
       child: GestureDetector(
@@ -835,6 +832,7 @@ class _TutorialOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final size = MediaQuery.of(context).size;
 
     final IconData icon;
@@ -844,25 +842,24 @@ class _TutorialOverlay extends StatelessWidget {
     switch (step) {
       case 0:
         icon = Icons.checkroom;
-        title = 'Commence par ton dressing';
-        description = 'Ajoute un vêtement pour remplir ton dressing.';
+        title = l10n.tutorialDressingTitle;
+        description = l10n.tutorialDressingDesc;
         break;
       case 1:
         icon = Icons.style;
-        title = 'Crée ton premier outfit';
-        description = 'Assemble tes vêtements en un look complet.';
+        title = l10n.tutorialOutfitsTitle;
+        description = l10n.tutorialOutfitsDesc;
         break;
       case 2:
         icon = Icons.explore;
-        title = 'Inspire-toi et publie';
-        description = 'Découvre les looks des autres et partage le tien.';
+        title = l10n.tutorialInspoTitle;
+        description = l10n.tutorialInspoDesc;
         break;
       case 3:
       default:
         icon = Icons.camera_alt_outlined;
-        title = 'Publie ton look du jour';
-        description =
-            'Depuis Inspiration, partage la photo de ton outfit du jour (1 par jour).';
+        title = l10n.tutorialPublishTitle;
+        description = l10n.tutorialPublishDesc;
         break;
     }
 
@@ -935,8 +932,8 @@ class _TutorialOverlay extends StatelessWidget {
                       Expanded(
                         child: TextButton(
                           onPressed: onSkip,
-                          child: const Text('Passer',
-                              style: TextStyle(
+                          child: Text(l10n.commonSkip,
+                              style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontWeight: FontWeight.w500)),
                         ),
@@ -952,7 +949,7 @@ class _TutorialOverlay extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(14)),
                           ),
                           child: Text(
-                            step == 2 ? 'C\'est parti !' : 'Suivant',
+                            step >= 3 ? l10n.authOnboardingFinish : l10n.commonNext,
                             style: const TextStyle(
                                 color: AppColors.white,
                                 fontWeight: FontWeight.w600),

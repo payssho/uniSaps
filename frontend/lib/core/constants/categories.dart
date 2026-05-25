@@ -1,3 +1,6 @@
+import '../../l10n/domain_l10n.dart';
+import '../../l10n/generated/app_localizations.dart';
+
 class GarmentCategory {
   final String key;
   final String label;
@@ -9,12 +12,12 @@ class GarmentCategory {
 }
 
 const categories = [
-  GarmentCategory(key: 'headwear', label: 'Couvre-chef'),
-  GarmentCategory(key: 'top', label: 'Hauts'),
-  GarmentCategory(key: 'outerwear', label: 'Vestes'),
-  GarmentCategory(key: 'bottom', label: 'Bas'),
-  GarmentCategory(key: 'shoes', label: 'Chaussures'),
-  GarmentCategory(key: 'accessory', label: 'Accessoires'),
+  GarmentCategory(key: 'headwear', label: 'headwear'),
+  GarmentCategory(key: 'top', label: 'top'),
+  GarmentCategory(key: 'outerwear', label: 'outerwear'),
+  GarmentCategory(key: 'bottom', label: 'bottom'),
+  GarmentCategory(key: 'shoes', label: 'shoes'),
+  GarmentCategory(key: 'accessory', label: 'accessory'),
 ];
 
 const categoryKeys = [
@@ -35,6 +38,19 @@ const bodyZones = {
   'wrist': 'accessory',
 };
 
+/// Canonical style keys sent to the API (labels via [styleLabelL10n]).
+const stylePromptKeys = [
+  'simple',
+  'colorful',
+  'classy',
+  'professional',
+  'casual',
+  'streetwear',
+  'sporty',
+  'evening',
+];
+
+/// Legacy French prompts kept for API backward compatibility.
 const stylePrompts = [
   'Simple',
   'Coloré',
@@ -46,11 +62,28 @@ const stylePrompts = [
   'Soirée',
 ];
 
-String categoryLabel(String key) {
-  return categories
-      .firstWhere(
-        (c) => c.key == key,
-        orElse: () => const GarmentCategory(key: '', label: ''),
-      )
-      .label;
+String categoryLabel(String key, AppLocalizations l) =>
+    categoryLabelL10n(l, key);
+
+String styleLabelL10n(AppLocalizations l, String key) {
+  switch (key) {
+    case 'simple':
+      return l.styleSimple;
+    case 'colorful':
+      return l.styleColorful;
+    case 'classy':
+      return l.styleClassy;
+    case 'professional':
+      return l.styleProfessional;
+    case 'casual':
+      return l.styleCasual;
+    case 'streetwear':
+      return l.styleStreetwear;
+    case 'sporty':
+      return l.styleSporty;
+    case 'evening':
+      return l.styleEvening;
+    default:
+      return key;
+  }
 }

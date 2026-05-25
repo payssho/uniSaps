@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
+import '../l10n/l10n_context.dart';
 
 /// État d’erreur réseau / chargement avec message utilisateur et retry.
 class AsyncErrorState extends StatelessWidget {
@@ -15,6 +16,7 @@ class AsyncErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -27,15 +29,14 @@ class AsyncErrorState extends StatelessWidget {
               color: AppColors.textHint.withValues(alpha: 0.45),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Impossible de charger',
+            Text(
+              l10n.asyncErrorTitle,
               style: AppTextStyles.heading3,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
-              subtitle ??
-                  'Vérifie ta connexion et réessaie dans quelques instants.',
+              subtitle ?? l10n.asyncErrorSubtitleLong,
               style: AppTextStyles.bodySecondary,
               textAlign: TextAlign.center,
             ),
@@ -44,7 +45,7 @@ class AsyncErrorState extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded, size: 20),
-                label: const Text('Réessayer'),
+                label: Text(l10n.commonRetry),
               ),
             ],
           ],

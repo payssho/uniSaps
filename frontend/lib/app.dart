@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routes/app_router.dart';
+import 'l10n/generated/app_localizations.dart';
+import 'providers/locale_provider.dart';
 import 'providers/theme_mode_provider.dart';
 import 'widgets/widget_sync_listener.dart';
 
@@ -12,6 +14,17 @@ class UniSapsApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final localeState = ref.watch(localeProvider);
+
+    if (localeState.isLoading) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        home: const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
 
     return WidgetSyncListener(
       child: MaterialApp.router(
@@ -20,6 +33,9 @@ class UniSapsApp extends ConsumerWidget {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: themeMode,
+        locale: localeState.locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         routerConfig: router,
       ),
     );

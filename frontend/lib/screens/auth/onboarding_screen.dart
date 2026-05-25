@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../l10n/l10n_context.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../widgets/platform_image.dart';
@@ -30,32 +31,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _pickPhoto() async {
+    final l10n = context.l10n;
     final picker = ImagePicker();
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt_outlined),
-                title: const Text('Prendre une photo'),
-                onTap: () => Navigator.pop(context, ImageSource.camera),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Choisir depuis la galerie'),
-                onTap: () => Navigator.pop(context, ImageSource.gallery),
-              ),
-            ],
+      builder: (sheetCtx) {
+        final sheetL10n = sheetCtx.l10n;
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: Text(sheetL10n.authOnboardingTakePhoto),
+                  onTap: () => Navigator.pop(sheetCtx, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: Text(sheetL10n.authOnboardingChooseGallery),
+                  onTap: () => Navigator.pop(sheetCtx, ImageSource.gallery),
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
     if (source == null) return;
     final picked = await picker.pickImage(source: source, maxWidth: 600, imageQuality: 78);
@@ -65,9 +70,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _handleComplete() async {
+    final l10n = context.l10n;
     final username = _usernameController.text.trim();
     if (username.isEmpty) {
-      setState(() => _error = 'Choisis un pseudo.');
+      setState(() => _error = l10n.authOnboardingChooseUsername);
       return;
     }
     setState(() {
@@ -97,6 +103,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -106,9 +113,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 50),
-                const Text('Bienvenue !', style: AppTextStyles.heading1),
+                Text(l10n.authOnboardingWelcome, style: AppTextStyles.heading1),
                 const SizedBox(height: 10),
-                const Text('Configure ton profil', style: AppTextStyles.bodySecondary),
+                Text(l10n.authOnboardingConfigureProfile,
+                    style: AppTextStyles.bodySecondary),
                 const SizedBox(height: 36),
                 GestureDetector(
                   onTap: _pickPhoto,
@@ -153,15 +161,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text('Ajouter une photo', style: AppTextStyles.caption),
+                Text(l10n.authOnboardingAddPhoto, style: AppTextStyles.caption),
                 const SizedBox(height: 32),
                 TextField(
                   controller: _usernameController,
                   maxLength: 20,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    hintText: 'Pseudo',
-                    prefixIcon: Icon(Icons.alternate_email, size: 22),
+                  decoration: InputDecoration(
+                    hintText: l10n.authPseudo,
+                    prefixIcon: const Icon(Icons.alternate_email, size: 22),
                     counterText: '',
                   ),
                 ),
@@ -169,9 +177,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 TextField(
                   controller: _displayNameController,
                   textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    hintText: 'Nom complet (optionnel)',
-                    prefixIcon: Icon(Icons.person_outline, size: 22),
+                  decoration: InputDecoration(
+                    hintText: l10n.authFullNameOptional,
+                    prefixIcon: const Icon(Icons.person_outline, size: 22),
                   ),
                 ),
                 if (_error != null) ...[
@@ -207,7 +215,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             height: 20, width: 20,
                             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                           )
-                        : const Text('C\'est parti !'),
+                        : Text(l10n.authOnboardingFinish),
                   ),
                 ),
                 const SizedBox(height: 32),

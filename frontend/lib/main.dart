@@ -1,9 +1,12 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'app.dart';
+import 'l10n/generated/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,7 +62,14 @@ class _UniSapsBootstrapState extends State<_UniSapsBootstrap> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           final error = snapshot.error;
+          final sys = ui.PlatformDispatcher.instance.locale;
+          final l = lookupAppLocalizations(
+            Locale(sys.languageCode == 'en' ? 'en' : 'fr'),
+          );
           return MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: Locale(sys.languageCode == 'en' ? 'en' : 'fr'),
             home: Scaffold(
               body: SafeArea(
                 child: Padding(
@@ -68,9 +78,9 @@ class _UniSapsBootstrapState extends State<_UniSapsBootstrap> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Erreur au démarrage',
-                          style: TextStyle(
+                        Text(
+                          l.startupErrorTitle,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w600,
                           ),

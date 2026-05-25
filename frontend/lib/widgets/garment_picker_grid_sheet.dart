@@ -6,6 +6,7 @@ import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
 import 'garment_category_glyph.dart';
 import 'storage_aware_cached_image.dart';
+import '../l10n/l10n_context.dart';
 
 /// Bottom sheet grille 3 colonnes — même UI que [CreationScreen] lors du choix d'une pièce.
 Future<GarmentModel?> showGarmentPickerGridSheet(
@@ -40,16 +41,16 @@ Future<GarmentModel?> showGarmentPickerGridSheet(
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              categoryLabel(categoryKey),
+              categoryLabel(categoryKey, ctx.l10n),
               style: AppTextStyles.heading3,
             ),
           ),
           const SizedBox(height: 8),
           Expanded(
             child: garments.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
-                      'Aucun vêtement dans cette catégorie',
+                      ctx.l10n.garmentNoItemsInCategory,
                       style: AppTextStyles.bodySecondary,
                     ),
                   )
