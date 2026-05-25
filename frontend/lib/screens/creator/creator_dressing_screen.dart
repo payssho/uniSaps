@@ -486,10 +486,11 @@ class _CollectionSection extends StatelessWidget {
                                     const SizedBox(width: 5),
                                     Text(
                                       count == 0
-                                          ? 'Aucune pièce'
+                                          ? context.l10n.creatorCollectionNoPieces
                                           : count == 1
-                                              ? '1 pièce'
-                                              : '$count pièces',
+                                              ? context.l10n.creatorCollectionOnePiece
+                                              : context.l10n
+                                                  .creatorCollectionPieceCount(count),
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
@@ -550,7 +551,7 @@ class _CollectionSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Collection vide',
+                          context.l10n.creatorCollectionEmptyTitle,
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
@@ -559,7 +560,7 @@ class _CollectionSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Ajoute des pièces pour alimenter cette ligne.',
+                          context.l10n.creatorCollectionEmptyHint,
                           style: TextStyle(
                             fontSize: 13,
                             height: 1.35,

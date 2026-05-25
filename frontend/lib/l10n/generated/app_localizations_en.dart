@@ -199,6 +199,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get colorPink => 'Pink';
 
   @override
+  String get colorMulticolor => 'Multicolor';
+
+  @override
   String get colorPurple => 'Purple';
 
   @override
@@ -527,6 +530,36 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get creatorSubscriptionMonthlyPrice => '\$29 / month';
+
+  @override
+  String get creatorCollectionNoPieces => 'No items';
+
+  @override
+  String get creatorCollectionOnePiece => '1 item';
+
+  @override
+  String creatorCollectionPieceCount(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get creatorCollectionEmptyTitle => 'Empty collection';
+
+  @override
+  String get creatorCollectionEmptyHint =>
+      'Add items to stock this collection.';
+
+  @override
+  String get creatorPostDefaultCaption => 'Sponsored post';
+
+  @override
+  String get creatorPostStatusActive => 'Active';
+
+  @override
+  String get creatorPostStatusInactive => 'Inactive';
+
+  @override
   String get creatorTabGarments => 'Garments';
 
   @override
@@ -669,6 +702,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get garmentBrandHint => 'Brand';
 
   @override
+  String get garmentBrandNoneFound => 'No brand found. You can type freely.';
+
+  @override
+  String get garmentBrandTapAgainToFilter => 'Tap again to filter…';
+
+  @override
   String get garmentCategoryLabel => 'Category';
 
   @override
@@ -731,6 +770,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get garmentColorHint => 'Color';
+
+  @override
+  String get garmentColorMaxReached => 'Maximum of 3 colors';
+
+  @override
+  String get garmentColorNoneFound => 'No color found. You can type freely.';
+
+  @override
+  String get garmentColorSearchHint => 'Search or pick a color (max 3)';
+
+  @override
+  String get garmentColorTapAgainToFilter => 'Tap again to filter…';
 
   @override
   String get garmentColorsLabel => 'Colors';
@@ -1718,4 +1769,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weatherWind => 'Wind';
+
+  @override
+  String get weatherDrizzle => 'Drizzle';
+
+  @override
+  String get weatherFog => 'Fog';
+
+  @override
+  String weatherHourNow(String hour) {
+    return '$hour';
+  }
+
+  @override
+  String get weatherPartlyClear => 'Partly clear';
+
+  @override
+  String weatherTodayMinMax(String range) {
+    return 'Today $range';
+  }
+
+  @override
+  String get weatherVariable => 'Mixed conditions';
 }

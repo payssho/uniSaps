@@ -1,3 +1,4 @@
+import '../core/constants/weather_catalog.dart';
 import 'generated/app_localizations.dart';
 
 String categoryLabelL10n(AppLocalizations l, String key) {
@@ -51,6 +52,23 @@ String creationWeatherLabelL10n(AppLocalizations l, String id) {
   }
 }
 
+/// Libellé court météo (détail, widgets) à partir des tags du jour.
+String weatherVisualShortLabelL10n(AppLocalizations l, Set<String> tags) {
+  if (tags.contains(WeatherTagKeys.thunderstorm)) return l.weatherStorm;
+  if (tags.contains(WeatherTagKeys.rain) ||
+      tags.contains(WeatherTagKeys.drizzle)) {
+    return l.weatherRain;
+  }
+  if (tags.contains(WeatherTagKeys.snow)) return l.weatherSnow;
+  if (tags.contains(WeatherTagKeys.fog)) return l.weatherFog;
+  if (tags.contains(WeatherTagKeys.clear)) return l.weatherNice;
+  if (tags.contains(WeatherTagKeys.partlyCloudy)) {
+    return l.weatherPartlyClear;
+  }
+  if (tags.contains(WeatherTagKeys.cloudy)) return l.weatherCloudy;
+  return l.weatherVariable;
+}
+
 /// Libellé affiché pour une couleur (clé stable ou ancien nom FR en base).
 String colorDisplayNameL10n(AppLocalizations l, String nameOrId) {
   final n = nameOrId.trim();
@@ -100,6 +118,9 @@ String colorDisplayNameL10n(AppLocalizations l, String nameOrId) {
     case 'violet':
     case 'Violet':
       return l.colorPurple;
+    case 'multicolore':
+    case 'Multicolore':
+      return l.colorMulticolor;
     default:
       return nameOrId;
   }

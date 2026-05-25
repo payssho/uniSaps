@@ -9,6 +9,7 @@ import '../../core/constants/weather_catalog.dart';
 import '../../models/daily_weather_summary.dart';
 import '../../providers/weather_provider.dart';
 import '../../services/weather_service.dart';
+import '../../l10n/domain_l10n.dart';
 import '../../l10n/l10n_context.dart';
 
 /// Feuille détaillée météo du jour pour la **position actuelle**.
@@ -181,9 +182,8 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentCode = weather.currentWeatherCode ?? weather.weatherCode;
-    final visual = WeatherTagKeys.visualFor(
-      WeatherTagKeys.fromWmoCode(currentCode),
-    );
+    final tags = WeatherTagKeys.fromWmoCode(currentCode);
+    final visual = WeatherTagKeys.visualFor(tags);
     final temp = (weather.currentTemperatureC ??
             ((weather.tempMin + weather.tempMax) / 2))
         .round();
@@ -301,7 +301,8 @@ class _Header extends StatelessWidget {
                                     color: AppColors.white, size: 22),
                                 const SizedBox(width: 6),
                                 Text(
-                                  visual.shortLabel,
+                                  weatherVisualShortLabelL10n(
+                                      context.l10n, tags),
                                   style: const TextStyle(
                                     color: AppColors.white,
                                     fontWeight: FontWeight.w600,
@@ -312,7 +313,7 @@ class _Header extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Auj. $minMax',
+                              context.l10n.weatherTodayMinMax(minMax),
                               style: TextStyle(
                                 color: AppColors.white.withOpacity(0.92),
                                 fontWeight: FontWeight.w500,
@@ -613,9 +614,9 @@ class _HourlyTimelineCardState extends State<_HourlyTimelineCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionTitle(
+          _SectionTitle(
             icon: Icons.timeline_rounded,
-            label: 'Heure par heure',
+            label: context.l10n.weatherHourly,
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -680,7 +681,9 @@ class _HourPillar extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            isNow ? "Now" : "${hour}h",
+            isNow
+                ? context.l10n.weatherNow
+                : context.l10n.weatherHourNow(hour),
             style: TextStyle(
               fontSize: 11,
               fontWeight: isNow ? FontWeight.w800 : FontWeight.w600,
@@ -795,9 +798,9 @@ class _StatsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionTitle(
+          _SectionTitle(
             icon: Icons.insights_rounded,
-            label: 'En ce moment',
+            label: context.l10n.weatherNow,
           ),
           const SizedBox(height: 12),
           Row(

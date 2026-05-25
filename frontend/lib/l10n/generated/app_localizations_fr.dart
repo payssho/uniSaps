@@ -200,6 +200,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get colorPink => 'Rose';
 
   @override
+  String get colorMulticolor => 'Multicolore';
+
+  @override
   String get colorPurple => 'Violet';
 
   @override
@@ -530,6 +533,36 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get creatorSubscriptionMonthlyPrice => '29 \$ / mois';
+
+  @override
+  String get creatorCollectionNoPieces => 'Aucune pièce';
+
+  @override
+  String get creatorCollectionOnePiece => '1 pièce';
+
+  @override
+  String creatorCollectionPieceCount(int count) {
+    return '$count pièces';
+  }
+
+  @override
+  String get creatorCollectionEmptyTitle => 'Collection vide';
+
+  @override
+  String get creatorCollectionEmptyHint =>
+      'Ajoute des pièces pour alimenter cette ligne.';
+
+  @override
+  String get creatorPostDefaultCaption => 'Post sponsorisé';
+
+  @override
+  String get creatorPostStatusActive => 'Actif';
+
+  @override
+  String get creatorPostStatusInactive => 'Inactif';
+
+  @override
   String get creatorTabGarments => 'Vêtements';
 
   @override
@@ -675,6 +708,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get garmentBrandHint => 'Marque';
 
   @override
+  String get garmentBrandNoneFound =>
+      'Aucune marque trouvée. Tu peux saisir librement.';
+
+  @override
+  String get garmentBrandTapAgainToFilter => 'Appuie à nouveau pour filtrer…';
+
+  @override
   String get garmentCategoryLabel => 'Catégorie';
 
   @override
@@ -739,6 +779,20 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get garmentColorHint => 'Couleur';
+
+  @override
+  String get garmentColorMaxReached => 'Maximum 3 couleurs atteint';
+
+  @override
+  String get garmentColorNoneFound =>
+      'Aucune couleur trouvée. Tu peux saisir librement.';
+
+  @override
+  String get garmentColorSearchHint =>
+      'Rechercher ou choisir une couleur (max 3)';
+
+  @override
+  String get garmentColorTapAgainToFilter => 'Appuie à nouveau pour filtrer…';
 
   @override
   String get garmentColorsLabel => 'Couleurs';
@@ -1732,4 +1786,26 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get weatherWind => 'Vent';
+
+  @override
+  String get weatherDrizzle => 'Bruine';
+
+  @override
+  String get weatherFog => 'Brouillard';
+
+  @override
+  String weatherHourNow(String hour) {
+    return '${hour}h';
+  }
+
+  @override
+  String get weatherPartlyClear => 'Éclaircies';
+
+  @override
+  String weatherTodayMinMax(String range) {
+    return 'Auj. $range';
+  }
+
+  @override
+  String get weatherVariable => 'Temps variable';
 }

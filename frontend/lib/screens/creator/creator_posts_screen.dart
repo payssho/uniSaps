@@ -229,7 +229,9 @@ class _PostTile extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    post.caption.isNotEmpty ? post.caption : 'Post sponsorisé',
+                    post.caption.isNotEmpty
+                        ? post.caption
+                        : context.l10n.creatorPostDefaultCaption,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style:
@@ -252,7 +254,9 @@ class _PostTile extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              post.isActive ? 'Actif' : 'Inactif',
+                              post.isActive
+                                  ? context.l10n.creatorPostStatusActive
+                                  : context.l10n.creatorPostStatusInactive,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(

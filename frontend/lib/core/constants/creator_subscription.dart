@@ -1,5 +1,5 @@
 /// Tarif affiché (MVP — stub, pas de paiement réel).
-const String kCreatorMonthlyPriceLabel = '29 € / mois';
+const String kCreatorMonthlyPriceLabel = '\$29 / month';
 
 /// Code d’activation développement (normalisé sans espaces, majuscules).
 const String kCreatorActivationCodeNormalized = 'CREATOR2026';

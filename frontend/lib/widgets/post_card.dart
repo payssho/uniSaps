@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_radii.dart';
 import '../core/constants/app_text_styles.dart';
+import '../l10n/l10n_context.dart';
 import '../models/post_model.dart';
 import 'premium_avatar_ring.dart';
 
@@ -71,7 +72,7 @@ class PostCard extends StatelessWidget {
                         size: 14, color: AppColors.primary.withValues(alpha: 0.9)),
                     const SizedBox(width: 6),
                     Text(
-                      'Sponsorisé',
+                      context.l10n.inspoSponsored,
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -325,11 +326,12 @@ class PostCard extends StatelessWidget {
                           color: AppColors.primary.withValues(alpha: 0.92),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           child: Text(
-                            'Sponsorisé',
-                            style: TextStyle(
+                            context.l10n.inspoSponsored,
+                            style: const TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w700,
                               color: AppColors.white,

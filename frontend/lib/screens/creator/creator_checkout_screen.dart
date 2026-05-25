@@ -106,7 +106,7 @@ class _CreatorCheckoutScreenState extends ConsumerState<CreatorCheckoutScreen> {
                   style: AppTextStyles.heading1.copyWith(fontSize: 26)),
               const SizedBox(height: 8),
               Text(
-                kCreatorMonthlyPriceLabel,
+                l10n.creatorSubscriptionMonthlyPrice,
                 style: AppTextStyles.heading2.copyWith(color: AppColors.accent),
               ),
               const SizedBox(height: 8),

@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/constants/creator_subscription.dart';
 import '../../providers/auth_provider.dart';
 import '../inspiration/user_profile_screen.dart';
 import '../../l10n/l10n_context.dart';
@@ -84,7 +83,7 @@ class CreatorProfileScreen extends ConsumerWidget {
                               expires.substring(0, 10),
                             )
                           : l10n.creatorSubscriptionRate(
-                              kCreatorMonthlyPriceLabel,
+                              l10n.creatorSubscriptionMonthlyPrice,
                             ),
                     ),
                   ),

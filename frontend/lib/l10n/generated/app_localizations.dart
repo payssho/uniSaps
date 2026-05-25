@@ -476,6 +476,12 @@ abstract class AppLocalizations {
   /// **'Rose'**
   String get colorPink;
 
+  /// No description provided for @colorMulticolor.
+  ///
+  /// In fr, this message translates to:
+  /// **'Multicolore'**
+  String get colorMulticolor;
+
   /// No description provided for @colorPurple.
   ///
   /// In fr, this message translates to:
@@ -1100,6 +1106,60 @@ abstract class AppLocalizations {
   /// **'Tarif : {price}'**
   String creatorSubscriptionRate(Object price);
 
+  /// No description provided for @creatorSubscriptionMonthlyPrice.
+  ///
+  /// In fr, this message translates to:
+  /// **'29 \$ / mois'**
+  String get creatorSubscriptionMonthlyPrice;
+
+  /// No description provided for @creatorCollectionNoPieces.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune pièce'**
+  String get creatorCollectionNoPieces;
+
+  /// No description provided for @creatorCollectionOnePiece.
+  ///
+  /// In fr, this message translates to:
+  /// **'1 pièce'**
+  String get creatorCollectionOnePiece;
+
+  /// No description provided for @creatorCollectionPieceCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} pièces'**
+  String creatorCollectionPieceCount(int count);
+
+  /// No description provided for @creatorCollectionEmptyTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Collection vide'**
+  String get creatorCollectionEmptyTitle;
+
+  /// No description provided for @creatorCollectionEmptyHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoute des pièces pour alimenter cette ligne.'**
+  String get creatorCollectionEmptyHint;
+
+  /// No description provided for @creatorPostDefaultCaption.
+  ///
+  /// In fr, this message translates to:
+  /// **'Post sponsorisé'**
+  String get creatorPostDefaultCaption;
+
+  /// No description provided for @creatorPostStatusActive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actif'**
+  String get creatorPostStatusActive;
+
+  /// No description provided for @creatorPostStatusInactive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Inactif'**
+  String get creatorPostStatusInactive;
+
   /// No description provided for @creatorTabGarments.
   ///
   /// In fr, this message translates to:
@@ -1370,6 +1430,18 @@ abstract class AppLocalizations {
   /// **'Marque'**
   String get garmentBrandHint;
 
+  /// No description provided for @garmentBrandNoneFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune marque trouvée. Tu peux saisir librement.'**
+  String get garmentBrandNoneFound;
+
+  /// No description provided for @garmentBrandTapAgainToFilter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appuie à nouveau pour filtrer…'**
+  String get garmentBrandTapAgainToFilter;
+
   /// No description provided for @garmentCategoryLabel.
   ///
   /// In fr, this message translates to:
@@ -1483,6 +1555,30 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Couleur'**
   String get garmentColorHint;
+
+  /// No description provided for @garmentColorMaxReached.
+  ///
+  /// In fr, this message translates to:
+  /// **'Maximum 3 couleurs atteint'**
+  String get garmentColorMaxReached;
+
+  /// No description provided for @garmentColorNoneFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune couleur trouvée. Tu peux saisir librement.'**
+  String get garmentColorNoneFound;
+
+  /// No description provided for @garmentColorSearchHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher ou choisir une couleur (max 3)'**
+  String get garmentColorSearchHint;
+
+  /// No description provided for @garmentColorTapAgainToFilter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appuie à nouveau pour filtrer…'**
+  String get garmentColorTapAgainToFilter;
 
   /// No description provided for @garmentColorsLabel.
   ///
@@ -3361,6 +3457,42 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Vent'**
   String get weatherWind;
+
+  /// No description provided for @weatherDrizzle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bruine'**
+  String get weatherDrizzle;
+
+  /// No description provided for @weatherFog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillard'**
+  String get weatherFog;
+
+  /// No description provided for @weatherHourNow.
+  ///
+  /// In fr, this message translates to:
+  /// **'{hour}h'**
+  String weatherHourNow(String hour);
+
+  /// No description provided for @weatherPartlyClear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Éclaircies'**
+  String get weatherPartlyClear;
+
+  /// No description provided for @weatherTodayMinMax.
+  ///
+  /// In fr, this message translates to:
+  /// **'Auj. {range}'**
+  String weatherTodayMinMax(String range);
+
+  /// No description provided for @weatherVariable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps variable'**
+  String get weatherVariable;
 }
 
 class _AppLocalizationsDelegate
