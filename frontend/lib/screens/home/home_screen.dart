@@ -260,11 +260,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             if (!explorer) {
                               return const SizedBox.shrink();
                             }
-                            return Row(
+                            return const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const _ExploreDevMockAdsToggle(),
-                                const SizedBox(width: 8),
+                                _ExploreDevMockAdsToggle(),
+                                SizedBox(width: 8),
                               ],
                             );
                           },

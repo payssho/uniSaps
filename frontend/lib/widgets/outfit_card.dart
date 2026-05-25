@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../core/constants/app_colors.dart';
-import '../core/constants/categories.dart';
 import '../models/outfit_model.dart';
 import '../models/garment_model.dart';
 import 'garment_category_glyph.dart';

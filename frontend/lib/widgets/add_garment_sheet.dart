@@ -963,7 +963,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                 foregroundColor: AppColors.textSecondary,
                 backgroundColor: AppColors.surfaceVariant.withValues(alpha: 0.35),
                 side: BorderSide(color: AppColors.divider.withValues(alpha: 0.65)),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
               ),
               showSelectedIcon: false,
               onSelectionChanged: (s) {

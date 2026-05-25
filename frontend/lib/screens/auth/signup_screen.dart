@@ -596,7 +596,7 @@ class _SwipeDeckVisual extends StatelessWidget {
             left: 2,
             child: Transform.rotate(
               angle: -0.09,
-              child: _MiniSwipeCard(
+              child: const _MiniSwipeCard(
                 width: 90,
                 highlighted: false,
                 child: Icon(
@@ -611,7 +611,7 @@ class _SwipeDeckVisual extends StatelessWidget {
             right: 2,
             child: Transform.rotate(
               angle: 0.08,
-              child: _MiniSwipeCard(
+              child: const _MiniSwipeCard(
                 width: 90,
                 highlighted: true,
                 child: Icon(
@@ -637,13 +637,13 @@ class _SwipeDeckVisual extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.favorite_border_rounded, size: 17, color: AppColors.accent),
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6),
                     Text(
                       'Swipe droite',
                       style: TextStyle(
@@ -711,7 +711,7 @@ class _CatalogBrandVisual extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          _CatalogTile(icon: Icons.checkroom_outlined, caption: 'Pièces'),
+          const _CatalogTile(icon: Icons.checkroom_outlined, caption: 'Pièces'),
           const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.all(14),
@@ -732,10 +732,10 @@ class _CatalogBrandVisual extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(Icons.storefront_rounded, size: 38, color: AppColors.primary),
+            child: const Icon(Icons.storefront_rounded, size: 38, color: AppColors.primary),
           ),
           const SizedBox(width: 10),
-          _CatalogTile(icon: Icons.style_outlined, caption: 'Tenues'),
+          const _CatalogTile(icon: Icons.style_outlined, caption: 'Tenues'),
         ],
       ),
     );
@@ -797,7 +797,7 @@ class _SponsorVisual extends StatelessWidget {
               color: AppColors.accent.withValues(alpha: 0.14),
             ),
           ),
-          Icon(Icons.campaign_rounded, size: 44, color: AppColors.accent),
+          const Icon(Icons.campaign_rounded, size: 44, color: AppColors.accent),
           Positioned(
             top: 4,
             right: 24,

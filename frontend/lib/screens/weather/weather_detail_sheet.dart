@@ -440,8 +440,8 @@ class _SunArcPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(8, 4, size.width - 16, size.height * 2 - 16);
-    final start = math.pi;
-    final sweep = math.pi;
+    const start = math.pi;
+    const sweep = math.pi;
 
     final bg = Paint()
       ..color = AppColors.divider.withOpacity(0.7)
@@ -555,7 +555,7 @@ class _HourlyTimelineCardState extends State<_HourlyTimelineCard> {
     if (_centered || !_controller.hasClients) return;
     _centered = true;
     final viewport = _controller.position.viewportDimension;
-    final pillStride = _kPillWidth + _kPillSpacing;
+    const pillStride = _kPillWidth + _kPillSpacing;
     final targetCenter = _kListHPad + pillStride * nowIndex + _kPillWidth / 2;
     final offset = (targetCenter - viewport / 2)
         .clamp(0.0, _controller.position.maxScrollExtent);
@@ -570,10 +570,10 @@ class _HourlyTimelineCardState extends State<_HourlyTimelineCard> {
   Widget build(BuildContext context) {
     final hours = _todayHours(widget.weather);
     if (hours.isEmpty) {
-      return _SectionCard(
+      return const _SectionCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             _SectionTitle(
               icon: Icons.timeline_rounded,
               label: 'Heure par heure',
@@ -691,7 +691,7 @@ class _HourPillar extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '${point.temperatureC.round()}°',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: AppColors.textPrimary,
@@ -715,7 +715,7 @@ class _HourPillar extends StatelessWidget {
                   child: Container(
                     width: 6,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
                         colors: [
@@ -988,17 +988,17 @@ class _WeatherLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       controller: scrollController,
-      children: [
-        const SizedBox(height: 80),
-        const Center(
+      children: const [
+        SizedBox(height: 80),
+        Center(
           child: SizedBox(
             width: 36,
             height: 36,
             child: CircularProgressIndicator(),
           ),
         ),
-        const SizedBox(height: 18),
-        const Center(
+        SizedBox(height: 18),
+        Center(
           child: Text(
             'Localisation et récupération de la météo…',
             style: TextStyle(
