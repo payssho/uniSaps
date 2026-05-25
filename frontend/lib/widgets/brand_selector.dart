@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
+import '../l10n/l10n_context.dart';
 import '../services/brand_service.dart';
 
 class BrandSelector extends StatefulWidget {
@@ -143,8 +144,8 @@ class _BrandSelectorState extends State<BrandSelector> {
           onTap: _handleBrandTap,
           decoration: InputDecoration(
             hintText: _showSuggestions && !_isSearchMode
-                ? 'Appuie à nouveau pour filtrer…'
-                : 'Marque',
+                ? context.l10n.garmentBrandTapAgainToFilter
+                : context.l10n.garmentBrandHint,
             suffixIcon: _isLoading
                 ? const SizedBox(
                     width: 20,
@@ -227,14 +228,15 @@ class _BrandSelectorState extends State<BrandSelector> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.divider, width: 1),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: AppColors.textSecondary),
-                SizedBox(width: 8),
+                const Icon(Icons.info_outline,
+                    size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Aucune marque trouvée. Tu peux saisir librement.',
-                    style: TextStyle(
+                    context.l10n.garmentBrandNoneFound,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                     ),

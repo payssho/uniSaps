@@ -10,6 +10,7 @@ import '../../providers/collection_provider.dart';
 import '../../providers/creator_post_provider.dart';
 import '../../widgets/creator_post_preview_sheet.dart';
 import 'creator_post_create_sheet.dart';
+import '../../l10n/l10n_context.dart';
 
 class CreatorPostsScreen extends ConsumerStatefulWidget {
   const CreatorPostsScreen({super.key});
@@ -49,6 +50,7 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final uid = ref.watch(authServiceProvider).uid;
     final postsAsync = ref.watch(creatorPostsProvider(uid));
     final collectionsAsync = ref.watch(collectionsProvider(uid));
@@ -58,15 +60,15 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreate,
         icon: const Icon(Icons.add),
-        label: const Text('Post pub'),
+        label: Text(l10n.creatorPostPubLabel),
       ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text('Posts publicitaires', style: AppTextStyles.heading2),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text(l10n.creatorPostsTitle, style: AppTextStyles.heading2),
             ),
             collectionsAsync.when(
               data: (cols) {
@@ -78,7 +80,7 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
                       FilterChip(
-                        label: const Text('Toutes'),
+                        label: Text(l10n.commonAll),
                         selected: _filterCollectionId == null,
                         onSelected: (_) => setState(() => _filterCollectionId = null),
                       ),
@@ -116,7 +118,7 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                                   size: 48,
                                   color: AppColors.textHint.withValues(alpha: 0.6)),
                               const SizedBox(height: 12),
-                              const Text('Aucun post pour l’instant.',
+                              Text(l10n.creatorPostsEmpty,
                                   style: AppTextStyles.bodySecondary),
                             ],
                           ),
@@ -124,7 +126,7 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                       }
                       final colNames = {
                         for (final c in collections) c.id: c.name,
-                        '_none': 'Sans collection',
+                        '_none': l10n.creatorPostsNoCollection,
                       };
                       return ListView(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
@@ -163,7 +165,9 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                 loading: () => const Center(
                   child: CircularProgressIndicator(color: AppColors.accent),
                 ),
-                error: (e, _) => Center(child: Text('Erreur : $e')),
+                error: (e, _) => Center(
+                      child: Text(l10n.commonErrorDetail(e)),
+                    ),
               ),
             ),
           ],
@@ -225,7 +229,9 @@ class _PostTile extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    post.caption.isNotEmpty ? post.caption : 'Post sponsorisé',
+                    post.caption.isNotEmpty
+                        ? post.caption
+                        : context.l10n.creatorPostDefaultCaption,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style:
@@ -248,7 +254,9 @@ class _PostTile extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              post.isActive ? 'Actif' : 'Inactif',
+                              post.isActive
+                                  ? context.l10n.creatorPostStatusActive
+                                  : context.l10n.creatorPostStatusInactive,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(

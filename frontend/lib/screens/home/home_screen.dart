@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -16,6 +17,7 @@ import '../inspiration/search_users_screen.dart';
 import '../outfits/outfits_screen.dart';
 import '../dressing/dressing_screen.dart';
 import '../profile/profile_screen.dart';
+import '../../l10n/l10n_context.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 0);
 
@@ -34,13 +36,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   bool _tutorialStarted = false;
   int _currentTab = 0;
 
-  /// Message affiché quand l’utilisateur tente d’ouvrir un onglet verrouillé.
-  String _lockMessage(int index, bool hasGarments, bool hasOutfits) {
+  String _lockMessage(int index) {
+    final l10n = context.l10n;
     switch (index) {
       case 1:
-        return 'Ajoute un vêtement à ton dressing pour débloquer cette section';
+        return l10n.lockTabAddGarment;
       case 2:
-        return 'Crée ton premier outfit pour débloquer cette section';
+        return l10n.lockTabCreateOutfit;
       default:
         return '';
     }
@@ -66,6 +68,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       // pour que la "météo du jour" soit toujours celle d'aujourd'hui.
       ref.invalidate(todayWeatherFetchProvider);
     }
+  }
+
+  void _showLockedTabSnackBar(int lockedIndex) {
+    final l10n = context.l10n;
+    SnackBarAction? action;
+    if (lockedIndex == 1) {
+      action = SnackBarAction(
+        label: l10n.snackActionDressing,
+        textColor: AppColors.white,
+        onPressed: () => _goToTab(0),
+      );
+    } else if (lockedIndex == 2) {
+      action = SnackBarAction(
+        label: l10n.snackActionOutfits,
+        textColor: AppColors.white,
+        onPressed: () => _goToTab(1),
+      );
+    }
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.lock_outline, color: AppColors.white, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _lockMessage(lockedIndex),
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.primary.withValues(alpha: 0.92),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          duration: const Duration(seconds: 3),
+          action: action,
+        ),
+      );
   }
 
   void _goToTab(int index) {
@@ -127,8 +173,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Listen to tutorial changes
     ref.listen(tutorialStepProvider, (prev, next) {
       if (next != null) {
-        final target = next.clamp(0, 2);
-        _goToTab(target);
+        final step = next.clamp(0, 3);
+        _goToTab(step <= 2 ? step : 2);
       }
     });
 
@@ -153,30 +199,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (tabUnlocked[index]) {
         _goToTab(index);
       } else {
-        ScaffoldMessenger.of(context)
-          ..clearSnackBars()
-          ..showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.lock_outline, color: AppColors.white, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _lockMessage(index, hasGarments, hasOutfits),
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ),
-                ],
-              ),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: AppColors.primary.withOpacity(0.92),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              duration: const Duration(seconds: 2),
-            ),
-          );
+        _showLockedTabSnackBar(index);
       }
     }
 
@@ -202,36 +225,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         );
                       }
                     });
-                    // On affiche le message de verrouillage
-                    ScaffoldMessenger.of(context)
-                      ..clearSnackBars()
-                      ..showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(Icons.lock_outline,
-                                  color: AppColors.white, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _lockMessage(
-                                    index,
-                                    hasGarments,
-                                    hasOutfits,
-                                  ),
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              ),
-                            ],
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: AppColors.primary.withOpacity(0.92),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
+                    _showLockedTabSnackBar(index);
                   } else {
                     setState(() => _currentTab = index);
                     ref.read(selectedTabProvider.notifier).state = index;
@@ -253,22 +247,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (_currentTab == 2) ...[
-                        Consumer(
-                          builder: (_, ref, __) {
-                            final explorer =
-                                ref.watch(inspirationExplorerVisibleProvider);
-                            if (!explorer) {
-                              return const SizedBox.shrink();
-                            }
-                            return const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _ExploreDevMockAdsToggle(),
-                                SizedBox(width: 8),
-                              ],
-                            );
-                          },
-                        ),
+                        if (kDebugMode)
+                          Consumer(
+                            builder: (_, ref, __) {
+                              final explorer =
+                                  ref.watch(inspirationExplorerVisibleProvider);
+                              if (!explorer) {
+                                return const SizedBox.shrink();
+                              }
+                              return const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _ExploreDevMockAdsToggle(),
+                                  SizedBox(width: 8),
+                                ],
+                              );
+                            },
+                          ),
                         _SearchFriendsButton(),
                       ],
                     ],
@@ -299,7 +294,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _handleNextTutorialStep(UserModel user) async {
     final stepNotifier = ref.read(tutorialStepProvider.notifier);
     final current = stepNotifier.state ?? 0;
-    if (current >= 2) {
+    if (current >= 3) {
       await _finishTutorial(user);
     } else {
       stepNotifier.state = current + 1;
@@ -458,14 +453,20 @@ class _BottomNavBar extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _tabs = [
-    (Icons.checkroom_outlined, Icons.checkroom, 'Dressing'),
-    (Icons.style_outlined, Icons.style, 'Outfits'),
-    (Icons.explore_outlined, Icons.explore, 'Inspo'),
+  static const _tabIcons = [
+    (Icons.checkroom_outlined, Icons.checkroom),
+    (Icons.style_outlined, Icons.style),
+    (Icons.explore_outlined, Icons.explore),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final tabLabels = [
+      l10n.navDressing,
+      l10n.navOutfits,
+      l10n.navInspiration,
+    ];
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -482,8 +483,9 @@ class _BottomNavBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Row(
             children: [
-              ...List.generate(_tabs.length, (i) {
-                final (icon, activeIcon, label) = _tabs[i];
+              ...List.generate(_tabIcons.length, (i) {
+                final (icon, activeIcon) = _tabIcons[i];
+                final label = tabLabels[i];
                 return Expanded(
                   child: _NavItem(
                     icon: icon,
@@ -549,7 +551,7 @@ class _NavProfileBubble extends StatelessWidget {
             : AppColors.textHint;
 
     return Semantics(
-      label: 'Profil',
+      label: context.l10n.navProfile,
       button: true,
       selected: selected,
       child: GestureDetector(
@@ -715,7 +717,12 @@ class _NavItem extends StatelessWidget {
             ? AppColors.accent
             : AppColors.textHint;
 
-    return GestureDetector(
+    return Semantics(
+      label: label,
+      button: true,
+      selected: selected,
+      enabled: !locked,
+      child: GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
@@ -729,7 +736,7 @@ class _NavItem extends StatelessWidget {
                 padding: EdgeInsets.all(selected ? 6 : 0),
                 decoration: selected
                     ? BoxDecoration(
-                        color: AppColors.accent.withOpacity(0.12),
+                        color: AppColors.accent.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       )
                     : null,
@@ -788,24 +795,27 @@ class _NavItem extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 3),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-              color: color,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: label.length > 9 ? 9 : 10,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: color,
+              ),
             ),
           ),
         ],
       ),
+    ),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// Tutorial overlay (3 steps: Dressing → Outfits → Inspo)
+// Tutorial overlay (4 steps: Dressing → Outfits → Inspo → Publier)
 // ---------------------------------------------------------------------------
 class _TutorialOverlay extends StatelessWidget {
   final int step;
@@ -822,6 +832,7 @@ class _TutorialOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final size = MediaQuery.of(context).size;
 
     final IconData icon;
@@ -831,19 +842,24 @@ class _TutorialOverlay extends StatelessWidget {
     switch (step) {
       case 0:
         icon = Icons.checkroom;
-        title = 'Commence par ton dressing';
-        description = 'Ajoute un vêtement pour remplir ton dressing.';
+        title = l10n.tutorialDressingTitle;
+        description = l10n.tutorialDressingDesc;
         break;
       case 1:
         icon = Icons.style;
-        title = 'Crée ton premier outfit';
-        description = 'Assemble tes vêtements en un look complet.';
+        title = l10n.tutorialOutfitsTitle;
+        description = l10n.tutorialOutfitsDesc;
         break;
       case 2:
-      default:
         icon = Icons.explore;
-        title = 'Inspire-toi et publie';
-        description = 'Découvre les looks des autres et partage le tien.';
+        title = l10n.tutorialInspoTitle;
+        description = l10n.tutorialInspoDesc;
+        break;
+      case 3:
+      default:
+        icon = Icons.camera_alt_outlined;
+        title = l10n.tutorialPublishTitle;
+        description = l10n.tutorialPublishDesc;
         break;
     }
 
@@ -851,10 +867,11 @@ class _TutorialOverlay extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: Container(
-          color: AppColors.graphite.withOpacity(0.55),
+          color: AppColors.graphite.withValues(alpha: 0.55),
           child: Center(
             child: Container(
               width: size.width * 0.82,
+              constraints: BoxConstraints(maxHeight: size.height * 0.35),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -915,8 +932,8 @@ class _TutorialOverlay extends StatelessWidget {
                       Expanded(
                         child: TextButton(
                           onPressed: onSkip,
-                          child: const Text('Passer',
-                              style: TextStyle(
+                          child: Text(l10n.commonSkip,
+                              style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontWeight: FontWeight.w500)),
                         ),
@@ -932,7 +949,7 @@ class _TutorialOverlay extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(14)),
                           ),
                           child: Text(
-                            step == 2 ? 'C\'est parti !' : 'Suivant',
+                            step >= 3 ? l10n.authOnboardingFinish : l10n.commonNext,
                             style: const TextStyle(
                                 color: AppColors.white,
                                 fontWeight: FontWeight.w600),

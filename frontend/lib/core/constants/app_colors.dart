@@ -36,7 +36,7 @@ class AppColors {
   /// États : hiérarchie distincte avec les 5 teintes seulement.
   static const success = stormyTeal;
   static const warning = yaleBlue;
-  static const error = graphite;
+  static const error = Color(0xFFB3261E);
 
   /// Pastille type notification (demandes d’amis, alertes).
   static const notificationBadge = Color(0xFFE53935);

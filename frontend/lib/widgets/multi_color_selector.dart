@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../l10n/domain_l10n.dart';
+import '../l10n/l10n_context.dart';
 import '../core/constants/app_colors.dart';
 import '../services/color_service.dart';
 
@@ -132,9 +134,9 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
   void _addColor(ColorOption color) {
     if (_selectedColors.length >= 3 && color.name.toLowerCase() != 'multicolore') {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Maximum 3 couleurs autorisées'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(context.l10n.garmentMaxThreeColors),
+          duration: const Duration(seconds: 2),
         ),
       );
       return;
@@ -244,7 +246,7 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
                         )
                       : null,
                 ),
-                label: Text(colorOption.name),
+                label: Text(colorDisplayNameL10n(context.l10n, colorOption.name)),
                 deleteIcon: const Icon(Icons.close, size: 18),
                 onDeleted: () => _removeColor(colorOption),
                 backgroundColor: AppColors.surfaceVariant,
@@ -263,10 +265,10 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
           onTap: _handleTap,
           decoration: InputDecoration(
             hintText: _selectedColors.length >= 3
-                ? 'Maximum 3 couleurs atteint'
+                ? context.l10n.garmentColorMaxReached
                 : _showSuggestions && !_isSearchMode
-                    ? 'Appuie à nouveau pour filtrer…'
-                    : 'Rechercher ou choisir une couleur (max 3)',
+                    ? context.l10n.garmentColorTapAgainToFilter
+                    : context.l10n.garmentColorSearchHint,
             prefixIcon: const Padding(
               padding: EdgeInsets.all(12),
               child: Icon(Icons.palette_outlined, size: 22, color: AppColors.textHint),
@@ -397,14 +399,15 @@ class _MultiColorSelectorState extends State<MultiColorSelector> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.divider, width: 1),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: AppColors.textSecondary),
-                SizedBox(width: 8),
+                const Icon(Icons.info_outline,
+                    size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Aucune couleur trouvée. Tu peux saisir librement.',
-                    style: TextStyle(
+                    context.l10n.garmentColorNoneFound,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
                     ),

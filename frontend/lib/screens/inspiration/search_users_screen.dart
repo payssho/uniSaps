@@ -8,6 +8,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/friendship_provider.dart';
 import 'user_profile_screen.dart';
+import '../../l10n/l10n_context.dart';
 
 class SearchUsersScreen extends ConsumerStatefulWidget {
   const SearchUsersScreen({super.key});
@@ -96,6 +97,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
 
     return Scaffold(
@@ -119,8 +121,8 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
             focusNode: _focusNode,
             onChanged: _onSearchChanged,
             style: const TextStyle(fontSize: 15),
-            decoration: const InputDecoration(
-              hintText: 'Rechercher un utilisateur...',
+            decoration: InputDecoration(
+              hintText: l10n.inspoSearchUser,
               hintStyle: TextStyle(color: AppColors.textHint, fontSize: 15),
               prefixIcon: Icon(Icons.search, color: AppColors.textHint, size: 20),
               border: InputBorder.none,
@@ -135,6 +137,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
   }
 
   Widget _buildBody(UserModel? currentUser) {
+    final l10n = context.l10n;
     if (_controller.text.trim().isEmpty) {
       return _buildSuggestions(currentUser);
     }
@@ -153,7 +156,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
               children: [
                 Icon(Icons.person_off_outlined, size: 64, color: AppColors.textHint.withOpacity(0.3)),
                 const SizedBox(height: 12),
-                const Text('Aucun resultat', style: AppTextStyles.bodySecondary),
+                Text(l10n.searchNoResultsShort, style: AppTextStyles.bodySecondary),
               ],
             ),
           ),
@@ -182,6 +185,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
   }
 
   Widget _buildSuggestions(UserModel? currentUser, {bool compactHeader = false}) {
+    final l10n = context.l10n;
     if (_loadingSuggestions) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -193,7 +197,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
           children: [
             Icon(Icons.search, size: 64, color: AppColors.textHint.withOpacity(0.3)),
             const SizedBox(height: 16),
-            const Text('Tape un pseudo pour chercher', style: AppTextStyles.bodySecondary),
+            Text(l10n.searchTypePseudo, style: AppTextStyles.bodySecondary),
           ],
         ),
       );
@@ -210,12 +214,14 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                compactHeader ? 'Suggestions pour toi' : 'Suggestions d\'amis',
+                compactHeader
+                    ? l10n.searchSuggestionsForYou
+                    : l10n.searchFriendsSuggestions,
                 style: AppTextStyles.heading3.copyWith(fontSize: 18),
               ),
               const SizedBox(height: 4),
               Text(
-                'Amis d\'amis et profils similaires',
+                l10n.searchFriendsOfFriends,
                 style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
               ),
             ],
@@ -227,8 +233,8 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
           user: user,
           currentUser: currentUser,
           subtitleOverride: mutualCount > 0
-              ? '$mutualCount ami${mutualCount > 1 ? 's' : ''} en commun'
-              : 'Suggestion aléatoire',
+              ? '$mutualCount ${mutualCount > 1 ? l10n.searchMutualFriendsPlural : l10n.searchMutualFriendSingular}'
+              : l10n.searchRandomSuggestion,
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -257,6 +263,7 @@ class _UserResultTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final isFriend = currentUser?.friends.contains(user.uid) ?? false;
     final myFriends = currentUser?.friends ?? [];
     final mutualCount =
@@ -313,7 +320,7 @@ class _UserResultTile extends ConsumerWidget {
                   else
                   if (!isFriend && mutualCount > 0)
                     Text(
-                      '$mutualCount ami${mutualCount > 1 ? 's' : ''} en commun',
+                      '$mutualCount ${mutualCount > 1 ? l10n.searchMutualFriendsPlural : l10n.searchMutualFriendSingular}',
                       style: AppTextStyles.caption.copyWith(
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
@@ -329,12 +336,19 @@ class _UserResultTile extends ConsumerWidget {
                   color: AppColors.success.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.check, size: 14, color: AppColors.success),
-                    SizedBox(width: 4),
-                    Text('Ami', style: TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.w600)),
+                    const Icon(Icons.check, size: 14, color: AppColors.success),
+                    const SizedBox(width: 4),
+                    Text(
+                      l10n.userProfileFriend,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               )

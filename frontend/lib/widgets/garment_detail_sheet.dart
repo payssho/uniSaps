@@ -8,6 +8,7 @@ import '../services/color_service.dart';
 import '../providers/auth_provider.dart';
 import 'garment_photo_carousel.dart';
 import 'garment_category_glyph.dart';
+import '../l10n/l10n_context.dart';
 
 class GarmentDetailSheet extends ConsumerWidget {
   final GarmentModel garment;
@@ -116,7 +117,7 @@ class GarmentDetailSheet extends ConsumerWidget {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              categoryLabel(garment.category),
+                              categoryLabel(garment.category, context.l10n),
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -257,9 +258,9 @@ class GarmentDetailSheet extends ConsumerWidget {
                         ),
                       ),
                       icon: const Icon(Icons.edit_outlined, color: AppColors.accent, size: 20),
-                      label: const Text(
-                        'Modifier',
-                        style: TextStyle(
+                      label: Text(
+                        context.l10n.commonEdit,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: AppColors.accent,
@@ -280,9 +281,9 @@ class GarmentDetailSheet extends ConsumerWidget {
                         ),
                       ),
                       icon: const Icon(Icons.delete_outline, color: AppColors.white, size: 20),
-                      label: const Text(
-                        'Supprimer',
-                        style: TextStyle(
+                      label: Text(
+                        context.l10n.commonDelete,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: AppColors.white,

@@ -18,6 +18,7 @@ import '../../widgets/creator_post_preview_sheet.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/garment_picker_grid_sheet.dart';
 import '../../widgets/storage_aware_cached_image.dart';
+import '../../l10n/l10n_context.dart';
 
 class CreatorPostCreateSheet extends ConsumerStatefulWidget {
   const CreatorPostCreateSheet({super.key});
@@ -95,7 +96,7 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                 Expanded(
                   child: _CreatorPostSourceOption(
                     icon: Icons.camera_alt_rounded,
-                    label: 'Appareil photo',
+                    label: context.l10n.pickerCamera,
                     onTap: () {
                       Navigator.pop(context);
                       _pickPhoto(ImageSource.camera);
@@ -106,7 +107,7 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                 Expanded(
                   child: _CreatorPostSourceOption(
                     icon: Icons.photo_library_rounded,
-                    label: 'Galerie',
+                    label: context.l10n.pickerGallery,
                     onTap: () {
                       Navigator.pop(context);
                       _pickPhoto(ImageSource.gallery);
@@ -261,10 +262,10 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
     if (ok) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Post publicitaire publié.')),
+        SnackBar(content: Text(context.l10n.creatorPostPublishedSnack)),
       );
     } else {
-      setState(() => _error = 'Publication impossible.');
+      setState(() => _error = context.l10n.creatorPostPublishFailed);
     }
   }
 
@@ -436,14 +437,18 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 22),
-            SizedBox(width: 12),
+            const Icon(Icons.info_outline_rounded,
+                color: AppColors.warning, size: 22),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Crée d’abord une collection depuis ton catalogue marque.',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
+                context.l10n.garmentCreateCollectionFirst,
+                style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                    height: 1.35),
               ),
             ),
           ],
@@ -660,8 +665,8 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
               padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
               child: Row(
                 children: [
-                  const Expanded(
-                    child: Text('Nouveau post pub', style: AppTextStyles.heading2),
+                  Expanded(
+                    child: Text(context.l10n.creatorNewPostPub, style: AppTextStyles.heading2),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded, size: 24),
@@ -687,7 +692,7 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                       },
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
-                        hintText: 'Nom du post / look',
+                        hintText: context.l10n.creatorPostName,
                         prefixIcon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.textHint),
                         filled: true,
                         fillColor: AppColors.surfaceVariant,
@@ -717,7 +722,8 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Collection', style: AppTextStyles.heading3),
+                            Text(context.l10n.creatorPostCollectionLabel,
+                                style: AppTextStyles.heading3),
                             const SizedBox(height: 8),
                             _buildExistingCollectionPicker(sorted),
                           ],
@@ -725,12 +731,15 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                       },
                       loading: () => const LinearProgressIndicator(),
                       error: (e, _) =>
-                          Text('Collections : $e', style: const TextStyle(color: AppColors.error)),
+                          Text(
+                            context.l10n.creatorPostCollectionsError(e),
+                            style: const TextStyle(color: AppColors.error),
+                          ),
                     ),
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Visible dans le feed (actif)'),
+                    title: Text(context.l10n.creatorPostVisibleInFeed),
                     value: _isActive,
                     onChanged: (v) => setState(() => _isActive = v),
                   ),
@@ -738,9 +747,9 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                     padding: const EdgeInsets.fromLTRB(4, 16, 4, 12),
                     child: Row(
                       children: [
-                        const Text(
-                          'Pièces du look',
-                          style: TextStyle(
+                        Text(
+                          context.l10n.inspoFitPieces,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -903,7 +912,7 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                       maxLines: 3,
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
-                        hintText: 'Légende (optionnel)',
+                        hintText: context.l10n.inspoCaptionOptional,
                         filled: true,
                         fillColor: AppColors.surfaceVariant,
                         border: OutlineInputBorder(
@@ -924,7 +933,7 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                       Expanded(
                         child: OutlinedButton(
                           onPressed: _saving ? null : _previewFeed,
-                          child: const Text('Aperçu feed'),
+                          child: Text(context.l10n.creatorPostFeedPreview),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -937,7 +946,7 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                                   height: 20,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Text('Publier'),
+                              : Text(context.l10n.commonPublish),
                         ),
                       ),
                     ],

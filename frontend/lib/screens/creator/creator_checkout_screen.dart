@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/creator_subscription.dart';
 import '../../providers/auth_provider.dart';
+import '../../l10n/l10n_context.dart';
 
 class CreatorCheckoutScreen extends ConsumerStatefulWidget {
   const CreatorCheckoutScreen({super.key});
@@ -31,8 +32,9 @@ class _CreatorCheckoutScreenState extends ConsumerState<CreatorCheckoutScreen> {
   }
 
   Future<void> _activate() async {
+    final l10n = context.l10n;
     if (!isCreatorActivationCodeValid(_codeController.text)) {
-      setState(() => _error = 'Code d\'activation invalide.');
+      setState(() => _error = l10n.creatorActivationCodeInvalid);
       return;
     }
     setState(() {
@@ -47,7 +49,7 @@ class _CreatorCheckoutScreenState extends ConsumerState<CreatorCheckoutScreen> {
         final password = _passwordController.text;
         if (email.isEmpty || password.length < 6) {
           setState(() {
-            _error = 'Email et mot de passe (6 car. min.) requis.';
+            _error = l10n.creatorCheckoutEmailPasswordRequired;
             _loading = false;
           });
           return;
@@ -60,7 +62,7 @@ class _CreatorCheckoutScreenState extends ConsumerState<CreatorCheckoutScreen> {
           setState(() {
             _error = err is FirebaseAuthException
                 ? err.message
-                : 'Inscription impossible.';
+                : l10n.authSignupFailed;
             _loading = false;
           });
           return;
@@ -81,6 +83,7 @@ class _CreatorCheckoutScreenState extends ConsumerState<CreatorCheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final isAuth = ref.watch(authStateProvider).valueOrNull != null;
 
     return Scaffold(
@@ -99,15 +102,16 @@ class _CreatorCheckoutScreenState extends ConsumerState<CreatorCheckoutScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Abonnement marque', style: AppTextStyles.heading1.copyWith(fontSize: 26)),
+              Text(l10n.creatorCheckoutTitle,
+                  style: AppTextStyles.heading1.copyWith(fontSize: 26)),
               const SizedBox(height: 8),
               Text(
-                kCreatorMonthlyPriceLabel,
+                l10n.creatorSubscriptionMonthlyPrice,
                 style: AppTextStyles.heading2.copyWith(color: AppColors.accent),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Paiement simulé en développement. Saisis le code d\'activation pour activer ton espace.',
+              Text(
+                l10n.creatorCheckoutSimulatedPayment,
                 style: AppTextStyles.bodySecondary,
               ),
               const SizedBox(height: 28),
@@ -115,20 +119,20 @@ class _CreatorCheckoutScreenState extends ConsumerState<CreatorCheckoutScreen> {
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(hintText: 'Email professionnel'),
+                  decoration: InputDecoration(hintText: l10n.creatorProEmail),
                 ),
                 const SizedBox(height: 14),
                 TextField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(hintText: 'Mot de passe'),
+                  decoration: InputDecoration(hintText: l10n.authLoginPassword),
                 ),
                 const SizedBox(height: 20),
               ],
               TextField(
                 controller: _codeController,
-                decoration: const InputDecoration(
-                  hintText: 'Code d\'activation',
+                decoration: InputDecoration(
+                  hintText: l10n.creatorActivationCode,
                   prefixIcon: Icon(Icons.vpn_key_outlined, size: 20),
                 ),
               ),
@@ -147,7 +151,7 @@ class _CreatorCheckoutScreenState extends ConsumerState<CreatorCheckoutScreen> {
                           width: 22,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Activer mon espace marque'),
+                      : Text(l10n.creatorCheckoutActivate),
                 ),
               ),
             ],

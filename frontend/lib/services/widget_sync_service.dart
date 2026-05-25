@@ -14,6 +14,9 @@ import '../providers/outfit_provider.dart';
 import '../providers/post_provider.dart';
 import '../core/constants/weather_catalog.dart';
 import '../providers/weather_provider.dart';
+import '../providers/locale_provider.dart';
+import '../l10n/domain_l10n.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'firebase_storage_display_url.dart';
 import 'widget_constants.dart';
 
@@ -176,7 +179,9 @@ class WidgetSyncService {
           tempMin: w.tempMin,
           tempMax: w.tempMax,
         );
-        weatherLabel = WeatherTagKeys.visualFor(tags).shortLabel;
+        final locale = ref.read(localeProvider).locale;
+        final l10n = lookupAppLocalizations(locale);
+        weatherLabel = weatherVisualShortLabelL10n(l10n, tags);
       }
     });
 

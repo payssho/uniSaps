@@ -71,6 +71,12 @@ Je pars du constat que les utilisateurs veulent :
 **Niveau 1 (aucun outfit du jour) :** bannière d'état + tabs Bibliothèque / Swipe / IA (sheet premium).  
 **Niveau 2 (outfit choisi) :** affichage principal, photo optionnelle, streak visible.
 
+### 2.3bis Navigation principale (shell)
+
+- **4 onglets** dans `HomeScreen` : Dressing (0) · Outfits (1) · Inspiration (2) · Profil (3).
+- **Création de tenue** : FAB « Ajouter un fit » sur Outfits (mode Bibliothèque) → `creation_screen.dart` (pas d’onglet « Créer »).
+- Verrouillage : Outfits et Inspiration tant qu’il n’y a pas au moins un vêtement / un outfit.
+
 ### 2.4 Inspiration (réseau social)
 
 - Collection racine `posts/{postId}`.
@@ -304,7 +310,9 @@ Index, matrice de périmètres et exemples : [`.cursor/AGENTS.md`](../.cursor/AG
 ## Objectif
 Développer une application mobile avec Firebase : photographier les vêtements,
 créer des tenues, outfit du jour, streak, réseau social Inspiration.
-## Navigation : Inspiration | Outfits | Créer | Dressing | Profil
+## Navigation : Dressing | Outfits | Inspiration | Profil
+
+La création de tenue passe par le **FAB « Ajouter un fit »** sur l’onglet Outfits (écran `creation_screen.dart`), pas par un onglet dédié.
 [… contraintes responsive, IA, streak 00h00, structure /models /services …]
 ```
 

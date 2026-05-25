@@ -14,6 +14,9 @@ import '../../providers/garment_provider.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/garment_picker_grid_sheet.dart';
 import '../../widgets/storage_aware_cached_image.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_context.dart';
+import '../../l10n/domain_l10n.dart';
 
 IconData _creationWeatherIcon(String id) {
   switch (id) {
@@ -70,6 +73,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
 
   bool _weatherDropdownOpen = false;
   bool _seasonDropdownOpen = false;
+  int _creationStep = 0;
 
   static bool _isMultiZone(String zoneKey) =>
       zoneKey == 'torso' || zoneKey == 'wrist';
@@ -103,7 +107,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Erreur lors de l'upload")),
+        SnackBar(content: Text(context.l10n.creationUploadError)),
       );
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
@@ -132,7 +136,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Text('Ajouter la photo de l\'outfit',
+            Text(context.l10n.creationAddPhotoSheetTitle,
                 style: AppTextStyles.heading3),
             const SizedBox(height: 20),
             Row(
@@ -140,7 +144,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 Expanded(
                   child: _SourceOption(
                     icon: Icons.camera_alt_rounded,
-                    label: 'Appareil photo',
+                    label: context.l10n.pickerCamera,
                     onTap: () {
                       Navigator.pop(context);
                       _pickPhoto(ImageSource.camera);
@@ -151,7 +155,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 Expanded(
                   child: _SourceOption(
                     icon: Icons.photo_library_rounded,
-                    label: 'Galerie',
+                    label: context.l10n.pickerGallery,
                     onTap: () {
                       Navigator.pop(context);
                       _pickPhoto(ImageSource.gallery);
@@ -230,14 +234,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(categoryLabel(categoryKey),
+              child: Text(categoryLabelL10n(context.l10n, categoryKey),
                   style: AppTextStyles.heading3),
             ),
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'Tu peux ajouter plusieurs pièces — l\'ordre suit celui de la liste (la première est la plus près du corps).',
+                context.l10n.creationLayersHint,
                 style: TextStyle(
                   fontSize: 12,
                   height: 1.35,
@@ -248,8 +252,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             const SizedBox(height: 8),
             Expanded(
               child: garments.isEmpty
-                  ? const Center(
-                      child: Text('Aucun vêtement dans cette catégorie',
+                  ? Center(
+                      child: Text(context.l10n.creationNoGarmentInCategory,
                           style: AppTextStyles.bodySecondary))
                   : GridView.builder(
                       padding: const EdgeInsets.all(12),
@@ -368,7 +372,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: const Text('Cette pièce est déjà dans la liste.'),
+              content: Text(context.l10n.creationPieceAlreadyListed),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -395,7 +399,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: const Text('Ajoute la photo de ton outfit.'),
+            content: Text(context.l10n.creationAddOutfitPhotoSnack),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.error.withOpacity(0.96),
             shape: RoundedRectangleBorder(
@@ -413,7 +417,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: const Text('Donne un nom à ton outfit.'),
+            content: Text(context.l10n.creationNameRequiredSnack),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.error.withOpacity(0.96),
             shape: RoundedRectangleBorder(
@@ -430,7 +434,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: const Text('Sélectionne au moins un vêtement.'),
+            content: Text(context.l10n.creationSelectGarmentSnack),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.error.withOpacity(0.96),
             shape: RoundedRectangleBorder(
@@ -471,7 +475,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Outfit créé !'),
+            content: Text(context.l10n.creationCreatedSnack),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.success,
             shape: RoundedRectangleBorder(
@@ -483,7 +487,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: const Text('Erreur lors de la création.'),
+              content: Text(context.l10n.creationCreateErrorSnack),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.error.withOpacity(0.96),
               shape: RoundedRectangleBorder(
@@ -497,19 +501,19 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
     }
   }
 
-  String _weatherSummaryText() {
+  String _weatherSummaryText(AppLocalizations l10n) {
     if (_selectedSimpleWeatherIds.isEmpty) return '';
     return WeatherTagKeys.creationSimpleWeatherIds
         .where(_selectedSimpleWeatherIds.contains)
-        .map(WeatherTagKeys.creationSimpleLabelFr)
+        .map((id) => creationWeatherLabelL10n(l10n, id))
         .join(', ');
   }
 
-  String _seasonSummaryText() {
+  String _seasonSummaryText(AppLocalizations l10n) {
     if (_selectedSeasonKeys.isEmpty) return '';
     return SeasonKeys.all
         .where(_selectedSeasonKeys.contains)
-        .map(SeasonKeys.labelFr)
+        .map((key) => seasonLabelL10n(l10n, key))
         .join(', ');
   }
 
@@ -521,11 +525,12 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   }) {
     if (_isMultiZone(zoneKey)) {
       final layers = zoneKey == 'torso' ? _torsoLayers : _wristAccessories;
+      final l10n = context.l10n;
       final subtitle = zoneKey == 'torso'
-          ? 'Plusieurs couches : à gauche, la plus près du corps.'
-          : 'Ajoute autant d\'accessoires que tu veux.';
+          ? l10n.creationTorsoLayersSubtitle
+          : l10n.creationWristAccessoriesSubtitle;
       final title =
-          zoneKey == 'torso' ? 'Hauts (superposition)' : 'Accessoires';
+          zoneKey == 'torso' ? l10n.creationTorsoLayersTitle : l10n.categoryAccessory;
       final hasAny = layers.isNotEmpty;
 
       return Padding(
@@ -597,11 +602,11 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.add_rounded,
+                              const Icon(Icons.add_rounded,
                                   size: 18, color: AppColors.accent),
                               SizedBox(width: 4),
                               Text(
-                                'Ajouter',
+                                context.l10n.creationAddZone,
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
@@ -782,13 +787,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final zones = [
-      ('head', 'Tête', Icons.face_rounded, 'headwear'),
-      ('jacket', 'Veste', Icons.dry_cleaning_rounded, 'outerwear'),
-      ('torso', 'Haut', Icons.checkroom_rounded, 'top'),
-      ('legs', 'Bas', Icons.accessibility_new_rounded, 'bottom'),
-      ('feet', 'Chaussures', Icons.ice_skating_rounded, 'shoes'),
-      ('wrist', 'Accessoire', Icons.watch_rounded, 'accessory'),
+      ('head', l10n.creationZoneHead, Icons.face_rounded, 'headwear'),
+      ('jacket', l10n.creationZoneJacket, Icons.dry_cleaning_rounded, 'outerwear'),
+      ('torso', l10n.creationZoneTorso, Icons.checkroom_rounded, 'top'),
+      ('legs', l10n.creationZoneLegs, Icons.accessibility_new_rounded, 'bottom'),
+      ('feet', l10n.creationZoneFeet, Icons.ice_skating_rounded, 'shoes'),
+      ('wrist', l10n.creationZoneWrist, Icons.watch_rounded, 'accessory'),
     ];
 
     final hasPhoto =
@@ -802,7 +808,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           icon: const Icon(Icons.close_rounded, size: 24),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('Nouveau look'),
+        title: Text(l10n.creationNewLookTitle),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -817,7 +823,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                       height: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppColors.accent))
-                  : const Text('Sauver',
+                  : Text(l10n.creationSaveButton,
                       style: TextStyle(
                           fontWeight: FontWeight.w700,
                           color: AppColors.accent)),
@@ -829,6 +835,49 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Row(
+                children: List.generate(3, (i) {
+                  final active = _creationStep == i;
+                  final labels = [
+                    l10n.creationStepPieces,
+                    l10n.creationStepNamePhoto,
+                    l10n.creationStepWeather,
+                  ];
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.only(left: i == 0 ? 0 : 4),
+                      child: Material(
+                        color: active
+                            ? AppColors.accent.withValues(alpha: 0.12)
+                            : AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(10),
+                        child: InkWell(
+                          onTap: () => setState(() => _creationStep = i),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            child: Text(
+                              labels[i],
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: active
+                                    ? AppColors.accent
+                                    : AppColors.textHint,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+            if (_creationStep == 1) ...[
             // --- Photo section (mandatory, prominent) ---
             GestureDetector(
               onTap: _uploadingPhoto ? null : _showPhotoSourcePicker,
@@ -858,13 +907,13 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: _uploadingPhoto
-                    ? const Center(
+                    ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            CircularProgressIndicator(strokeWidth: 2),
-                            SizedBox(height: 12),
-                            Text('Upload en cours...',
+                            const CircularProgressIndicator(strokeWidth: 2),
+                            const SizedBox(height: 12),
+                            Text(l10n.creationUploading,
                                 style: TextStyle(
                                     color: AppColors.textHint,
                                     fontSize: 13)),
@@ -901,14 +950,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                     borderRadius:
                                         BorderRadius.circular(10),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.edit_rounded,
+                                      const Icon(Icons.edit_rounded,
                                           size: 14,
                                           color: AppColors.white),
-                                      SizedBox(width: 4),
-                                      Text('Changer',
+                                      const SizedBox(width: 4),
+                                      Text(l10n.creationChangePhoto,
                                           style: TextStyle(
                                               color: AppColors.white,
                                               fontSize: 12,
@@ -937,8 +986,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                     color: AppColors.accent),
                               ),
                               const SizedBox(height: 14),
-                              const Text(
-                                'Ajoute la photo de ton outfit',
+                              Text(
+                                l10n.creationAddPhotoPrompt,
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -946,8 +995,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              const Text(
-                                'Obligatoire pour créer un look',
+                              Text(
+                                l10n.creationPhotoRequired,
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textHint,
@@ -958,36 +1007,15 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
               ),
             ),
 
-            // --- Name field ---
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
-              child: TextField(
-                controller: _nameController,
-                style: const TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w500),
-                decoration: InputDecoration(
-                  hintText: 'Nom de l\'outfit',
-                  prefixIcon: const Icon(Icons.edit_outlined,
-                      size: 20, color: AppColors.textHint),
-                  filled: true,
-                  fillColor: AppColors.surfaceVariant,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 14),
-                ),
-              ),
-            ),
-
+            ],
+            if (_creationStep == 0) ...[
             // --- Section title ---
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
               child: Row(
                 children: [
-                  const Text(
-                    'Pièces du look',
+                  Text(
+                    l10n.creationPiecesTitle,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -1000,7 +1028,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: pieceCount > 0
-                          ? AppColors.accent.withOpacity(0.1)
+                          ? AppColors.accent.withValues(alpha: 0.1)
                           : AppColors.surfaceVariant,
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -1018,8 +1046,6 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 ],
               ),
             ),
-
-            // --- Zone cards ---
             ...zones.asMap().entries.map((entry) {
               final i = entry.key;
               final z = entry.value;
@@ -1039,18 +1065,42 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                     delay: (50 * i).ms,
                   );
             }),
-
+            ],
+            if (_creationStep == 1) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+              child: TextField(
+                controller: _nameController,
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w500),
+                decoration: InputDecoration(
+                  hintText: l10n.creationOutfitName,
+                  prefixIcon: const Icon(Icons.edit_outlined,
+                      size: 20, color: AppColors.textHint),
+                  filled: true,
+                  fillColor: AppColors.surfaceVariant,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14),
+                ),
+              ),
+            ),
+            ],
+            if (_creationStep == 2) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 28, 16, 0),
               child: _MultiSelectDropdownTile(
-                label: 'Temps',
-                hintWhenEmpty: 'Toutes les conditions',
-                summary: _weatherSummaryText(),
+                label: l10n.creationWeatherLabel,
+                hintWhenEmpty: l10n.creationWeatherAll,
+                summary: _weatherSummaryText(l10n),
                 expanded: _weatherDropdownOpen,
                 headerIcon: Icons.cloud_outlined,
                 optionIds: WeatherTagKeys.creationSimpleWeatherIds,
                 selected: _selectedSimpleWeatherIds,
-                labelForKey: WeatherTagKeys.creationSimpleLabelFr,
+                labelForKey: (id) => creationWeatherLabelL10n(l10n, id),
                 iconForKey: _creationWeatherIcon,
                 onHeaderTap: () => setState(() {
                   _weatherDropdownOpen = !_weatherDropdownOpen;
@@ -1068,14 +1118,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: _MultiSelectDropdownTile(
-                label: 'Saisons',
-                hintWhenEmpty: 'Toutes les saisons',
-                summary: _seasonSummaryText(),
+                label: l10n.creationSeasonsLabel,
+                hintWhenEmpty: l10n.creationSeasonsAll,
+                summary: _seasonSummaryText(l10n),
                 expanded: _seasonDropdownOpen,
                 headerIcon: Icons.calendar_today_outlined,
                 optionIds: SeasonKeys.all,
                 selected: _selectedSeasonKeys,
-                labelForKey: SeasonKeys.labelFr,
+                labelForKey: (key) => seasonLabelL10n(l10n, key),
                 iconForKey: _creationSeasonIcon,
                 onHeaderTap: () => setState(() {
                   _seasonDropdownOpen = !_seasonDropdownOpen;
@@ -1090,8 +1140,28 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 }),
               ),
             ),
-
-            const SizedBox(height: 100),
+            ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              child: Row(
+                children: [
+                  if (_creationStep > 0)
+                    OutlinedButton(
+                      onPressed: () =>
+                          setState(() => _creationStep = _creationStep - 1),
+                      child: Text(l10n.commonPrevious),
+                    ),
+                  const Spacer(),
+                  if (_creationStep < 2)
+                    FilledButton(
+                      onPressed: () =>
+                          setState(() => _creationStep = _creationStep + 1),
+                      child: Text(l10n.commonNext),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 80),
           ],
         ),
       ),

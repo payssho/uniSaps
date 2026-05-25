@@ -16,6 +16,8 @@ import '../widgets/platform_image.dart';
 import '../widgets/brand_selector.dart';
 import '../widgets/multi_color_selector.dart';
 import '../widgets/premium_upgrade_dialog.dart';
+import '../l10n/l10n_context.dart';
+import '../l10n/domain_l10n.dart';
 import '../widgets/storage_aware_cached_image.dart';
 import '../widgets/garment_category_glyph.dart';
 
@@ -301,10 +303,9 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
 
       if (_isVacuousGarmentAnalysis(result) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'L’IA n’a pas pu décrire cette photo (service saturé ou image peu lisible). '
-              'Tu peux remplir les champs manuellement ou réessayer avec une autre photo.',
+              context.l10n.garmentAiDescribeFailed,
             ),
             behavior: SnackBarBehavior.floating,
             margin: EdgeInsets.all(16),
@@ -319,9 +320,9 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Analyse IA indisponible. Vérifie ta connexion et réessaie dans un instant.',
+              context.l10n.garmentAiUnavailable,
             ),
             behavior: SnackBarBehavior.floating,
             margin: EdgeInsets.all(16),
@@ -372,12 +373,12 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.camera_alt_outlined),
-                  title: const Text('Prendre une photo'),
+                  title: Text(context.l10n.garmentTakePhoto),
                   onTap: () => Navigator.pop(context, 'camera'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Galerie - plusieurs photos'),
+                  title: Text(context.l10n.garmentGalleryMultiple),
                   onTap: () => Navigator.pop(context, 'gallery_multi'),
                 ),
               ],
@@ -421,16 +422,15 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         backgroundColor: AppColors.surface,
         icon: const Icon(Icons.image_not_supported_outlined, color: AppColors.error, size: 36),
-        title: const Text(
-          'Image non reconnue',
+        title: Text(
+          context.l10n.garmentImageNotRecognizedTitle,
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
           textAlign: TextAlign.center,
         ),
-        content: const Text(
-          'L’IA n’a pas reconnu de vêtement, chaussure ou accessoire sur cette photo. '
-          'Choisis une autre image plus claire montrant la pièce que tu veux ajouter.',
+        content: Text(
+          context.l10n.garmentImageNotRecognizedBody,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
@@ -440,7 +440,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               foregroundColor: AppColors.accent,
               textStyle: const TextStyle(fontWeight: FontWeight.w600),
             ),
-            child: const Text('OK'),
+            child: Text(context.l10n.commonOk),
           ),
         ],
       ),
@@ -450,14 +450,14 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Le nom est obligatoire.');
+      setState(() => _error = context.l10n.garmentNameRequired);
       return;
     }
     if (widget.creatorCatalogMode) {
       final u = ref.read(currentUserProvider).valueOrNull;
       if (u == null || creatorCatalogBrandLabel(u).isEmpty) {
         setState(() => _error =
-            'Ton pseudo (@identifiant) est introuvable. Complète ton profil créateur.');
+            context.l10n.garmentCreatorPseudoMissing);
         return;
       }
     }
@@ -465,11 +465,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       if (_creatingCollection) {
         final cName = _newCollectionNameController.text.trim();
         if (cName.isEmpty) {
-          setState(() => _error = 'Le nom de la collection est obligatoire.');
+          setState(() => _error = context.l10n.garmentCollectionNameRequired);
           return;
         }
       } else if (_selectedCollectionId == null || _selectedCollectionId!.isEmpty) {
-        setState(() => _error = 'Sélectionne une collection.');
+        setState(() => _error = context.l10n.garmentSelectCollection);
         return;
       }
     }
@@ -497,7 +497,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       if (newId == null) {
         setState(() {
           _loading = false;
-          _error = 'Impossible de créer la collection.';
+          _error = context.l10n.garmentCollectionCreateFailed;
         });
         return;
       }
@@ -536,7 +536,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         } catch (e) {
           setState(() {
             _loading = false;
-            _error = 'Le serveur est inaccessible. Réessaie dans un instant.';
+            _error = context.l10n.garmentServerUnreachable;
           });
           return;
         }
@@ -594,7 +594,9 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                   children: [
                     const Icon(Icons.check_circle, color: AppColors.white, size: 20),
                     const SizedBox(width: 8),
-                    Text(widget.garment == null ? 'Vêtement ajouté !' : 'Vêtement modifié !'),
+                    Text(widget.garment == null
+                        ? context.l10n.garmentAddedSnack
+                        : context.l10n.garmentUpdatedSnack),
                   ],
                 ),
                 backgroundColor: AppColors.success,
@@ -607,19 +609,17 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           }
         } else {
           final errorState = ref.read(garmentNotifierProvider);
-          String errorMessage = 'Erreur lors de l\'enregistrement.';
+          String errorMessage = context.l10n.garmentSaveError;
           if (errorState.hasError) {
             final error = errorState.error.toString();
             if (error.contains('Timeout')) {
-              errorMessage =
-                  'Le traitement d\'une image prend trop de temps. Vérifie que le backend est démarré et patiente.';
+              errorMessage = context.l10n.garmentUploadTimeout;
             } else if (error.contains('connexion') ||
                 error.contains('serveur') ||
                 error.contains('localhost')) {
-              errorMessage = 'Impossible de contacter le serveur. Réessaie dans un instant.';
+              errorMessage = context.l10n.garmentServerContactFailed;
             } else if (error.contains('FileNotFoundError') || error.contains('serviceAccountKey')) {
-              errorMessage =
-                  'Configuration Firebase manquante. Vérifie le fichier serviceAccountKey.json dans backend/';
+              errorMessage = context.l10n.garmentFirebaseConfigMissing;
             } else if (error.contains('compte de service Firebase') ||
                 error.contains('Storage Admin') ||
                 error.contains('Storage Object Creator') ||
@@ -627,18 +627,12 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                     (error.contains('droits') ||
                         error.contains('écriture')))) {
               // Le backend renvoie souvent du 503 avec « 403 » dans le détail GCS : ce n’est pas une session expirée.
-              errorMessage =
-                  'Le serveur n’a pas les droits pour enregistrer l’image sur Firebase Storage. '
-                  'Dans Google Cloud Console → IAM, attribue au compte de service du backend '
-                  '(clef utilisée par l’API, ex. serviceAccountKey.json) le rôle '
-                  '« Storage Object Creator » ou « Storage Admin », puis réessaie.';
+              errorMessage = context.l10n.garmentStoragePermissions;
             } else if (error.contains('Token Firebase invalide') ||
                 error.contains('401')) {
-              errorMessage =
-                  'Session expirée ou jeton invalide. Déconnecte-toi, reconnecte-toi, puis réessaie.';
+              errorMessage = context.l10n.garmentSessionExpired;
             } else if (error.contains('403') || error.contains('Forbidden')) {
-              errorMessage =
-                  'Accès refusé par le serveur. Si tu viens de te connecter, réessaie dans quelques secondes ; sinon préviens le support.';
+              errorMessage = context.l10n.garmentAccessDenied;
             } else {
               errorMessage = error
                   .replaceAll('Exception: ', '')
@@ -658,7 +652,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           if (errorStr.contains('localhost') ||
               errorStr.contains('connection') ||
               errorStr.contains('connexion')) {
-            _error = 'Le serveur est inaccessible. Réessaie dans un instant.';
+            _error = context.l10n.garmentServerUnreachable;
           } else {
             _error = errorStr.replaceAll('Exception: ', '').replaceAll('Error: ', '');
           }
@@ -716,9 +710,9 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                   children: [
                     Icon(Icons.folder_special_rounded, color: AppColors.accent.withValues(alpha: 0.9), size: 26),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Choisir une collection',
+                        context.l10n.garmentChooseCollection,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -837,13 +831,13 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
         ),
-        child: const Row(
+        child: Row(
           children: [
-            Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 22),
-            SizedBox(width: 12),
+            const Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 22),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Crée d’abord une collection depuis ton catalogue marque.',
+                context.l10n.garmentCreateCollectionFirst,
                 style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
               ),
             ),
@@ -891,7 +885,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        selected?.name ?? 'Choisir une collection',
+                        selected?.name ?? context.l10n.garmentChooseCollection,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -938,22 +932,22 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Collection',
+            Text(
+              context.l10n.garmentCollectionSection,
               style: AppTextStyles.heading3,
             ),
             const SizedBox(height: 8),
             SegmentedButton<bool>(
-              segments: const [
+              segments: [
                 ButtonSegment<bool>(
                   value: false,
-                  label: Text('Existante'),
-                  icon: Icon(Icons.folder_open_outlined, size: 18),
+                  label: Text(context.l10n.garmentCollectionExisting),
+                  icon: const Icon(Icons.folder_open_outlined, size: 18),
                 ),
                 ButtonSegment<bool>(
                   value: true,
-                  label: Text('Nouvelle'),
-                  icon: Icon(Icons.create_new_folder_outlined, size: 18),
+                  label: Text(context.l10n.garmentCollectionNew),
+                  icon: const Icon(Icons.create_new_folder_outlined, size: 18),
                 ),
               ],
               selected: {_creatingCollection},
@@ -977,8 +971,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               TextField(
                 controller: _newCollectionNameController,
                 scrollPadding: EdgeInsets.zero,
-                decoration: const InputDecoration(
-                  hintText: 'Nom de la collection',
+                decoration: InputDecoration(
+                  hintText: context.l10n.garmentCollectionNameHint,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
@@ -991,8 +985,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                     child: TextField(
                       controller: _collectionStartController,
                       scrollPadding: EdgeInsets.zero,
-                      decoration: const InputDecoration(
-                        labelText: 'Début (AAAA-MM-JJ)',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.garmentDateStartHint,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(12)),
                         ),
@@ -1004,8 +998,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                     child: TextField(
                       controller: _collectionEndController,
                       scrollPadding: EdgeInsets.zero,
-                      decoration: const InputDecoration(
-                        labelText: 'Fin (AAAA-MM-JJ)',
+                      decoration: InputDecoration(
+                        labelText: context.l10n.garmentDateEndHint,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(12)),
                         ),
@@ -1019,7 +1013,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         );
       },
       loading: () => const LinearProgressIndicator(),
-      error: (e, _) => Text('Collections : $e', style: const TextStyle(color: AppColors.error)),
+      error: (e, _) => Text('${context.l10n.garmentCollectionsErrorPrefix}$e',
+          style: const TextStyle(color: AppColors.error)),
     );
   }
 
@@ -1035,12 +1030,12 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: AppColors.divider, width: 1.5),
           ),
-          child: const Column(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add_a_photo_outlined, size: 40, color: AppColors.textHint),
-              SizedBox(height: 8),
-              Text('Ajouter une ou plusieurs photos', style: AppTextStyles.caption),
+              const Icon(Icons.add_a_photo_outlined, size: 40, color: AppColors.textHint),
+              const SizedBox(height: 8),
+              Text(context.l10n.garmentAddPhotosTitle, style: AppTextStyles.caption),
             ],
           ),
         ),
@@ -1092,17 +1087,17 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           if (_aiAnalyzing)
             Container(
               color: AppColors.graphite.withOpacity(0.55),
-              child: const Column(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 36,
                     height: 36,
                     child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.white),
                   ),
-                  SizedBox(height: 14),
+                  const SizedBox(height: 14),
                   Text(
-                    'Analyse des images par l’IA…',
+                    context.l10n.garmentAiAnalyzingImages,
                     style: TextStyle(
                       color: AppColors.white,
                       fontSize: 14,
@@ -1175,13 +1170,13 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                 ? null
                 : (value) => setState(() => _removeBackground = value),
             contentPadding: EdgeInsets.zero,
-            title: const Text(
-              'Supprimer l’arrière-plan',
+            title: Text(
+              context.l10n.garmentRemoveBackground,
               style: AppTextStyles.bodySecondary,
             ),
-            subtitle: const Text(
-              'Utilise l’IA pour isoler le vêtement. Décoche si tu veux garder le fond.',
-              style: TextStyle(fontSize: 12, color: AppColors.textHint),
+            subtitle: Text(
+              context.l10n.garmentRemoveBackgroundHint,
+              style: const TextStyle(fontSize: 12, color: AppColors.textHint),
             ),
           ),
         SwitchListTile.adaptive(
@@ -1190,13 +1185,13 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               ? null
               : (value) => setState(() => _useAiAnalysis = value),
           contentPadding: EdgeInsets.zero,
-          title: const Text(
-            'Pré-remplir avec l’IA',
+          title: Text(
+            context.l10n.garmentPrefillAi,
             style: AppTextStyles.bodySecondary,
           ),
-          subtitle: const Text(
-            'Une seule analyse par ajout : la première photo (couleurs, catégorie, etc.).',
-            style: TextStyle(fontSize: 12, color: AppColors.textHint),
+          subtitle: Text(
+            context.l10n.garmentAiSubtitle,
+            style: const TextStyle(fontSize: 12, color: AppColors.textHint),
           ),
         ),
       ],
@@ -1212,7 +1207,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => showPremiumUpgradeDialog(context),
+              onTap: () => showPremiumUpgradeDialog(context, ref: ref),
               child: const SizedBox.expand(),
             ),
           ),
@@ -1223,6 +1218,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     ref.listen<AsyncValue<UserModel?>>(currentUserProvider, (prev, next) {
       if (!mounted) return;
       final user = next.valueOrNull;
@@ -1256,7 +1252,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          widget.garment == null ? 'Nouveau vêtement' : 'Modifier le vêtement',
+          widget.garment == null ? l10n.dressingNewGarment : l10n.garmentEditTitle,
         ),
         centerTitle: true,
         elevation: 0,
@@ -1277,7 +1273,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                             onPressed: _aiAnalyzing ? null : _openPickSources,
                             icon: const Icon(Icons.add_photo_alternate_outlined, size: 20),
                             label: Text(
-                              'Ajouter d’autres photos (${_slots.length}/$_kMaxGarmentImages)',
+                              '${l10n.garmentAddMorePhotos} (${_slots.length}/$_kMaxGarmentImages)',
                             ),
                             style: TextButton.styleFrom(foregroundColor: AppColors.accent),
                           ),
@@ -1286,7 +1282,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                       const SizedBox(height: 4),
                       _buildAiSwitchSection(context, ref.watch(isPremiumProvider)),
                       const SizedBox(height: 24),
-                      const Text('Nom', style: AppTextStyles.heading3),
+                      Text(l10n.dressingNameHint, style: AppTextStyles.heading3),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _nameController,
@@ -1298,8 +1294,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                               }
                             : null,
                         scrollPadding: EdgeInsets.zero,
-                        decoration: const InputDecoration(
-                          hintText: 'Nom / description',
+                        decoration: InputDecoration(
+                          hintText: l10n.garmentNameDescHint,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.all(Radius.circular(12)),
                           ),
@@ -1313,7 +1309,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                         ),
                         const SizedBox(height: 16),
                       ],
-                      const Text('Couleurs', style: AppTextStyles.heading3),
+                      Text(l10n.garmentColorsLabel, style: AppTextStyles.heading3),
                       const SizedBox(height: 8),
                       MultiColorSelector(
                         key: ValueKey('colors_${_selectedColors.join("_")}'),
@@ -1327,7 +1323,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                         _buildCollectionSection(ref.watch(authServiceProvider).uid),
                       ],
                       const SizedBox(height: 24),
-                      const Text('Catégorie', style: AppTextStyles.heading3),
+                      Text(l10n.garmentCategoryLabel, style: AppTextStyles.heading3),
                       const SizedBox(height: 12),
                       LayoutBuilder(
                         builder: (context, constraints) {
@@ -1389,7 +1385,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                                           ),
                                           const SizedBox(height: 6),
                                           Text(
-                                            cat.label,
+                                            categoryLabelL10n(l10n, cat.key),
                                             textAlign: TextAlign.center,
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
@@ -1457,7 +1453,9 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                                   child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                                 )
                               : Text(
-                                  widget.garment == null ? 'Enregistrer' : 'Modifier',
+                                  widget.garment == null
+                                      ? l10n.garmentSaveButton
+                                      : l10n.garmentEditButton,
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,

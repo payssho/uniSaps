@@ -10,6 +10,7 @@ import '../../providers/garment_provider.dart';
 import '../../widgets/add_garment_sheet.dart';
 import '../../widgets/garment_card.dart';
 import '../../widgets/garment_detail_sheet.dart';
+import '../../l10n/l10n_context.dart';
 
 class CreatorDressingScreen extends ConsumerWidget {
   const CreatorDressingScreen({super.key});
@@ -49,13 +50,22 @@ class CreatorDressingScreen extends ConsumerWidget {
           Navigator.pop(sheetCtx);
           final confirmed = await showDialog<bool>(
             context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Supprimer ce vêtement ?'),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Supprimer')),
-              ],
-            ),
+            builder: (ctx) {
+              final l10n = ctx.l10n;
+              return AlertDialog(
+                title: Text(l10n.garmentDeleteConfirmTitle),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Text(l10n.commonCancel),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(l10n.commonDelete),
+                  ),
+                ],
+              );
+            },
           );
           if (confirmed == true) {
             await ref.read(garmentNotifierProvider.notifier).deleteGarment(uid, garment.id);
@@ -68,6 +78,7 @@ class CreatorDressingScreen extends ConsumerWidget {
   static String _isoDate(DateTime d) => d.toIso8601String().substring(0, 10);
 
   Future<void> _createCollection(BuildContext context, WidgetRef ref, String uid) async {
+    final l10n = context.l10n;
     final nameController = TextEditingController();
     var startDate = DateTime.now();
     var endDate = DateTime.now();
@@ -96,8 +107,9 @@ class CreatorDressingScreen extends ConsumerWidget {
             if (picked != null) setLocal(() => endDate = picked);
           }
 
+          final dlgL10n = ctx.l10n;
           return AlertDialog(
-            title: const Text('Nouvelle collection'),
+            title: Text(dlgL10n.garmentCollectionNew),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -105,22 +117,24 @@ class CreatorDressingScreen extends ConsumerWidget {
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
-                      hintText: 'Nom de la collection',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+                    decoration: InputDecoration(
+                      hintText: dlgL10n.garmentCollectionNameHint,
+                      border: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Date de début'),
+                    title: Text(dlgL10n.garmentCollectionStartDate),
                     subtitle: Text(_isoDate(startDate)),
                     trailing: const Icon(Icons.calendar_today_outlined, size: 20),
                     onTap: pickStart,
                   ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Date de fin'),
+                    title: Text(dlgL10n.garmentCollectionEndDate),
                     subtitle: Text(_isoDate(endDate)),
                     trailing: const Icon(Icons.calendar_today_outlined, size: 20),
                     onTap: pickEnd,
@@ -129,8 +143,14 @@ class CreatorDressingScreen extends ConsumerWidget {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Créer')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(dlgL10n.commonCancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(dlgL10n.commonCreate),
+              ),
             ],
           );
         },
@@ -145,7 +165,7 @@ class CreatorDressingScreen extends ConsumerWidget {
     nameController.dispose();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Indique un nom de collection.')),
+        SnackBar(content: Text(l10n.garmentCollectionNameRequiredSnack)),
       );
       return;
     }
@@ -175,23 +195,35 @@ class CreatorDressingScreen extends ConsumerWidget {
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer la collection ?'),
-        content: Text(
-          garmentCount > 0
-              ? '« ${collection.name} » et ses $garmentCount pièce${garmentCount > 1 ? 's' : ''} '
-                  'seront supprimées définitivement.'
-              : '« ${collection.name} » sera supprimée.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Supprimer'),
-          ),
-        ],
-      ),
+      builder: (ctx) {
+        final dlgL10n = ctx.l10n;
+        final String body;
+        if (garmentCount > 1) {
+          body = dlgL10n.garmentCollectionDeleteWithPieces(
+            garmentCount,
+            collection.name,
+          );
+        } else if (garmentCount == 1) {
+          body = dlgL10n.garmentCollectionDeleteWithPiece(collection.name);
+        } else {
+          body = dlgL10n.garmentCollectionDeleteOnly(collection.name);
+        }
+        return AlertDialog(
+          title: Text(dlgL10n.garmentDeleteCollectionTitle),
+          content: Text(body),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(dlgL10n.commonCancel),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(dlgL10n.commonDelete),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed != true || !context.mounted) return;
 
@@ -202,18 +234,23 @@ class CreatorDressingScreen extends ConsumerWidget {
     if (!context.mounted) return;
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Collection supprimée.')),
+        SnackBar(content: Text(context.l10n.garmentCollectionDeleted)),
       );
     } else {
       final err = ref.read(collectionNotifierProvider).error;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err != null ? '$err' : 'Suppression impossible.')),
+        SnackBar(
+          content: Text(
+            err != null ? '$err' : context.l10n.garmentCollectionDeleteFailed,
+          ),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final uid = ref.watch(authServiceProvider).uid;
     final collectionsAsync = ref.watch(collectionsProvider(uid));
     final grouped = ref.watch(garmentsByCollectionProvider(uid));
@@ -228,11 +265,11 @@ class CreatorDressingScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 16, 12, 8),
               child: Row(
                 children: [
-                  const Expanded(
-                    child: Text('Catalogue marque', style: AppTextStyles.heading2),
+                  Expanded(
+                    child: Text(l10n.creatorCatalogTitle, style: AppTextStyles.heading2),
                   ),
                   IconButton(
-                    tooltip: 'Nouvelle collection',
+                    tooltip: l10n.creatorNewCollectionTooltip,
                     onPressed: () => _createCollection(context, ref, uid),
                     icon: const Icon(Icons.create_new_folder_outlined),
                   ),
@@ -254,8 +291,8 @@ class CreatorDressingScreen extends ConsumerWidget {
                             Icon(Icons.collections_outlined,
                                 size: 48, color: AppColors.textHint.withValues(alpha: 0.6)),
                             const SizedBox(height: 16),
-                            const Text(
-                              'Crée une collection pour organiser ton catalogue.',
+                            Text(
+                              l10n.creatorCatalogEmptyHint,
                               textAlign: TextAlign.center,
                               style: AppTextStyles.bodySecondary,
                             ),
@@ -263,7 +300,7 @@ class CreatorDressingScreen extends ConsumerWidget {
                             FilledButton.icon(
                               onPressed: () => _createCollection(context, ref, uid),
                               icon: const Icon(Icons.add),
-                              label: const Text('Nouvelle collection'),
+                              label: Text(l10n.garmentCollectionNew),
                             ),
                           ],
                         ),
@@ -289,7 +326,9 @@ class CreatorDressingScreen extends ConsumerWidget {
                 loading: () => const Center(
                   child: CircularProgressIndicator(color: AppColors.accent),
                 ),
-                error: (e, _) => Center(child: Text('Erreur : $e')),
+                error: (e, _) => Center(
+                      child: Text(l10n.commonErrorDetail(e)),
+                    ),
               ),
             ),
           ],
@@ -303,9 +342,9 @@ class CreatorDressingScreen extends ConsumerWidget {
           elevation: 6,
           onPressed: () => _showAddGarment(context),
           icon: const Icon(Icons.add, color: AppColors.white, size: 24),
-          label: const Text(
-            'Ajouter',
-            style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
+          label: Text(
+            l10n.commonAdd,
+            style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
           ),
         ),
       ),
@@ -447,10 +486,11 @@ class _CollectionSection extends StatelessWidget {
                                     const SizedBox(width: 5),
                                     Text(
                                       count == 0
-                                          ? 'Aucune pièce'
+                                          ? context.l10n.creatorCollectionNoPieces
                                           : count == 1
-                                              ? '1 pièce'
-                                              : '$count pièces',
+                                              ? context.l10n.creatorCollectionOnePiece
+                                              : context.l10n
+                                                  .creatorCollectionPieceCount(count),
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
@@ -469,7 +509,7 @@ class _CollectionSection extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(0, 12, 8, 12),
                     child: IconButton(
-                      tooltip: 'Supprimer la collection',
+                      tooltip: context.l10n.garmentDeleteCollectionTitle,
                       visualDensity: VisualDensity.compact,
                       constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                       padding: EdgeInsets.zero,
@@ -511,7 +551,7 @@ class _CollectionSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Collection vide',
+                          context.l10n.creatorCollectionEmptyTitle,
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
@@ -520,7 +560,7 @@ class _CollectionSection extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Ajoute des pièces pour alimenter cette ligne.',
+                          context.l10n.creatorCollectionEmptyHint,
                           style: TextStyle(
                             fontSize: 13,
                             height: 1.35,

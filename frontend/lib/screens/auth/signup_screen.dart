@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../l10n/l10n_context.dart';
 import '../../providers/auth_provider.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
@@ -43,20 +44,21 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
   }
 
   Future<void> _handleSignup() async {
+    final l10n = context.l10n;
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final confirm = _confirmController.text;
 
     if (email.isEmpty || password.isEmpty || confirm.isEmpty) {
-      setState(() => _error = 'Remplis tous les champs.');
+      setState(() => _error = l10n.authFillAllFields);
       return;
     }
     if (password.length < 6) {
-      setState(() => _error = 'Le mot de passe doit contenir au moins 6 caracteres.');
+      setState(() => _error = l10n.authPasswordTooShort);
       return;
     }
     if (password != confirm) {
-      setState(() => _error = 'Les mots de passe ne correspondent pas.');
+      setState(() => _error = l10n.authPasswordsMismatch);
       return;
     }
 
@@ -71,7 +73,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
         context.go('/onboarding');
       } else {
         final state = ref.read(authNotifierProvider);
-        setState(() => _error = state.error?.toString() ?? 'Erreur d\'inscription');
+        setState(() => _error = state.error?.toString() ?? l10n.authSignupError);
       }
     }
   }
@@ -80,6 +82,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -95,9 +98,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                 indicatorWeight: 3,
                 labelStyle: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700, fontSize: 14),
                 unselectedLabelStyle: AppTextStyles.body.copyWith(fontWeight: FontWeight.w500, fontSize: 14),
-                tabs: const [
-                  Tab(text: 'Compte normal'),
-                  Tab(text: 'Compte créateur'),
+                tabs: [
+                  Tab(text: l10n.authTabNormalAccount),
+                  Tab(text: l10n.authTabCreatorAccount),
                 ],
               ),
             ),
@@ -117,20 +120,21 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
   }
 
   Widget _buildNormalTab(BuildContext context) {
+    final l10n = context.l10n;
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: _hPad),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 24),
-          const Text(
-            'Creer un compte',
+          Text(
+            l10n.authSignupCreateAccount,
             style: AppTextStyles.heading1,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Rejoins uniSaps',
+          Text(
+            l10n.authSignupJoin,
             style: AppTextStyles.bodySecondary,
             textAlign: TextAlign.center,
           ),
@@ -139,9 +143,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(
-              hintText: 'Email',
-              prefixIcon: Icon(Icons.email_outlined),
+            decoration: InputDecoration(
+              hintText: l10n.authEmail,
+              prefixIcon: const Icon(Icons.email_outlined),
             ),
           ),
           const SizedBox(height: 14),
@@ -150,7 +154,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
             obscureText: _obscure,
             textInputAction: TextInputAction.next,
             decoration: InputDecoration(
-              hintText: 'Mot de passe',
+              hintText: l10n.authPassword,
               prefixIcon: const Icon(Icons.lock_outlined),
               suffixIcon: IconButton(
                 icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
@@ -164,9 +168,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleSignup(),
-            decoration: const InputDecoration(
-              hintText: 'Confirmer le mot de passe',
-              prefixIcon: Icon(Icons.lock_outlined, size: 22),
+            decoration: InputDecoration(
+              hintText: l10n.authConfirmPassword,
+              prefixIcon: const Icon(Icons.lock_outlined, size: 22),
             ),
           ),
           if (_error != null) ...[
@@ -207,17 +211,18 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
                     )
-                  : const Text('S\'inscrire'),
+                  : Text(l10n.authSignupSubmit),
             ),
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('Deja un compte ?', style: AppTextStyles.bodySecondary),
+              Text(l10n.authAlreadyHaveAccount,
+                  style: AppTextStyles.bodySecondary),
               TextButton(
                 onPressed: () => context.go('/login'),
-                child: const Text('Connexion'),
+                child: Text(l10n.authGoLogin),
               ),
             ],
           ),
@@ -228,6 +233,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
   }
 
   Widget _buildCreatorTab(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: _hPad),
       child: LayoutBuilder(
@@ -339,7 +345,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                                             ),
                                             const SizedBox(width: 6),
                                             Text(
-                                              'Pour les marques & créateurs',
+                                              l10n.signupCreatorForBrands,
                                               style: AppTextStyles.caption.copyWith(
                                                 fontWeight: FontWeight.w700,
                                                 fontSize: 11,
@@ -354,7 +360,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                                   ),
                                   const SizedBox(height: 18),
                                   Text(
-                                    'Espace créateur',
+                                    l10n.signupCreatorSpaceTitle,
                                     style: AppTextStyles.heading2.copyWith(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w800,
@@ -365,8 +371,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Ton univers marque s’affiche là où les gens découvrent déjà des styles : '
-                                    'même fil que les utilisateurs, avec ta boutique et tes publications.',
+                                    l10n.signupCreatorIntro,
                                     style: AppTextStyles.bodySecondary.copyWith(
                                       color: AppColors.textHint,
                                       fontWeight: FontWeight.w400,
@@ -388,7 +393,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Glisse vers la droite',
+                                        l10n.signupCreatorSwipeRight,
                                         style: AppTextStyles.caption.copyWith(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 12,
@@ -409,28 +414,21 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                                     child: PageView(
                                       controller: _creatorIntroPageController,
                                       onPageChanged: (i) => setState(() => _creatorIntroPage = i),
-                                      children: const [
+                                      children: [
                                         _CreatorIntroSlide(
-                                          visual: _SwipeDeckVisual(),
-                                          title: 'Le même geste qu’Inspiration',
-                                          body:
-                                              'Les utilisateurs font défiler des cartes : looks, profils, créateurs. '
-                                              'Ta marque apparaît dans ce flux — un swipe vers la droite, comme pour '
-                                              'montrer son intérêt sur une tenue.',
+                                          visual: const _SwipeDeckVisual(),
+                                          title: l10n.signupCreatorCard1Title,
+                                          body: l10n.signupCreatorCard1Body,
                                         ),
                                         _CreatorIntroSlide(
-                                          visual: _CatalogBrandVisual(),
-                                          title: 'Catalogue & dressing marque',
-                                          body:
-                                              'Tu exposes tes pièces et tenues dans un espace dédié : ton dressing '
-                                              'pro, séparé des comptes perso, toujours relié au reste de l’app.',
+                                          visual: const _CatalogBrandVisual(),
+                                          title: l10n.signupCreatorCard2Title,
+                                          body: l10n.signupCreatorCard2Body,
                                         ),
                                         _CreatorIntroSlide(
-                                          visual: _SponsorVisual(),
-                                          title: 'Visibilité & publications',
-                                          body:
-                                              'Mets en avant une collection ou une pièce avec des posts sponsorisés : '
-                                              'tu captes l’attention au bon endroit, sans changer les habitudes des gens.',
+                                          visual: const _SponsorVisual(),
+                                          title: l10n.signupCreatorCard3Title,
+                                          body: l10n.signupCreatorCard3Body,
                                         ),
                                       ],
                                     ),
@@ -467,7 +465,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                                           const Icon(Icons.storefront_rounded, size: 22),
                                           const SizedBox(height: 10),
                                           Text(
-                                            'Créer mon compte',
+                                            l10n.signupCreatorCreateAccount,
                                             textAlign: TextAlign.center,
                                             style: AppTextStyles.button.copyWith(
                                               color: AppColors.white,
@@ -477,7 +475,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            'Inscription marque sur la page suivante',
+                                            l10n.signupCreatorBrandNextPage,
                                             textAlign: TextAlign.center,
                                             style: TextStyle(
                                               fontSize: 12,
@@ -495,7 +493,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        'Deja un compte ?',
+                                        l10n.signupCreatorAlreadyAccount,
                                         style: AppTextStyles.bodySecondary.copyWith(fontSize: 14),
                                       ),
                                       TextButton(
@@ -505,7 +503,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen>
                                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                         ),
                                         onPressed: () => context.go('/login'),
-                                        child: const Text('Connexion'),
+                                        child: Text(l10n.authLoginTitle),
                                       ),
                                     ],
                                   ),
@@ -642,11 +640,11 @@ class _SwipeDeckVisual extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.favorite_border_rounded, size: 17, color: AppColors.accent),
-                    SizedBox(width: 6),
+                    const Icon(Icons.favorite_border_rounded, size: 17, color: AppColors.accent),
+                    const SizedBox(width: 6),
                     Text(
-                      'Swipe droite',
-                      style: TextStyle(
+                      context.l10n.signupCreatorSwipeRightBadge,
+                      style: const TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: AppColors.accent,
@@ -711,7 +709,10 @@ class _CatalogBrandVisual extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const _CatalogTile(icon: Icons.checkroom_outlined, caption: 'Pièces'),
+          _CatalogTile(
+            icon: Icons.checkroom_outlined,
+            caption: context.l10n.signupCreatorCatalogPieces,
+          ),
           const SizedBox(width: 10),
           Container(
             padding: const EdgeInsets.all(14),
@@ -735,7 +736,10 @@ class _CatalogBrandVisual extends StatelessWidget {
             child: const Icon(Icons.storefront_rounded, size: 38, color: AppColors.primary),
           ),
           const SizedBox(width: 10),
-          const _CatalogTile(icon: Icons.style_outlined, caption: 'Tenues'),
+          _CatalogTile(
+            icon: Icons.style_outlined,
+            caption: context.l10n.signupCreatorCatalogOutfits,
+          ),
         ],
       ),
     );

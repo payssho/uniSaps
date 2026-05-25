@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/post_model.dart';
 import '../models/user_model.dart';
@@ -24,7 +24,8 @@ List<PostModel> _organicOnly(List<PostModel> all) =>
 final exploreFeedProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
   final all = ref.watch(postsProvider);
   final sponsoredAsync = ref.watch(_sponsoredActiveProvider);
-  final mockAdsOn = ref.watch(exploreDevMockPostsEnabledProvider);
+  final mockAdsOn =
+      kDebugMode && ref.watch(exploreDevMockPostsEnabledProvider);
 
   return all.when(
     data: (organicPosts) {

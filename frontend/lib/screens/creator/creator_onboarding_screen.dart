@@ -8,6 +8,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
+import '../../l10n/l10n_context.dart';
 class CreatorOnboardingScreen extends ConsumerStatefulWidget {
   const CreatorOnboardingScreen({super.key});
 
@@ -53,15 +54,16 @@ class _CreatorOnboardingScreenState extends ConsumerState<CreatorOnboardingScree
   Future<void> _submit() async {
     final brand = _brandNameController.text.trim();
     final username = _usernameController.text.trim();
+    final l10n = context.l10n;
     if (brand.isEmpty || username.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nom de marque et identifiant requis.')),
+        SnackBar(content: Text(l10n.creatorOnboardingBrandRequired)),
       );
       return;
     }
     if (_logoBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ajoute un logo pour ta marque.')),
+        SnackBar(content: Text(l10n.creatorOnboardingLogoRequired)),
       );
       return;
     }
@@ -102,10 +104,11 @@ class _CreatorOnboardingScreenState extends ConsumerState<CreatorOnboardingScree
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Profil marque'),
+        title: Text(l10n.creatorOnboardingTitle),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -127,35 +130,33 @@ class _CreatorOnboardingScreenState extends ConsumerState<CreatorOnboardingScree
                 ),
               ),
               const SizedBox(height: 8),
-              const Text('Logo de la marque', style: AppTextStyles.bodySecondary),
+              Text(l10n.creatorLogoLabel, style: AppTextStyles.bodySecondary),
               const SizedBox(height: 24),
               TextField(
                 controller: _brandNameController,
-                decoration: const InputDecoration(hintText: 'Nom de la marque'),
+                decoration: InputDecoration(hintText: l10n.creatorBrandName),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _usernameController,
-                decoration: const InputDecoration(hintText: '@identifiant public'),
+                decoration: InputDecoration(hintText: l10n.creatorPublicId),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _bioController,
                 maxLines: 3,
-                decoration: const InputDecoration(hintText: 'Bio'),
+                decoration: InputDecoration(hintText: l10n.creatorBio),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _shopController,
                 keyboardType: TextInputType.url,
-                decoration: const InputDecoration(hintText: 'Lien boutique (URL)'),
+                decoration: InputDecoration(hintText: l10n.creatorShopUrl),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _linkedUsernameController,
-                decoration: const InputDecoration(
-                  hintText: '@compte perso uniSaps (optionnel)',
-                ),
+                decoration: InputDecoration(hintText: l10n.creatorPersonalAccount),
               ),
               const SizedBox(height: 28),
               SizedBox(
@@ -168,7 +169,7 @@ class _CreatorOnboardingScreenState extends ConsumerState<CreatorOnboardingScree
                           width: 22,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Terminer'),
+                      : Text(l10n.creatorOnboardingFinish),
                 ),
               ),
             ],
