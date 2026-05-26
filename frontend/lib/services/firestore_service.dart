@@ -475,19 +475,21 @@ class FirestoreService {
 
   Future<List<UserModel>> getUsersByIds(List<String> uids) async {
     if (uids.isEmpty) return [];
-    final results = <UserModel>[];
     final batches = <List<String>>[];
     for (var i = 0; i < uids.length; i += 30) {
       batches.add(uids.sublist(i, i + 30 > uids.length ? uids.length : i + 30));
     }
-    for (final batch in batches) {
-      final snap = await _db
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: batch)
-          .get();
-      results.addAll(snap.docs.map((d) => UserModel.fromMap(d.data())));
-    }
-    return results;
+    final snaps = await Future.wait(
+      batches.map(
+        (batch) => _db
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get(),
+      ),
+    );
+    return snaps
+        .expand((snap) => snap.docs.map((d) => UserModel.fromMap(d.data())))
+        .toList();
   }
 
   // ── Statistics ─────────────────────────────────────────────────────

@@ -21,6 +21,19 @@ final receivedRequestsCountProvider = Provider<int>((ref) {
   return ref.watch(receivedRequestsProvider).valueOrNull?.length ?? 0;
 });
 
+/// Profils amis (cache Riverpod + requêtes parallèles Firestore).
+final friendUsersProvider = FutureProvider<List<UserModel>>((ref) async {
+  final user = ref.watch(currentUserProvider).valueOrNull;
+  if (user == null || user.friends.isEmpty) return [];
+  final users =
+      await ref.read(firestoreServiceProvider).getUsersByIds(user.friends);
+  final byId = {for (final u in users) u.uid: u};
+  return [
+    for (final id in user.friends)
+      if (byId.containsKey(id)) byId[id]!,
+  ];
+});
+
 final friendsPostsProvider = StreamProvider<List<PostModel>>((ref) {
   final user = ref.watch(currentUserProvider).valueOrNull;
   if (user == null) return Stream.value([]);
