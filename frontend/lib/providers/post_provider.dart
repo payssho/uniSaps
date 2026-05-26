@@ -20,30 +20,38 @@ final postsProvider = StreamProvider<List<PostModel>>((ref) {
 List<PostModel> _organicOnly(List<PostModel> all) =>
     all.where((p) => p.isOrganic && !p.isSponsored).toList();
 
+/// Posts sponsorisés actifs (fil Explorer). Erreur isolée : ne bloque pas le feed.
+final sponsoredActivePostsProvider = StreamProvider<List<PostModel>>((ref) {
+  return ref.watch(firestoreServiceProvider).sponsoredActivePostsStream();
+});
+
 /// Feed Explorer : organiques + sponsorisés actifs mélangés.
+///
+/// Les posts organiques ([postsProvider]) pilotent l’état ; les sponsorisés sont
+/// ajoutés en best-effort (erreur ou chargement sponsorisé ≠ écran d’erreur).
 final exploreFeedProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
   final all = ref.watch(postsProvider);
-  final sponsoredAsync = ref.watch(_sponsoredActiveProvider);
+  final sponsoredAsync = ref.watch(sponsoredActivePostsProvider);
   final mockAdsOn =
       kDebugMode && ref.watch(exploreDevMockPostsEnabledProvider);
+
+  List<PostModel> sponsoredBestEffort() {
+    if (sponsoredAsync.hasError) return [];
+    return sponsoredAsync.valueOrNull ?? [];
+  }
 
   return all.when(
     data: (organicPosts) {
       final organic = _organicOnly(organicPosts);
-      final sponsoredPosts = sponsoredAsync.valueOrNull ?? [];
+      final sponsoredPosts = sponsoredBestEffort();
 
       if (!mockAdsOn) {
-        return sponsoredAsync.when(
-          data: (_) => AsyncValue.data(
-            mixExploreFeed(organic: organic, sponsoredActive: sponsoredPosts),
-          ),
-          loading: () => const AsyncValue.loading(),
-          error: (e, st) => AsyncValue.error(e, st),
+        return AsyncValue.data(
+          mixExploreFeed(organic: organic, sponsoredActive: sponsoredPosts),
         );
       }
 
       // Mode dev : mocks en tête (organiques, sans pastille pub).
-      // Mélange tous les 7 : uniquement les pubs Firestore (compte créateur, etc.).
       if (organic.isEmpty) {
         return AsyncValue.data(List<PostModel>.from(kMockExploreFeedPosts));
       }
@@ -60,10 +68,6 @@ final exploreFeedProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
     loading: () => const AsyncValue.loading(),
     error: (e, st) => AsyncValue.error(e, st),
   );
-});
-
-final _sponsoredActiveProvider = StreamProvider<List<PostModel>>((ref) {
-  return ref.watch(firestoreServiceProvider).sponsoredActivePostsStream();
 });
 
 /// True si l'utilisateur courant a déjà posté aujourd'hui.

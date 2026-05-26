@@ -946,7 +946,10 @@ class _ExploreFeed extends ConsumerWidget {
       },
       loading: () => const LoadingShimmerFeed(),
       error: (e, _) => AsyncErrorState(
-            onRetry: () => ref.invalidate(exploreFeedProvider),
+            onRetry: () {
+              ref.invalidate(postsProvider);
+              ref.invalidate(sponsoredActivePostsProvider);
+            },
           ),
     );
   }
