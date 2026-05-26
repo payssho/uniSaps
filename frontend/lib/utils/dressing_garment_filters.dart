@@ -1,6 +1,6 @@
 import '../models/garment_model.dart';
 
-/// Filtres locaux nom / marque / couleur (onglet Dressing, catégorie sélectionnée).
+/// Filtres locaux nom / marque / couleur (Dressing : « Tout » ou une catégorie).
 List<GarmentModel> applyDressingGarmentFilters({
   required List<GarmentModel> list,
   required String nameFilter,

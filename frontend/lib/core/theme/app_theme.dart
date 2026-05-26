@@ -7,15 +7,11 @@ import '../constants/app_radii.dart';
 class AppTheme {
   AppTheme._();
 
-  static TextTheme _textTheme(Brightness brightness) {
-    final base = brightness == Brightness.dark
-        ? ThemeData.dark().textTheme
-        : ThemeData.light().textTheme;
-    return GoogleFonts.dmSansTextTheme(base);
-  }
+  static TextTheme get _textTheme =>
+      GoogleFonts.dmSansTextTheme(ThemeData.light().textTheme);
 
   static ThemeData get light {
-    final textTheme = _textTheme(Brightness.light);
+    final textTheme = _textTheme;
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
@@ -138,71 +134,6 @@ class AppTheme {
           TargetPlatform.android: CupertinoPageTransitionsBuilder(),
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
         },
-      ),
-    );
-  }
-
-  static ThemeData get dark {
-    const bg = Color(0xFF1A1C1E);
-    const surface = Color(0xFF25282B);
-    const surfaceVariant = Color(0xFF32363A);
-    final textTheme = _textTheme(Brightness.dark);
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: bg,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.stormyTeal,
-        secondary: AppColors.stormyTeal,
-        surface: surface,
-        error: AppColors.error,
-        onPrimary: AppColors.white,
-        onSecondary: AppColors.white,
-        onSurface: AppColors.white,
-        onError: AppColors.white,
-      ),
-      textTheme: textTheme.apply(
-        bodyColor: AppColors.white,
-        displayColor: AppColors.white,
-      ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        systemOverlayStyle: SystemUiOverlayStyle.light,
-        iconTheme: const IconThemeData(color: AppColors.white),
-        titleTextStyle: textTheme.titleLarge?.copyWith(
-          color: AppColors.white,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.stormyTeal,
-          foregroundColor: AppColors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadii.button),
-          ),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: surfaceVariant,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadii.button),
-          borderSide: BorderSide.none,
-        ),
-      ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: surface,
-        selectedItemColor: AppColors.stormyTeal,
-        unselectedItemColor: AppColors.alabasterGrey,
-        type: BottomNavigationBarType.fixed,
-      ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.button),
-        ),
       ),
     );
   }

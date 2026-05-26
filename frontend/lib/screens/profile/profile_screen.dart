@@ -18,7 +18,6 @@ import '../../widgets/stat_card.dart';
 import '../../widgets/premium_avatar_ring.dart';
 import '../../widgets/async_error_state.dart';
 import '../../providers/ui_navigation_provider.dart';
-import '../../providers/theme_mode_provider.dart';
 import '../inspiration/user_profile_screen.dart';
 import '../inspiration/search_users_screen.dart';
 
@@ -45,7 +44,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onProfileTabChanged);
   }
 
@@ -90,11 +89,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
     ref.listen<int>(receivedRequestsCountProvider, (prev, next) {
       if (!widget.embeddedInMainNav || next <= 0) return;
-      if (_tabController.index == 3) return;
+      if (_tabController.index == 2) return;
       if (prev != null && prev > 0) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _tabController.animateTo(3);
+        _tabController.animateTo(2);
         if (!_friendRequestSnackShown) {
           _friendRequestSnackShown = true;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -111,7 +110,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     ref.listen(profileInfosTabRequestProvider, (prev, next) {
       if (next == (prev ?? 0)) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _tabController.animateTo(3);
+        if (mounted) _tabController.animateTo(2);
       });
     });
 
@@ -176,7 +175,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                             physics: const BouncingScrollPhysics(),
                             children: [
                               _StatsTab(uid: user.uid, user: user),
-                              _OutfitsTab(uid: user.uid),
                               _GalleryTab(uid: user.uid),
                               _AccountTab(
                                 user: user,
@@ -689,10 +687,6 @@ class _ProfileTabRail extends StatefulWidget {
       short: 'Stats',
     ),
     (
-      icon: Icons.checkroom_rounded,
-      short: 'Tenues',
-    ),
-    (
       icon: Icons.photo_library_rounded,
       short: 'Souvenirs',
     ),
@@ -868,7 +862,7 @@ class _ProfileTabRailState extends State<_ProfileTabRail> {
     final pendingRequests = widget.pendingRequests;
     final e = entries[i];
     final selected = controller.index == i;
-    final showBadge = i == 3 && pendingRequests > 0;
+    final showBadge = i == 2 && pendingRequests > 0;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -1122,345 +1116,6 @@ class _MostWornChart extends ConsumerWidget {
           ],
         );
       },
-    );
-  }
-}
-
-Widget _outfitListThumbPlaceholder() {
-  return Container(
-    color: AppColors.surfaceVariant,
-    alignment: Alignment.center,
-    child: Icon(Icons.style_rounded,
-        size: 26, color: AppColors.textHint.withOpacity(0.45)),
-  );
-}
-
-class _OutfitsTab extends ConsumerWidget {
-  final String uid;
-  const _OutfitsTab({required this.uid});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final outfitsAsync = ref.watch(outfitsProvider(uid));
-    return outfitsAsync.when(
-      data: (outfits) {
-        final sorted = [...outfits]
-          ..sort((a, b) => b.timesWorn.compareTo(a.timesWorn));
-        if (sorted.isEmpty) {
-          return const Center(
-              child: Text('Aucun outfit', style: AppTextStyles.bodySecondary));
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.all(18),
-          itemCount: sorted.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (_, i) {
-            final o = sorted[i];
-            final thumbUrl = o.referencePhotoUrl.isNotEmpty
-                ? o.referencePhotoUrl
-                : (o.photoUrls.isNotEmpty ? o.photoUrls.first : '');
-            return GestureDetector(
-              onTap: () => _showOutfitSummary(context, o),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.divider, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.graphite.withOpacity(0.02),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            o.name.isEmpty ? 'Outfit' : o.name,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 15),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (o.lastWorn.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text('Dernier port : ${o.lastWorn}',
-                                style: AppTextStyles.caption),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: SizedBox(
-                            width: 56,
-                            height: 56,
-                            child: thumbUrl.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: thumbUrl,
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) => Container(
-                                      color: AppColors.surfaceVariant,
-                                      child: const Center(
-                                        child: SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2),
-                                        ),
-                                      ),
-                                    ),
-                                    errorWidget: (_, __, ___) =>
-                                        _outfitListThumbPlaceholder(),
-                                  )
-                                : _outfitListThumbPlaceholder(),
-                          ),
-                        ),
-                        if (o.timesWorn > 0) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            'Porté ${o.timesWorn}×',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textHint.withOpacity(0.95),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => AsyncErrorState(
-            onRetry: () => ref.invalidate(outfitsProvider(uid)),
-          ),
-    );
-  }
-}
-
-void _showOutfitSummary(BuildContext context, OutfitModel outfit) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _OutfitSummarySheet(outfit: outfit),
-  );
-}
-
-class _ResolvedOutfitPiece {
-  final String categoryKey;
-  final GarmentModel? garment;
-
-  const _ResolvedOutfitPiece({
-    required this.categoryKey,
-    this.garment,
-  });
-}
-
-class _OutfitSummarySheet extends ConsumerStatefulWidget {
-  final OutfitModel outfit;
-
-  const _OutfitSummarySheet({required this.outfit});
-
-  @override
-  ConsumerState<_OutfitSummarySheet> createState() => _OutfitSummarySheetState();
-}
-
-class _OutfitSummarySheetState extends ConsumerState<_OutfitSummarySheet> {
-  late final Future<List<_ResolvedOutfitPiece>> _piecesFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    final uid = ref.read(authServiceProvider).uid;
-    final fs = ref.read(firestoreServiceProvider);
-    _piecesFuture = _loadOutfitPieces(fs, uid, widget.outfit);
-  }
-
-  Future<List<_ResolvedOutfitPiece>> _loadOutfitPieces(
-    FirestoreService fs,
-    String uid,
-    OutfitModel outfit,
-  ) async {
-    final entries =
-        outfit.garments.entries.where((e) => e.value.trim().isNotEmpty).toList();
-    if (entries.isEmpty) return [];
-    return Future.wait(
-      entries.map((e) async {
-        final g = await fs.getGarment(uid, e.value);
-        return _ResolvedOutfitPiece(categoryKey: e.key, garment: g);
-      }),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.textHint.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text(
-                widget.outfit.name.isEmpty ? 'Outfit' : widget.outfit.name,
-                style: AppTextStyles.heading3,
-              ),
-              const SizedBox(height: 4),
-              if (widget.outfit.lastWorn.isNotEmpty)
-                Text('Dernier port : ${widget.outfit.lastWorn}',
-                    style: AppTextStyles.caption),
-              const SizedBox(height: 12),
-              if (widget.outfit.referencePhotoUrl.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: CachedNetworkImage(
-                    imageUrl: widget.outfit.referencePhotoUrl,
-                    fit: BoxFit.cover,
-                    height: 220,
-                    width: double.infinity,
-                    placeholder: (_, __) => Container(
-                      height: 220,
-                      color: AppColors.surfaceVariant,
-                      child: const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                    errorWidget: (_, __, ___) => Container(
-                      height: 220,
-                      color: AppColors.surfaceVariant,
-                      child: const Icon(Icons.broken_image_outlined,
-                          color: AppColors.textHint, size: 40),
-                    ),
-                  ),
-                ),
-              if (widget.outfit.referencePhotoUrl.isNotEmpty)
-                const SizedBox(height: 16),
-              FutureBuilder<List<_ResolvedOutfitPiece>>(
-                future: _piecesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(
-                        child: SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                    );
-                  }
-                  final pieces = snapshot.data ?? [];
-                  if (pieces.isEmpty) {
-                    return const Text(
-                      'Aucun vêtement associé.',
-                      style: AppTextStyles.bodySecondary,
-                    );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Pièces', style: AppTextStyles.heading3),
-                      const SizedBox(height: 10),
-                      ...pieces.map((p) {
-                        final g = p.garment;
-                        final title = g != null && g.name.trim().isNotEmpty
-                            ? g.name.trim()
-                            : 'Pièce introuvable';
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                margin: const EdgeInsets.only(top: 6, right: 10),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.accent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      title,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      categoryLabel(p.categoryKey),
-                                      style: AppTextStyles.caption,
-                                    ),
-                                    if (g != null && g.brand.trim().isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          g.brand.trim(),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -2276,19 +1931,8 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeModeProvider);
     final body = Column(
         children: [
-          SwitchListTile(
-            title: const Text('Mode sombre'),
-            subtitle: const Text('Confort visuel en faible luminosité'),
-            value: themeMode == ThemeMode.dark,
-            onChanged: (on) {
-              ref.read(themeModeProvider.notifier).state =
-                  on ? ThemeMode.dark : ThemeMode.light;
-            },
-          ),
-          const Divider(height: 24),
           _InfoRow(label: 'Email', value: widget.user.email),
           _InfoRow(label: 'Pseudo', value: widget.user.username),
           _InfoRow(label: 'Nom', value: widget.user.displayName),

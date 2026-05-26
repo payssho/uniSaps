@@ -18,6 +18,7 @@ import '../../widgets/premium_avatar_ring.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/garment_card.dart';
 import '../../widgets/garment_colors_wrap.dart';
+import '../../widgets/garment_photo_carousel.dart';
 import '../../widgets/dressing_category_chips_row.dart';
 import '../../widgets/dressing_category_filters_bar.dart';
 import '../../widgets/storage_aware_cached_image.dart';
@@ -854,14 +855,22 @@ class _DressingTabState extends State<_DressingTab> {
     return widget.garments.where((g) => g.category == categoryKey).toList();
   }
 
-  List<GarmentModel> _filteredForCategory(String categoryKey) {
-    final byCat = _garmentsInCategory(categoryKey);
+  List<GarmentModel> _garmentsForFilterOptions() {
+    if (_selectedCategory.isEmpty) return widget.garments;
+    return _garmentsInCategory(_selectedCategory);
+  }
+
+  List<GarmentModel> _applyFilters(List<GarmentModel> list) {
     return applyDressingGarmentFilters(
-      list: byCat,
+      list: list,
       nameFilter: _nameFilter,
       brandFilter: _brandFilter,
       colorFilter: _colorFilter,
     );
+  }
+
+  List<GarmentModel> _filteredForCategory(String categoryKey) {
+    return _applyFilters(_garmentsInCategory(categoryKey));
   }
 
   void _showReadOnlyGarment(BuildContext context, GarmentModel g) {
@@ -916,10 +925,10 @@ class _DressingTabState extends State<_DressingTab> {
     );
   }
 
-  Widget _buildGroupedByCategory() {
+  Widget _buildGroupedByCategory({required bool noFilters}) {
     final sections = <Widget>[];
     for (final cat in categories) {
-      final items = _garmentsInCategory(cat.key);
+      final items = _applyFilters(_garmentsInCategory(cat.key));
       if (items.isEmpty) continue;
       items.sort(
         (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
@@ -971,6 +980,12 @@ class _DressingTabState extends State<_DressingTab> {
         ),
       );
     }
+    if (sections.isEmpty) {
+      return _emptyState(
+        hasItemsInCat: widget.garments.isNotEmpty,
+        noFilters: noFilters,
+      );
+    }
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: sections,
@@ -1008,22 +1023,20 @@ class _DressingTabState extends State<_DressingTab> {
           selectedCategory: _selectedCategory,
           onCategorySelected: _setCategory,
         ),
-        if (_selectedCategory.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          DressingCategoryFiltersBar(
-            nameController: _nameFilterController,
-            brandFilter: _brandFilter,
-            colorFilter: _colorFilter,
-            garmentsForOptions: _garmentsInCategory(_selectedCategory),
-            onNameChanged: (v) => setState(() => _nameFilter = v),
-            onBrandChanged: (v) => setState(() => _brandFilter = v ?? ''),
-            onColorChanged: (v) => setState(() => _colorFilter = v ?? ''),
-          ),
-        ],
+        const SizedBox(height: 10),
+        DressingCategoryFiltersBar(
+          nameController: _nameFilterController,
+          brandFilter: _brandFilter,
+          colorFilter: _colorFilter,
+          garmentsForOptions: _garmentsForFilterOptions(),
+          onNameChanged: (v) => setState(() => _nameFilter = v),
+          onBrandChanged: (v) => setState(() => _brandFilter = v ?? ''),
+          onColorChanged: (v) => setState(() => _colorFilter = v ?? ''),
+        ),
         const SizedBox(height: 8),
         Expanded(
           child: _selectedCategory.isEmpty
-              ? _buildGroupedByCategory()
+              ? _buildGroupedByCategory(noFilters: noFilters)
               : Builder(
                   builder: (context) {
                     final byCat = _garmentsInCategory(_selectedCategory);
@@ -1464,135 +1477,107 @@ class _ReadOnlyGarmentSheet extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.textHint.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 12, bottom: 16),
+              decoration: BoxDecoration(
+                color: AppColors.textHint.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            GestureDetector(
-              onTap: garment.imageUrl.isNotEmpty
-                  ? () {
-                      showDialog<void>(
-                        context: context,
-                        builder: (dCtx) => Dialog(
-                          insetPadding: const EdgeInsets.all(12),
-                          backgroundColor: Colors.black87,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(dCtx),
-                            child: InteractiveViewer(
-                              minScale: 0.5,
-                              maxScale: 4,
-                              child: StorageAwareCachedImage(
-                                imageUrl: garment.imageUrl,
-                                fit: BoxFit.contain,
-                                loadingWidget: const SizedBox(
-                                  height: 200,
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      color: AppColors.white,
-                                    ),
-                                  ),
-                                ),
-                                errorWidget: (_, __) => const Icon(
-                                  Icons.broken_image_outlined,
-                                  color: AppColors.white,
-                                  size: 48,
-                                ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: GarmentPhotoCarousel(
+                imageUrls: garment.imageUrls.isNotEmpty
+                    ? garment.imageUrls
+                    : (garment.imageUrl.isNotEmpty
+                        ? [garment.imageUrl]
+                        : <String>[]),
+                category: garment.category,
+                height: 260,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GarmentCategoryGlyph(
+                              categoryKey: garment.category,
+                              size: 16,
+                              color: AppColors.accent,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              categoryLabel(garment.category),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.accent,
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      );
-                    }
-                  : null,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: Container(
-                  height: 260,
-                  width: double.infinity,
-                  color: AppColors.surfaceVariant,
-                  child: garment.imageUrl.isNotEmpty
-                      ? StorageAwareCachedImage(
-                          imageUrl: garment.imageUrl,
-                          fit: BoxFit.cover,
-                          loadingWidget: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          errorWidget: (_, __) => Center(
-                            child: GarmentCategoryGlyph(
-                              categoryKey: garment.category,
-                              size: 56,
-                              color: AppColors.textHint,
-                            ),
-                          ),
-                        )
-                      : Center(
-                          child: GarmentCategoryGlyph(
-                            categoryKey: garment.category,
-                            size: 56,
-                            color: AppColors.textHint,
-                          ),
+                      ),
+                      if (garment.timesWorn > 0) ...[
+                        const SizedBox(width: 10),
+                        Text(
+                          '${garment.timesWorn}x porté',
+                          style: AppTextStyles.caption,
                         ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      GarmentCategoryGlyph(
-                        categoryKey: garment.category,
-                        size: 16,
-                        color: AppColors.accent,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        categoryLabel(garment.category),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent),
-                      ),
+                      ],
                     ],
                   ),
-                ),
-                if (garment.timesWorn > 0) ...[
-                  const SizedBox(width: 10),
-                  Text('${garment.timesWorn}x porté', style: AppTextStyles.caption),
+                  const SizedBox(height: 12),
+                  Text(
+                    garment.name.isNotEmpty ? garment.name : 'Sans nom',
+                    style: AppTextStyles.heading3,
+                  ),
+                  if (garment.brand.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      garment.brand,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                  if (garment.colors.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    GarmentColorsWrap(colors: garment.colors, fontSize: 12),
+                  ],
                 ],
-              ],
+              ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              garment.name.isNotEmpty ? garment.name : 'Sans nom',
-              style: AppTextStyles.heading3,
-            ),
-            if (garment.brand.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(garment.brand, style: const TextStyle(fontSize: 16, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
-            ],
-            if (garment.colors.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              GarmentColorsWrap(colors: garment.colors, fontSize: 12),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

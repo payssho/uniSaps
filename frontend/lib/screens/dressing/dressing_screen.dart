@@ -97,21 +97,18 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                 selectedCategory: _selectedCategory,
                 onCategorySelected: _setCategory,
               ),
-              if (_selectedCategory.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                DressingCategoryFiltersBar(
-                  nameController: _nameFilterController,
-                  brandFilter: _brandFilter,
-                  colorFilter: _colorFilter,
-                  garmentsForOptions: garmentsAsync.valueOrNull
-                          ?.where((g) => g.category == _selectedCategory)
-                          .toList() ??
-                      const [],
-                  onNameChanged: (v) => setState(() => _nameFilter = v),
-                  onBrandChanged: (v) => setState(() => _brandFilter = v ?? ''),
-                  onColorChanged: (v) => setState(() => _colorFilter = v ?? ''),
+              const SizedBox(height: 10),
+              DressingCategoryFiltersBar(
+                nameController: _nameFilterController,
+                brandFilter: _brandFilter,
+                colorFilter: _colorFilter,
+                garmentsForOptions: _garmentsForFilterOptions(
+                  garmentsAsync.valueOrNull ?? const [],
                 ),
-              ],
+                onNameChanged: (v) => setState(() => _nameFilter = v),
+                onBrandChanged: (v) => setState(() => _brandFilter = v ?? ''),
+                onColorChanged: (v) => setState(() => _colorFilter = v ?? ''),
+              ),
               const SizedBox(height: 12),
               Expanded(
                 child: garmentsAsync.when(
@@ -220,8 +217,12 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
     );
   }
 
+  List<GarmentModel> _garmentsForFilterOptions(List<GarmentModel> all) {
+    if (_selectedCategory.isEmpty) return all;
+    return all.where((g) => g.category == _selectedCategory).toList();
+  }
+
   List<GarmentModel> _applyLocalFilters(List<GarmentModel> list) {
-    if (_selectedCategory.isEmpty) return list;
     return applyDressingGarmentFilters(
       list: list,
       nameFilter: _nameFilter,
