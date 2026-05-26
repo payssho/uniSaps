@@ -14,6 +14,7 @@ import '../../providers/creator_stats_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../widgets/post_detail_sheet.dart';
+import '../../widgets/stat_row.dart';
 import '../inspiration/user_profile_screen.dart';
 
 class CreatorProfileScreen extends ConsumerWidget {
@@ -251,32 +252,36 @@ class _CreatorProfileHero extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      _StatCell(
+                      StatCell(
                         label: 'Posts',
                         value: '${stats.totalPosts}',
                         icon: Icons.campaign_outlined,
                         color: AppColors.primary,
+                        valueFontSize: 15,
                       ),
-                      _statDivider(),
-                      _StatCell(
+                      statRowDivider(),
+                      StatCell(
                         label: 'Actifs',
                         value: '${stats.activePosts}',
                         icon: Icons.visibility_outlined,
                         color: AppColors.accent,
+                        valueFontSize: 15,
                       ),
-                      _statDivider(),
-                      _StatCell(
+                      statRowDivider(),
+                      StatCell(
                         label: 'Vues',
                         value: _fmtCount(stats.totalViews),
                         icon: Icons.remove_red_eye_outlined,
                         color: AppColors.secondary,
+                        valueFontSize: 15,
                       ),
-                      _statDivider(),
-                      _StatCell(
+                      statRowDivider(),
+                      StatCell(
                         label: 'Likes',
                         value: _fmtCount(stats.totalLikes),
                         icon: Icons.favorite_border,
                         color: AppColors.error,
+                        valueFontSize: 15,
                       ),
                     ],
                   ),
@@ -307,57 +312,6 @@ class _CreatorProfileHero extends StatelessWidget {
     if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
     return '$n';
-  }
-}
-
-Widget _statDivider() {
-  return Container(
-    width: 1,
-    height: 36,
-    margin: const EdgeInsets.symmetric(horizontal: 4),
-    color: AppColors.divider.withValues(alpha: 0.85),
-  );
-}
-
-class _StatCell extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _StatCell({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary.withValues(alpha: 0.9),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

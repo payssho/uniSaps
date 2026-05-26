@@ -113,10 +113,15 @@ class _GarmentPhotoCarouselState extends State<GarmentPhotoCarousel> {
             allowImplicitScrolling: true,
             onPageChanged: (i) => setState(() => _page = i),
             itemBuilder: (context, i) {
-              return StorageAwareCachedImage(
-                imageUrl: _urls[i],
-                fit: BoxFit.cover,
-                width: double.infinity,
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final w = constraints.maxWidth;
+                  return StorageAwareCachedImage(
+                    imageUrl: _urls[i],
+                    fit: BoxFit.cover,
+                    width: w.isFinite && w > 0 ? w : null,
+                    height: widget.height,
+                    preferHighQuality: true,
                 loadingWidget: Container(
                   color: AppColors.surfaceVariant,
                   child: const Center(
@@ -127,16 +132,18 @@ class _GarmentPhotoCarouselState extends State<GarmentPhotoCarousel> {
                     ),
                   ),
                 ),
-                errorWidget: (_, __) => Container(
-                  color: AppColors.surfaceVariant,
-                  child: Center(
-                    child: GarmentCategoryGlyph(
-                      categoryKey: widget.category,
-                      size: 44,
-                      color: AppColors.textHint,
+                    errorWidget: (_, __) => Container(
+                      color: AppColors.surfaceVariant,
+                      child: Center(
+                        child: GarmentCategoryGlyph(
+                          categoryKey: widget.category,
+                          size: 44,
+                          color: AppColors.textHint,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               );
             },
           ),

@@ -27,6 +27,9 @@ class PostCard extends StatelessWidget {
   final PostCardLayout layout;
   final List<GarmentModel>? ownerGarments;
   final List<OutfitModel>? ownerOutfits;
+  /// Grille admin créateur : pas de header social, footer actif/inactif.
+  final bool creatorGrid;
+  final ValueChanged<bool>? onActiveChanged;
 
   const PostCard({
     super.key,
@@ -38,6 +41,8 @@ class PostCard extends StatelessWidget {
     this.layout = PostCardLayout.standard,
     this.ownerGarments,
     this.ownerOutfits,
+    this.creatorGrid = false,
+    this.onActiveChanged,
   });
 
   @override
@@ -137,26 +142,46 @@ class PostCard extends StatelessWidget {
             ),
             AspectRatio(
               aspectRatio: 3 / 4,
-              child: post.displayImageUrl.isNotEmpty
-                  ? StorageAwareCachedImage(
-                      imageUrl: post.displayImageUrl,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      loadingWidget: Container(
+              child: ClipRRect(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final w = constraints.maxWidth;
+                    final h = constraints.maxHeight;
+                    if (post.displayImageUrl.isEmpty) {
+                      return Container(
+                        width: w,
+                        height: h,
                         color: AppColors.surfaceVariant,
-                        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        child: const Center(
+                          child: Icon(
+                            Icons.photo_library_outlined,
+                            size: 48,
+                            color: AppColors.textHint,
+                          ),
+                        ),
+                      );
+                    }
+                    return StorageAwareCachedImage(
+                      imageUrl: post.displayImageUrl,
+                      width: w,
+                      height: h,
+                      fit: BoxFit.cover,
+                      preferHighQuality: true,
+                      loadingWidget: const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                       errorWidget: (_, __) => Container(
                         color: AppColors.surfaceVariant,
-                        child: const Icon(Icons.broken_image_outlined, color: AppColors.textHint, size: 40),
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          color: AppColors.textHint,
+                          size: 40,
+                        ),
                       ),
-                    )
-                  : Container(
-                      color: AppColors.surfaceVariant,
-                      child: const Center(
-                        child: Icon(Icons.photo_library_outlined, size: 48, color: AppColors.textHint),
-                      ),
-                    ),
+                    );
+                  },
+                ),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
@@ -216,6 +241,9 @@ class PostCard extends StatelessWidget {
   }
 
   Widget _buildGridCard(BuildContext context) {
+    if (creatorGrid) {
+      return _buildCreatorGridCard(context);
+    }
     final liked = post.isLikedBy(currentUid);
     return GestureDetector(
       onTap: onTap,
@@ -294,34 +322,52 @@ class PostCard extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  post.displayImageUrl.isNotEmpty
-                      ? StorageAwareCachedImage(
-                          imageUrl: post.displayImageUrl,
-                          fit: BoxFit.cover,
-                          loadingWidget: Container(
-                            color: AppColors.surfaceVariant,
-                            child: const Center(
-                              child: SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+              child: ClipRect(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final w = constraints.maxWidth;
+                    final h = constraints.maxHeight;
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        post.displayImageUrl.isNotEmpty
+                            ? StorageAwareCachedImage(
+                                imageUrl: post.displayImageUrl,
+                                fit: BoxFit.cover,
+                                width: w,
+                                height: h,
+                                preferHighQuality: true,
+                              loadingWidget: Container(
+                                color: AppColors.surfaceVariant,
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (_, __) => Container(
+                                color: AppColors.surfaceVariant,
+                                child: const Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppColors.textHint,
+                                  size: 32,
+                                ),
+                              ),
+                            )
+                          : Container(
+                              color: AppColors.surfaceVariant,
+                              child: const Center(
+                                child: Icon(
+                                  Icons.photo_library_outlined,
+                                  size: 36,
+                                  color: AppColors.textHint,
+                                ),
                               ),
                             ),
-                          ),
-                          errorWidget: (_, __) => Container(
-                            color: AppColors.surfaceVariant,
-                            child: const Icon(Icons.broken_image_outlined, color: AppColors.textHint, size: 32),
-                          ),
-                        )
-                      : Container(
-                          color: AppColors.surfaceVariant,
-                          child: const Center(
-                            child: Icon(Icons.photo_library_outlined, size: 36, color: AppColors.textHint),
-                          ),
-                        ),
                   if (post.isSponsored)
                     Positioned(
                       top: 8,
@@ -345,7 +391,10 @@ class PostCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                ],
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
             Flexible(
@@ -394,6 +443,137 @@ class PostCard extends StatelessWidget {
                     ],
                   ],
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreatorGridCard(BuildContext context) {
+    final imageUrl = post.displayImageUrl;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.divider.withValues(alpha: 0.65),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: 3 / 4,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final w = constraints.maxWidth;
+                  final h = constraints.maxHeight;
+                  if (imageUrl.isEmpty) {
+                    return Container(
+                      color: AppColors.surfaceVariant,
+                      child: const Icon(
+                        Icons.image_outlined,
+                        color: AppColors.textHint,
+                      ),
+                    );
+                  }
+                  return StorageAwareCachedImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    width: w,
+                    height: h,
+                    loadingWidget: Container(
+                      color: AppColors.surfaceVariant,
+                      child: const Center(
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    ),
+                    errorWidget: (_, __) => Container(
+                      color: AppColors.surfaceVariant,
+                      child: const Icon(
+                        Icons.image_outlined,
+                        color: AppColors.textHint,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.caption.isNotEmpty ? post.caption : 'Post sponsorisé',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (post.viewCount > 0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      '${post.viewCount} vues',
+                      style: AppTextStyles.caption.copyWith(fontSize: 11),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: post.isActive
+                              ? AppColors.success.withValues(alpha: 0.12)
+                              : AppColors.textHint.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          post.isActive ? 'Actif' : 'Inactif',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: post.isActive
+                                ? AppColors.success
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      if (onActiveChanged != null)
+                        SizedBox(
+                          height: 30,
+                          width: 42,
+                          child: FittedBox(
+                            fit: BoxFit.contain,
+                            alignment: Alignment.centerRight,
+                            child: Switch.adaptive(
+                              value: post.isActive,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                              onChanged: onActiveChanged,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],

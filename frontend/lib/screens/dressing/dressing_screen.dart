@@ -11,6 +11,8 @@ import '../../services/firebase_storage_display_url.dart';
 import '../../widgets/garment_card.dart';
 import '../../widgets/dressing_category_chips_row.dart';
 import '../../widgets/dressing_category_filters_bar.dart';
+import '../../widgets/app_empty_state.dart';
+import '../../widgets/confirm_delete_dialog.dart';
 import '../../widgets/garment_detail_sheet.dart';
 import '../../widgets/add_garment_sheet.dart';
 import '../../widgets/async_error_state.dart';
@@ -124,36 +126,21 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                           _brandFilter.isEmpty &&
                           _colorFilter.isEmpty;
                       final hasItemsInCat = byCat.isNotEmpty;
-                      return Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.checkroom, size: 72, color: AppColors.textHint.withOpacity(0.3)),
-                            const SizedBox(height: 20),
-                            Text(
-                              hasItemsInCat && !noFilters
-                                  ? 'Aucun résultat'
-                                  : 'Aucun vêtement',
-                              style: AppTextStyles.bodySecondary,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              hasItemsInCat && !noFilters
-                                  ? 'Essaie un autre nom, marque ou couleur.'
-                                  : 'Ajoute ton premier vêtement !',
-                              style: AppTextStyles.caption,
-                              textAlign: TextAlign.center,
-                            ),
-                            if (!hasItemsInCat && noFilters) ...[
-                              const SizedBox(height: 20),
-                              FilledButton.icon(
+                      return AppEmptyState(
+                        icon: Icons.checkroom,
+                        title: hasItemsInCat && !noFilters
+                            ? 'Aucun résultat'
+                            : 'Aucun vêtement',
+                        subtitle: hasItemsInCat && !noFilters
+                            ? 'Essaie un autre nom, marque ou couleur.'
+                            : 'Ajoute ton premier vêtement !',
+                        action: !hasItemsInCat && noFilters
+                            ? FilledButton.icon(
                                 onPressed: _showAddGarmentSheet,
                                 icon: const Icon(Icons.add, size: 20),
                                 label: const Text('Ajouter un vêtement'),
-                              ),
-                            ],
-                          ],
-                        ),
+                              )
+                            : null,
                       );
                     }
                     return GridView.builder(
@@ -232,26 +219,24 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
   }
 
   void _showGarmentDetails(GarmentModel garment) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => GarmentDetailSheet(
-        garment: garment,
-        onEdit: () {
-          Navigator.pop(context);
-          _showEditGarmentSheet(garment);
-        },
-        onDelete: () {
-          Navigator.pop(context);
-          _confirmDelete(garment).then((confirmed) {
-            if (confirmed == true) {
-              final uid = ref.read(authServiceProvider).uid;
-              ref.read(garmentNotifierProvider.notifier).deleteGarment(uid, garment.id);
-            }
-          });
-        },
-      ),
+    GarmentDetailSheet.show(
+      context,
+      garment: garment,
+      onEdit: () {
+        Navigator.pop(context);
+        _showEditGarmentSheet(garment);
+      },
+      onDelete: () {
+        Navigator.pop(context);
+        _confirmDelete(garment).then((confirmed) {
+          if (confirmed == true) {
+            final uid = ref.read(authServiceProvider).uid;
+            ref
+                .read(garmentNotifierProvider.notifier)
+                .deleteGarment(uid, garment.id);
+          }
+        });
+      },
     );
   }
 
@@ -263,113 +248,11 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
     pushAddGarmentRoute(context, garment: garment);
   }
 
-  Future<bool?> _confirmDelete(GarmentModel garment) async {
-    return await showModalBottomSheet<bool>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Indicateur de glissement
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: AppColors.textHint.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                // Icône de suppression
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.delete_outline,
-                    color: AppColors.error,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Supprimer ce vêtement ?',
-                  style: AppTextStyles.heading3.copyWith(fontSize: 20),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '"${garment.name}"',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: const BorderSide(color: AppColors.divider, width: 1.5),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Annuler',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.error,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text(
-                          'Supprimer',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        ),
-      ),
+  Future<bool?> _confirmDelete(GarmentModel garment) {
+    return showConfirmDeleteSheet(
+      context,
+      title: 'Supprimer ce vêtement ?',
+      subtitle: '"${garment.name}"',
     );
   }
 }

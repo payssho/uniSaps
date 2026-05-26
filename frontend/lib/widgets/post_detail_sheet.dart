@@ -7,6 +7,7 @@ import '../core/constants/app_text_styles.dart';
 import '../models/garment_model.dart';
 import '../models/outfit_model.dart';
 import '../models/post_model.dart';
+import '../providers/auth_provider.dart';
 import '../screens/inspiration/user_profile_screen.dart';
 import 'post_garment_refs.dart';
 import 'premium_avatar_ring.dart';
@@ -17,12 +18,15 @@ class PostDetailSheet extends ConsumerStatefulWidget {
   final PostModel post;
   final List<GarmentModel>? ownerGarments;
   final List<OutfitModel>? ownerOutfits;
+  /// Masquer la ligne auteur (ex. ouverture depuis son profil → évite boucle navigation).
+  final bool showAuthorHeader;
 
   const PostDetailSheet({
     super.key,
     required this.post,
     this.ownerGarments,
     this.ownerOutfits,
+    this.showAuthorHeader = true,
   });
 
   static Future<void> show(
@@ -30,6 +34,7 @@ class PostDetailSheet extends ConsumerStatefulWidget {
     PostModel post, {
     List<GarmentModel>? ownerGarments,
     List<OutfitModel>? ownerOutfits,
+    bool showAuthorHeader = true,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -39,6 +44,7 @@ class PostDetailSheet extends ConsumerStatefulWidget {
         post: post,
         ownerGarments: ownerGarments,
         ownerOutfits: ownerOutfits,
+        showAuthorHeader: showAuthorHeader,
       ),
     );
   }
@@ -71,6 +77,11 @@ class _PostDetailSheetState extends ConsumerState<PostDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
+    final myUid = ref.watch(authServiceProvider).uid;
+    // Pas de lien auteur sur ses propres posts (profil / espace créateur).
+    final showAuthor = widget.showAuthorHeader &&
+        myUid.isNotEmpty &&
+        post.userId != myUid;
     final maxH = MediaQuery.sizeOf(context).height * 0.92;
     final imageUrl = post.displayImageUrl;
 
@@ -121,65 +132,77 @@ class _PostDetailSheetState extends ConsumerState<PostDetailSheet> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      _AuthorRow(post: post),
+                      if (showAuthor) ...[
+                        const SizedBox(height: 12),
+                        _AuthorRow(post: post),
+                      ],
                       if (imageUrl.isNotEmpty) ...[
-                        const SizedBox(height: 16),
+                        SizedBox(height: showAuthor ? 16 : 4),
                         ClipRRect(
                           borderRadius:
                               BorderRadius.circular(AppRadii.card + 2),
                           child: AspectRatio(
                             aspectRatio: 3 / 4,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                StorageAwareCachedImage(
-                                  imageUrl: imageUrl,
-                                  fit: BoxFit.cover,
-                                  loadingWidget: Container(
-                                    color: AppColors.surfaceVariant,
-                                    child: const Center(
-                                      child: SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                            strokeWidth: 2),
-                                      ),
-                                    ),
-                                  ),
-                                  errorWidget: (_, __) => Container(
-                                    color: AppColors.surfaceVariant,
-                                    child: const Icon(
-                                      Icons.broken_image_outlined,
-                                      color: AppColors.textHint,
-                                      size: 40,
-                                    ),
-                                  ),
-                                ),
-                                if (post.garmentRefs.isNotEmpty)
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                          colors: [
-                                            Colors.transparent,
-                                            AppColors.graphite
-                                                .withValues(alpha: 0.35),
-                                          ],
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final w = constraints.maxWidth;
+                                final h = constraints.maxHeight;
+                                return Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    StorageAwareCachedImage(
+                                      imageUrl: imageUrl,
+                                      fit: BoxFit.cover,
+                                      width: w,
+                                      height: h,
+                                      preferHighQuality: true,
+                                      loadingWidget: Container(
+                                        color: AppColors.surfaceVariant,
+                                        child: const Center(
+                                          child: SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
                                         ),
                                       ),
-                                      child: PostGarmentScrollHint(
-                                        itemCount: post.garmentRefs.length,
-                                        onTap: _scrollToGarments,
+                                      errorWidget: (_, __) => Container(
+                                        color: AppColors.surfaceVariant,
+                                        child: const Icon(
+                                          Icons.broken_image_outlined,
+                                          color: AppColors.textHint,
+                                          size: 40,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                              ],
+                                    if (post.garmentRefs.isNotEmpty)
+                                      Positioned(
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                Colors.transparent,
+                                                AppColors.graphite
+                                                    .withValues(alpha: 0.35),
+                                              ],
+                                            ),
+                                          ),
+                                          child: PostGarmentScrollHint(
+                                            itemCount: post.garmentRefs.length,
+                                            onTap: _scrollToGarments,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -221,24 +244,6 @@ class _PostDetailSheetState extends ConsumerState<PostDetailSheet> {
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
                                         color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surfaceVariant,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      '${post.garmentRefs.length}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                        color: AppColors.textSecondary,
                                       ),
                                     ),
                                   ),

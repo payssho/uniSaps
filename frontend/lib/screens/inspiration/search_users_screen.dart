@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/friendship_provider.dart';
+import '../../widgets/user_list_tile.dart';
 import 'user_profile_screen.dart';
 
 class SearchUsersScreen extends ConsumerStatefulWidget {
@@ -262,89 +262,49 @@ class _UserResultTile extends ConsumerWidget {
     final mutualCount =
         user.friends.where((id) => myFriends.contains(id)).length;
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: const EdgeInsets.all(14),
+    String? subtitle = subtitleOverride;
+    if (subtitle == null && !isFriend && mutualCount > 0) {
+      subtitle =
+          '$mutualCount ami${mutualCount > 1 ? 's' : ''} en commun';
+    }
+
+    Widget? trailing;
+    if (isFriend) {
+      trailing = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.divider, width: 1),
+          color: AppColors.success.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: Row(
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: AppColors.surfaceVariant,
-              backgroundImage: user.profilePhotoUrl.isNotEmpty
-                  ? CachedNetworkImageProvider(user.profilePhotoUrl)
-                  : null,
-              child: user.profilePhotoUrl.isEmpty
-                  ? Text(
-                      user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
-                        color: AppColors.textHint,
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    user.username,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                  ),
-                  if (user.displayName.isNotEmpty)
-                    Text(user.displayName, style: AppTextStyles.caption),
-                  if (subtitleOverride != null)
-                    Text(
-                      subtitleOverride!,
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    )
-                  else
-                  if (!isFriend && mutualCount > 0)
-                    Text(
-                      '$mutualCount ami${mutualCount > 1 ? 's' : ''} en commun',
-                      style: AppTextStyles.caption.copyWith(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                ],
+            Icon(Icons.check, size: 14, color: AppColors.success),
+            SizedBox(width: 4),
+            Text(
+              'Ami',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppColors.success,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            if (isFriend)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check, size: 14, color: AppColors.success),
-                    SizedBox(width: 4),
-                    Text('Ami', style: TextStyle(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-              )
-            else if (user.isPrivate)
-              const Icon(Icons.lock_outline, size: 18, color: AppColors.textHint)
-            else
-              const Icon(Icons.chevron_right, color: AppColors.textHint),
           ],
         ),
-      ),
+      );
+    } else if (user.isPrivate) {
+      trailing = const Icon(Icons.lock_outline,
+          size: 18, color: AppColors.textHint);
+    } else {
+      trailing =
+          const Icon(Icons.chevron_right, color: AppColors.textHint);
+    }
+
+    return UserListTile(
+      user: user,
+      onTap: onTap,
+      subtitleOverride: subtitle,
+      trailing: trailing,
     );
   }
 }

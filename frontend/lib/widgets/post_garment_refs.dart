@@ -443,11 +443,6 @@ class _DetailGarmentCard extends StatelessWidget {
               ],
             ),
           ),
-          Icon(
-            Icons.checkroom_outlined,
-            size: 20,
-            color: AppColors.textHint.withValues(alpha: 0.7),
-          ),
         ],
       ),
     );
@@ -513,22 +508,25 @@ class PostGarmentRefAvatar extends StatelessWidget {
     if (ref.imageUrl.isNotEmpty) {
       return ClipRRect(
         borderRadius: borderRadius,
+        clipBehavior: Clip.hardEdge,
         child: SizedBox(
           width: size,
           height: size,
           child: StorageAwareCachedImage(
             imageUrl: ref.imageUrl,
             fit: BoxFit.cover,
-            loadingWidget: Center(
-              child: SizedBox(
-                width: size * 0.28,
-                height: size * 0.28,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.accent.withValues(alpha: 0.7),
+            width: size,
+            height: size,
+              loadingWidget: Center(
+                child: SizedBox(
+                  width: size * 0.28,
+                  height: size * 0.28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.accent.withValues(alpha: 0.7),
+                  ),
                 ),
               ),
-            ),
             errorWidget: (_, __) => fallback,
           ),
         ),

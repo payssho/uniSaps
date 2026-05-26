@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/image_capture.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
 import '../../core/constants/weather_catalog.dart';
@@ -13,6 +14,7 @@ import '../../providers/outfit_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/garment_picker_grid_sheet.dart';
+import '../../widgets/garment_thumbnail.dart';
 import '../../widgets/storage_aware_cached_image.dart';
 import '../../widgets/creation_step_breadcrumb.dart';
 
@@ -91,8 +93,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: source,
-      maxWidth: 800,
-      imageQuality: 82,
+      maxWidth: ImageCaptureDefaults.outfitPhotoMaxWidth,
+      imageQuality: ImageCaptureDefaults.outfitPhotoQuality,
     );
     if (picked == null) return;
     setState(() => _uploadingPhoto = true);
@@ -284,43 +286,11 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                 Column(
                                   children: [
                                     Expanded(
-                                      child: g.imageUrl.isNotEmpty
-                                          ? StorageAwareCachedImage(
-                                              imageUrl: g.imageUrl,
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                              loadingWidget: Container(
-                                                color: AppColors.surfaceVariant,
-                                                child: const Center(
-                                                  child: SizedBox(
-                                                    width: 22,
-                                                    height: 22,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                            strokeWidth: 2),
-                                                  ),
-                                                ),
-                                              ),
-                                              errorWidget: (_, __) =>
-                                                  Container(
-                                                color:
-                                                    AppColors.surfaceVariant,
-                                                child: GarmentCategoryGlyph(
-                                                  categoryKey: categoryKey,
-                                                  color: AppColors.textHint,
-                                                  size: 24,
-                                                ),
-                                              ),
-                                            )
-                                          : Container(
-                                              color:
-                                                  AppColors.surfaceVariant,
-                                              child: GarmentCategoryGlyph(
-                                                  categoryKey: categoryKey,
-                                                  color:
-                                                      AppColors.textHint,
-                                                  size: 24),
-                                            ),
+                                      child: GarmentThumbnail(
+                                        garment: g,
+                                        categoryKey: categoryKey,
+                                        width: double.infinity,
+                                      ),
                                     ),
                                     Padding(
                                       padding:
@@ -675,36 +645,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             ),
             child: Row(
               children: [
-                if (hasGarment && garment.imageUrl.isNotEmpty)
+                if (hasGarment)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: SizedBox(
+                    child: GarmentThumbnail(
+                      garment: garment,
+                      categoryKey: catKey,
                       width: 44,
                       height: 44,
-                      child: StorageAwareCachedImage(
-                        imageUrl: garment.imageUrl,
-                        fit: BoxFit.cover,
-                        width: 44,
-                        height: 44,
-                        loadingWidget: Container(
-                          color: AppColors.surfaceVariant,
-                          child: const Center(
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        ),
-                        errorWidget: (_, __) => Container(
-                          color: AppColors.surfaceVariant,
-                          child: GarmentCategoryGlyph(
-                            categoryKey: catKey,
-                            size: 22,
-                            color: AppColors.textHint,
-                          ),
-                        ),
-                      ),
                     ),
                   )
                 else

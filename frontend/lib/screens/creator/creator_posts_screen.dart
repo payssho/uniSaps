@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
@@ -8,10 +7,10 @@ import '../../models/post_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../providers/creator_post_provider.dart';
-import '../../models/garment_model.dart';
-import '../../models/outfit_model.dart';
 import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
+import '../../widgets/app_empty_state.dart';
+import '../../widgets/post_card.dart';
 import '../../widgets/post_detail_sheet.dart';
 import 'creator_post_create_screen.dart';
 
@@ -113,18 +112,10 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                     data: (collections) {
                       final grouped = _groupByCollection(posts, collections);
                       if (grouped.values.every((l) => l.isEmpty)) {
-                        return Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.campaign_outlined,
-                                  size: 48,
-                                  color: AppColors.textHint.withValues(alpha: 0.6)),
-                              const SizedBox(height: 12),
-                              const Text('Aucun post pour l’instant.',
-                                  style: AppTextStyles.bodySecondary),
-                            ],
-                          ),
+                        return const AppEmptyState(
+                          icon: Icons.campaign_outlined,
+                          title: 'Aucun post pour l’instant.',
+                          size: AppEmptyStateSize.compact,
                         );
                       }
                       final colNames = {
@@ -153,11 +144,30 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                                   childAspectRatio: 0.51,
                                 ),
                                 itemCount: e.value.length,
-                                itemBuilder: (_, i) => _PostTile(
-                                  post: e.value[i],
-                                  ownerGarments: garments,
-                                  ownerOutfits: outfits,
-                                ),
+                                itemBuilder: (_, i) {
+                                  final post = e.value[i];
+                                  final uid =
+                                      ref.read(authServiceProvider).uid;
+                                  return PostCard(
+                                    post: post,
+                                    currentUid: uid,
+                                    layout: PostCardLayout.grid,
+                                    creatorGrid: true,
+                                    ownerGarments: garments,
+                                    ownerOutfits: outfits,
+                                    onLike: () {},
+                                    onTap: () => PostDetailSheet.show(
+                                      context,
+                                      post,
+                                      ownerGarments: garments,
+                                      ownerOutfits: outfits,
+                                    ),
+                                    onActiveChanged: (v) => ref
+                                        .read(creatorPostNotifierProvider
+                                            .notifier)
+                                        .setPostActive(post.id, v),
+                                  );
+                                },
                               ),
                             ],
                           );
@@ -172,134 +182,6 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                   child: CircularProgressIndicator(color: AppColors.accent),
                 ),
                 error: (e, _) => Center(child: Text('Erreur : $e')),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PostTile extends ConsumerWidget {
-  final PostModel post;
-  final List<GarmentModel> ownerGarments;
-  final List<OutfitModel> ownerOutfits;
-
-  const _PostTile({
-    required this.post,
-    required this.ownerGarments,
-    required this.ownerOutfits,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final imageUrl = post.displayImageUrl;
-    final radius = BorderRadius.circular(14);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: radius,
-        side: BorderSide(color: AppColors.divider.withValues(alpha: 0.65)),
-      ),
-      child: InkWell(
-        onTap: () => PostDetailSheet.show(
-          context,
-          post,
-          ownerGarments: ownerGarments,
-          ownerOutfits: ownerOutfits,
-        ),
-        borderRadius: radius,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AspectRatio(
-              aspectRatio: 3 / 4,
-              child: imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                      placeholder: (_, __) => Container(
-                        color: AppColors.surfaceVariant,
-                        child: const Center(
-                          child: SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: AppColors.surfaceVariant,
-                      child:
-                          const Icon(Icons.image_outlined, color: AppColors.textHint),
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    post.caption.isNotEmpty ? post.caption : 'Post sponsorisé',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: post.isActive
-                                  ? AppColors.success.withValues(alpha: 0.12)
-                                  : AppColors.textHint.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              post.isActive ? 'Actif' : 'Inactif',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: post.isActive
-                                    ? AppColors.success
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        height: 30,
-                        width: 42,
-                        child: FittedBox(
-                          fit: BoxFit.contain,
-                          alignment: Alignment.centerRight,
-                          child: Switch.adaptive(
-                            value: post.isActive,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            onChanged: (v) => ref
-                                .read(creatorPostNotifierProvider.notifier)
-                                .setPostActive(post.id, v),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
               ),
             ),
           ],

@@ -383,9 +383,16 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                           child: SizedBox(
                             width: double.infinity,
                             height: previewImageH,
-                            child: StorageAwareCachedImage(
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final w = constraints.maxWidth;
+                                final h = constraints.maxHeight;
+                                return StorageAwareCachedImage(
                               imageUrl: postImageUrl,
+                              width: w,
+                              height: h,
                               fit: BoxFit.cover,
+                              preferHighQuality: true,
                               loadingWidget: Container(
                                 color: AppColors.surfaceVariant,
                                 child: const Center(
@@ -405,6 +412,8 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                                   size: 40,
                                 ),
                               ),
+                                );
+                              },
                             ),
                           ),
                         ),
@@ -598,6 +607,8 @@ class _DailyPostGarmentTile extends StatelessWidget {
               child: garment.imageUrl.isNotEmpty
                   ? StorageAwareCachedImage(
                       imageUrl: garment.imageUrl,
+                      width: 76,
+                      height: 76,
                       fit: BoxFit.cover,
                       loadingWidget: Container(
                         color: AppColors.surfaceVariant,
@@ -1678,43 +1689,57 @@ class _InspoPostCardState extends State<_InspoPostCard>
           GestureDetector(
             onDoubleTap: _onDoubleTapImage,
             child: AspectRatio(
-              // Ratio plus « portrait » pour mieux voir les photos verticales.
-              aspectRatio: 2 / 3,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  widget.post.displayImageUrl.isNotEmpty
-                      ? StorageAwareCachedImage(
-                          imageUrl: widget.post.displayImageUrl,
-                          fit: BoxFit.cover,
-                          loadingWidget: Container(
-                            color:
-                                AppColors.surfaceVariant.withValues(alpha: 0.72),
-                            child: Center(
-                              child: SizedBox(
-                                width: 28,
-                                height: 28,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color:
-                                      AppColors.accent.withValues(alpha: 0.7),
+              aspectRatio: 3 / 4,
+              child: ClipRect(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final w = constraints.maxWidth;
+                    final h = constraints.maxHeight;
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        widget.post.displayImageUrl.isNotEmpty
+                            ? StorageAwareCachedImage(
+                                imageUrl: widget.post.displayImageUrl,
+                                width: w,
+                                height: h,
+                                fit: BoxFit.cover,
+                                preferHighQuality: true,
+                                loadingWidget: Container(
+                                  width: w,
+                                  height: h,
+                                  color: AppColors.surfaceVariant
+                                      .withValues(alpha: 0.72),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 28,
+                                      height: 28,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.accent
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                  ),
                                 ),
+                                errorWidget: (_, __) => Container(
+                                  width: w,
+                                  height: h,
+                                  color: AppColors.surfaceVariant
+                                      .withValues(alpha: 0.75),
+                                  child: const Icon(
+                                    Icons.photo_library_outlined,
+                                    size: 40,
+                                    color: AppColors.textHint,
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                width: w,
+                                height: h,
+                                color: AppColors.surfaceVariant
+                                    .withValues(alpha: 0.75),
                               ),
-                            ),
-                          ),
-                          errorWidget: (_, __) => Container(
-                            color: AppColors.surfaceVariant
-                                .withValues(alpha: 0.75),
-                            child: const Icon(
-                              Icons.photo_library_outlined,
-                              size: 40,
-                              color: AppColors.textHint,
-                            ),
-                          ),
-                        )
-                      : Container(
-                          color: AppColors.surfaceVariant.withValues(alpha: 0.75),
-                        ),
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -1731,8 +1756,11 @@ class _InspoPostCardState extends State<_InspoPostCard>
                       ),
                     ),
                   ),
-                  _burstOverlay(),
-                ],
+                        _burstOverlay(),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),

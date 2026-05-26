@@ -6,15 +6,20 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/premium_unlock.dart';
-import '../../core/constants/categories.dart';
 import '../../models/user_model.dart';
 import '../../models/garment_model.dart';
 import '../../models/outfit_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
+import '../../providers/garment_provider.dart';
 import '../../providers/friendship_provider.dart';
 import '../../widgets/premium_avatar_ring.dart';
+import '../../widgets/app_empty_state.dart';
+import '../../widgets/outfit_detail_sheet.dart';
+import '../../widgets/storage_aware_cached_image.dart';
 import '../../widgets/async_error_state.dart';
+import '../../widgets/stat_row.dart';
+import '../../widgets/user_list_tile.dart';
 import '../../providers/ui_navigation_provider.dart';
 import '../inspiration/user_profile_screen.dart';
 import '../inspiration/search_users_screen.dart';
@@ -668,28 +673,28 @@ class _ProfileHeroStats extends ConsumerWidget {
               ),
               child: Row(
                 children: [
-                  _ProfileHeroStatCell(
+                  StatCell(
                     label: 'Vêtements',
                     value: loading ? '—' : '${counts[0]}',
                     icon: Icons.checkroom_outlined,
                     color: AppColors.accent,
                   ),
-                  _profileHeroStatDivider(),
-                  _ProfileHeroStatCell(
+                  statRowDivider(),
+                  StatCell(
                     label: 'Outfits',
                     value: loading ? '—' : '${counts[1]}',
                     icon: Icons.style_outlined,
                     color: AppColors.secondary,
                   ),
-                  _profileHeroStatDivider(),
-                  _ProfileHeroStatCell(
+                  statRowDivider(),
+                  StatCell(
                     label: 'Portés',
                     value: loading ? '—' : '${counts[2]}',
                     icon: Icons.done_all_rounded,
                     color: AppColors.success,
                   ),
-                  _profileHeroStatDivider(),
-                  _ProfileHeroStatCell(
+                  statRowDivider(),
+                  StatCell(
                     label: 'Amis',
                     value: '${user.friends.length}',
                     icon: Icons.people_outline_rounded,
@@ -712,64 +717,6 @@ class _ProfileHeroStats extends ConsumerWidget {
           ],
         );
       },
-    );
-  }
-}
-
-Widget _profileHeroStatDivider() {
-  return Container(
-    width: 1,
-    height: 36,
-    margin: const EdgeInsets.symmetric(horizontal: 4),
-    color: AppColors.divider.withValues(alpha: 0.85),
-  );
-}
-
-class _ProfileHeroStatCell extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _ProfileHeroStatCell({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              height: 1,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary.withValues(alpha: 0.9),
-              height: 1.1,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1022,6 +969,8 @@ class _GalleryTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final outfitsAsync = ref.watch(outfitsProvider(uid));
+    final garments = ref.watch(garmentsProvider(uid)).valueOrNull ?? [];
+    final garmentCache = {for (final g in garments) g.id: g};
     return outfitsAsync.when(
       data: (outfits) {
         // Construire une liste de memories (photo + meta outfit)
@@ -1032,17 +981,10 @@ class _GalleryTab extends ConsumerWidget {
           }
         }
         if (memories.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.photo_library_outlined,
-                    size: 56, color: AppColors.textHint.withOpacity(0.4)),
-                const SizedBox(height: 12),
-                const Text('Aucun souvenir pour l\'instant',
-                    style: AppTextStyles.bodySecondary),
-              ],
-            ),
+          return const AppEmptyState(
+            icon: Icons.photo_library_outlined,
+            title: 'Aucun souvenir pour l\'instant',
+            size: AppEmptyStateSize.compact,
           );
         }
         memories.sort(
@@ -1054,6 +996,7 @@ class _GalleryTab extends ConsumerWidget {
             crossAxisCount: 3,
             crossAxisSpacing: 6,
             mainAxisSpacing: 6,
+            childAspectRatio: 1,
           ),
           itemCount: memories.length,
           itemBuilder: (_, i) {
@@ -1065,51 +1008,73 @@ class _GalleryTab extends ConsumerWidget {
                 ? rawDate.substring(0, 10)
                 : rawDate;
             return GestureDetector(
-              onTap: () =>
-                  _showMemoryDetail(context, memory.url, memory.outfit, date),
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
-                      imageUrl: memory.url,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(
-                        color: AppColors.surfaceVariant,
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                      errorWidget: (_, __, ___) => Container(
-                        color: AppColors.surfaceVariant,
-                        child: const Icon(
-                          Icons.broken_image_outlined,
-                          color: AppColors.textHint,
-                        ),
-                      ),
-                    ),
+              onTap: () => OutfitDetailSheet.show(
+                context,
+                outfit: memory.outfit,
+                garmentCache: garmentCache,
+                mode: OutfitDetailMode.readOnly,
+                focusPhotoUrl: memory.url,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final w = constraints.maxWidth;
+                      final h = constraints.maxHeight;
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          StorageAwareCachedImage(
+                            imageUrl: memory.url,
+                            fit: BoxFit.cover,
+                            width: w,
+                            height: h,
+                            preferHighQuality: true,
+                            loadingWidget: Container(
+                              color: AppColors.surfaceVariant,
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                            errorWidget: (_, __) => Container(
+                              color: AppColors.surfaceVariant,
+                              child: const Icon(
+                                Icons.broken_image_outlined,
+                                color: AppColors.textHint,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 4,
+                            bottom: 4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.graphite.withOpacity(0.55),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                date.isNotEmpty ? date : '-',
+                                style: const TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                  Positioned(
-                    left: 4,
-                    bottom: 4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.graphite.withOpacity(0.55),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        date.isNotEmpty ? date : '-',
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             );
           },
@@ -1119,114 +1084,6 @@ class _GalleryTab extends ConsumerWidget {
       error: (e, _) => AsyncErrorState(
             onRetry: () => ref.invalidate(outfitsProvider(uid)),
           ),
-    );
-  }
-}
-
-void _showMemoryDetail(
-  BuildContext context,
-  String url,
-  OutfitModel outfit,
-  String date,
-) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _MemoryDetailSheet(
-      url: url,
-      outfit: outfit,
-      date: date,
-    ),
-  );
-}
-
-class _MemoryDetailSheet extends StatelessWidget {
-  final String url;
-  final OutfitModel outfit;
-  final String date;
-
-  const _MemoryDetailSheet({
-    required this.url,
-    required this.outfit,
-    required this.date,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.textHint.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    date,
-                    style: AppTextStyles.bodySecondary,
-                  ),
-                  const Spacer(),
-                  if (outfit.name.isNotEmpty)
-                    Text(
-                      outfit.name,
-                      style: AppTextStyles.body
-                          .copyWith(fontWeight: FontWeight.w600),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: CachedNetworkImage(
-                  imageUrl: url,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  placeholder: (_, __) => Container(
-                    height: 320,
-                    color: AppColors.surfaceVariant,
-                    child: const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                  errorWidget: (_, __, ___) => Container(
-                    height: 320,
-                    color: AppColors.surfaceVariant,
-                    child: const Icon(
-                      Icons.broken_image_outlined,
-                      color: AppColors.textHint,
-                      size: 40,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Photo prise lors du choix de l\'outfit du jour.',
-                style: AppTextStyles.caption,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1432,63 +1289,27 @@ class _FriendsTab extends ConsumerWidget {
           friendsAsync.when(
             data: (friendUsers) {
               if (friendUsers.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(Icons.people_outline,
-                            size: 44,
-                            color: AppColors.textHint.withValues(alpha: 0.35)),
-                        const SizedBox(height: 10),
-                        const Text('Aucun ami pour le moment',
-                            style: AppTextStyles.bodySecondary),
-                      ],
-                    ),
-                  ),
+                return const AppEmptyState(
+                  icon: Icons.people_outline,
+                  title: 'Aucun ami pour le moment',
+                  size: AppEmptyStateSize.compact,
                 );
               }
               return Column(
                 children: friendUsers
-                    .map((friend) => Container(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.divider.withValues(alpha: 0.65),
-                    ),
-                  ),
-                  child: ListTile(
+                    .map((friend) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: UserListTile(
+                    user: friend,
                     dense: true,
-                    visualDensity: VisualDensity.compact,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                    leading: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: AppColors.surfaceVariant,
-                      backgroundImage: friend.profilePhotoUrl.isNotEmpty
-                          ? CachedNetworkImageProvider(friend.profilePhotoUrl)
-                          : null,
-                      child: friend.profilePhotoUrl.isEmpty
-                          ? Text(
-                              friend.username.isNotEmpty
-                                  ? friend.username[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textHint),
-                            )
-                          : null,
-                    ),
-                    title: Text(
-                      friend.username,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    subtitle: friend.displayName.isNotEmpty
-                        ? Text(friend.displayName, style: AppTextStyles.caption)
-                        : null,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              UserProfileScreen(userId: friend.uid),
+                        ),
+                      );
+                    },
                     trailing: PopupMenuButton<String>(
                       icon: const Icon(Icons.more_vert,
                           color: AppColors.textHint),
@@ -1497,7 +1318,7 @@ class _FriendsTab extends ConsumerWidget {
                       onSelected: (value) {
                         if (value == 'view') {
                           Navigator.of(context).push(
-                            MaterialPageRoute(
+                            MaterialPageRoute<void>(
                               builder: (_) =>
                                   UserProfileScreen(userId: friend.uid),
                             ),
@@ -1506,8 +1327,8 @@ class _FriendsTab extends ConsumerWidget {
                           _confirmRemoveFriend(context, ref, friend);
                         }
                       },
-                      itemBuilder: (_) => [
-                        const PopupMenuItem(
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
                           value: 'view',
                           child: Row(
                             children: [
@@ -1518,7 +1339,7 @@ class _FriendsTab extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'remove',
                           child: Row(
                             children: [
@@ -1532,13 +1353,6 @@ class _FriendsTab extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => UserProfileScreen(userId: friend.uid),
-                        ),
-                      );
-                    },
                   ),
                 ))
                     .toList(),

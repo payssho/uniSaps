@@ -6,6 +6,7 @@ import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/image_capture.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
 import '../../core/constants/weather_catalog.dart';
@@ -24,6 +25,7 @@ import '../../widgets/garment_category_glyph.dart';
 import '../creations/creation_screen.dart';
 import '../weather/weather_detail_sheet.dart';
 import '../../widgets/async_error_state.dart';
+import '../../widgets/outfit_detail_sheet.dart';
 import '../../widgets/outfits/outfits_mode_toggle.dart';
 
 /// Suggestions biblio IA (persistées pendant la session pour l’état vide + la feuille).
@@ -280,7 +282,10 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
   Future<void> _takePhoto(String uid, OutfitModel outfit) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
-        source: ImageSource.camera, maxWidth: 600, imageQuality: 78);
+      source: ImageSource.camera,
+      maxWidth: ImageCaptureDefaults.outfitPhotoMaxWidth,
+      imageQuality: ImageCaptureDefaults.outfitPhotoQuality,
+    );
     if (picked == null) return;
     final bytes = await picked.readAsBytes();
     final url = await ref
@@ -1988,319 +1993,13 @@ void _showOutfitDetail(
   VoidCallback? onChoose,
   VoidCallback? onDelete,
 }) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _OutfitDetailSheet(
-      outfit: outfit,
-      garmentCache: garmentCache,
-      onChoose: onChoose,
-      onDelete: onDelete,
-    ),
+  OutfitDetailSheet.show(
+    context,
+    outfit: outfit,
+    garmentCache: garmentCache,
+    onChooseToday: onChoose,
+    onDelete: onDelete,
   );
-}
-
-class _OutfitDetailSheet extends StatelessWidget {
-  final OutfitModel outfit;
-  final Map<String, GarmentModel> garmentCache;
-  final VoidCallback? onChoose;
-  final VoidCallback? onDelete;
-
-  const _OutfitDetailSheet({
-    required this.outfit,
-    required this.garmentCache,
-    this.onChoose,
-    this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final items = <MapEntry<String, GarmentModel>>[];
-    for (final e in outfit.garments.entries) {
-      if (e.value.isEmpty) continue;
-      for (final id in OutfitModel.parseGarmentSlotValue(e.value)) {
-        final g = garmentCache[id];
-        if (g != null) items.add(MapEntry(e.key, g));
-      }
-    }
-
-    return Container(
-      constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 16),
-            decoration: BoxDecoration(
-              color: AppColors.textHint.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (outfit.referencePhotoUrl.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                          child: AspectRatio(
-                          aspectRatio: 3 / 4,
-                          child: StorageAwareCachedImage(
-                            imageUrl: outfit.referencePhotoUrl,
-                            fit: BoxFit.cover,
-                            loadingWidget: Container(
-                                color: AppColors.surfaceVariant,
-                                child: const Center(
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))),
-                            errorWidget: (_, __) => Container(
-                              color: AppColors.surfaceVariant,
-                              child: Icon(Icons.broken_image_outlined,
-                                  color:
-                                      AppColors.textHint.withOpacity(0.55)),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            outfit.name.isEmpty ? 'Outfit' : outfit.name,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        if (outfit.timesWorn > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.accent.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              'Porté ${outfit.timesWorn}x',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.accent),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (items.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Pièces',
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary)),
-                          const SizedBox(height: 10),
-                          ...items.asMap().entries.map((entry) {
-                            final i = entry.key;
-                            final e = entry.value;
-                            final g = e.value;
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceVariant,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: g.imageUrl.isNotEmpty
-                                        ? StorageAwareCachedImage(
-                                            imageUrl: g.imageUrl,
-                                            width: 40,
-                                            height: 40,
-                                            fit: BoxFit.cover,
-                                            loadingWidget: Container(
-                                              width: 40,
-                                              height: 40,
-                                              color: AppColors.surfaceVariant,
-                                              child: const Center(
-                                                child: SizedBox(
-                                                  width: 16,
-                                                  height: 16,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                          strokeWidth: 2),
-                                                ),
-                                              ),
-                                            ),
-                                            errorWidget: (_, __) =>
-                                                Container(
-                                              width: 40,
-                                              height: 40,
-                                              color: AppColors.divider,
-                                              child: const Icon(
-                                                  Icons.checkroom,
-                                                  size: 18,
-                                                  color: AppColors.textHint),
-                                            ),
-                                          )
-                                        : Container(
-                                            width: 40,
-                                            height: 40,
-                                            color: AppColors.divider,
-                                            child: const Icon(Icons.checkroom,
-                                                size: 18,
-                                                color: AppColors.textHint),
-                                          ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(g.name,
-                                            style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600)),
-                                        if (g.brand.isNotEmpty)
-                                          Text(g.brand,
-                                              style: const TextStyle(
-                                                  fontSize: 11,
-                                                  color: AppColors
-                                                      .textSecondary)),
-                                      ],
-                                    ),
-                                  ),
-                                  Text(
-                                    categoryLabel(e.key),
-                                    style: const TextStyle(
-                                        fontSize: 10,
-                                        color: AppColors.textHint),
-                                  ),
-                                ],
-                              ),
-                            )
-                                .animate()
-                                .fadeIn(
-                                    duration: 250.ms, delay: (40 * i).ms)
-                                .slideX(
-                                    begin: 0.05,
-                                    end: 0,
-                                    duration: 250.ms,
-                                    delay: (40 * i).ms);
-                          }),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-            child: SafeArea(
-              top: false,
-              child: Row(
-                children: [
-                  // Bouton supprimer
-                  if (onDelete != null)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: AppColors.error.withOpacity(0.25), width: 1),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.delete_outline,
-                            color: AppColors.error, size: 22),
-                        tooltip: 'Supprimer cet outfit',
-                        onPressed: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20)),
-                              title: const Text('Supprimer l\'outfit ?'),
-                              content: const Text(
-                                  'Cette action est irréversible.'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(ctx, false),
-                                  child: const Text('Annuler'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  style: TextButton.styleFrom(
-                                      foregroundColor: AppColors.error),
-                                  child: const Text('Supprimer'),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirm == true && context.mounted) {
-                            Navigator.pop(context);
-                            onDelete!();
-                          }
-                        },
-                      ),
-                    ),
-                  if (onDelete != null && onChoose != null)
-                    const SizedBox(width: 12),
-                  // Bouton choisir pour aujourd'hui
-                  if (onChoose != null)
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          onChoose!();
-                        },
-                        icon: const Icon(Icons.check_circle_outline,
-                            size: 20, color: AppColors.white),
-                        label: const Text('Choisir pour aujourd\'hui'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          foregroundColor: AppColors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------

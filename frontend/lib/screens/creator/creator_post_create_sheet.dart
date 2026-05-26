@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/image_capture.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
 import '../../models/collection_model.dart';
@@ -173,8 +174,8 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
   Future<void> _pickPhoto(ImageSource source) async {
     final picked = await ImagePicker().pickImage(
       source: source,
-      maxWidth: 1200,
-      imageQuality: 90,
+      maxWidth: ImageCaptureDefaults.outfitPhotoMaxWidth,
+      imageQuality: ImageCaptureDefaults.outfitPhotoQuality,
     );
     if (picked == null) return;
     final bytes = await picked.readAsBytes();

@@ -1050,6 +1050,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
     return Container(
       height: 200,
       decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.divider, width: 1.5),
       ),
@@ -1065,28 +1066,26 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             }),
             itemBuilder: (context, i) {
               final s = _slots[i];
-              if (s.networkUrl != null) {
-                return StorageAwareCachedImage(
-                  imageUrl: s.networkUrl!,
-                  fit: BoxFit.cover,
-                  loadingWidget: Container(
-                    color: AppColors.surfaceVariant,
-                    child: const Center(
-                      child: SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  ),
-                  errorWidget: (_, __) => Container(
-                    color: AppColors.surfaceVariant,
-                    child: const Icon(Icons.broken_image_outlined,
-                        color: AppColors.textHint),
-                  ),
-                );
-              }
-              return PlatformImage(file: s.file!, fit: BoxFit.cover);
+              return ColoredBox(
+                color: AppColors.surfaceVariant,
+                child: s.networkUrl != null
+                    ? StorageAwareCachedImage(
+                        imageUrl: s.networkUrl!,
+                        fit: BoxFit.contain,
+                        loadingWidget: const Center(
+                          child: SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (_, __) => const Icon(
+                          Icons.broken_image_outlined,
+                          color: AppColors.textHint,
+                        ),
+                      )
+                    : PlatformImage(file: s.file!, fit: BoxFit.contain),
+              );
             },
           ),
           if (_aiAnalyzing)

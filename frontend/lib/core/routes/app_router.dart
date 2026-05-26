@@ -30,8 +30,10 @@ class _RouterNotifier extends ChangeNotifier {
     final userLoading = currentUser.isLoading;
     final loc = state.matchedLocation;
 
-    final isOnAuthPage =
-        loc == '/login' || loc == '/signup' || loc.startsWith('/creator');
+    final isLoginOrSignup = loc == '/login' || loc == '/signup';
+    final isCreatorLanding = loc == '/creator';
+    /// Routes accessibles sans être connecté (pas /creator/home, etc.).
+    final isPublicWhenLoggedOut = isLoginOrSignup || isCreatorLanding;
     final isOnboarding = loc == '/onboarding';
     final isCreatorOnboarding = loc == '/creator/onboarding';
     final isCreatorCheckout = loc == '/creator/checkout';
@@ -39,10 +41,7 @@ class _RouterNotifier extends ChangeNotifier {
     if (authLoading) return null;
 
     if (!isAuth) {
-      if (loc.startsWith('/creator') && loc != '/creator') {
-        return null;
-      }
-      if (!isOnAuthPage && loc != '/creator') return '/login';
+      if (!isPublicWhenLoggedOut) return '/login';
       return null;
     }
 
@@ -68,11 +67,10 @@ class _RouterNotifier extends ChangeNotifier {
       if (loc == '/creator/onboarding') {
         return '/creator/home';
       }
-      if (loc == '/login' ||
-          loc == '/signup' ||
+      if (isLoginOrSignup ||
           isOnboarding ||
           loc == '/home' ||
-          loc == '/creator' ||
+          isCreatorLanding ||
           loc == '/creator/checkout') {
         return '/creator/home';
       }

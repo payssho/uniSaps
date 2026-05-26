@@ -9,6 +9,7 @@ import '../../providers/collection_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../widgets/add_garment_sheet.dart';
 import '../../widgets/garment_card.dart';
+import '../../widgets/confirm_delete_dialog.dart';
 import '../../widgets/garment_detail_sheet.dart';
 
 class CreatorDressingScreen extends ConsumerWidget {
@@ -29,39 +30,32 @@ class CreatorDressingScreen extends ConsumerWidget {
     String uid,
     GarmentModel garment,
   ) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => GarmentDetailSheet(
-        garment: garment,
-        onEdit: () {
-          Navigator.pop(sheetCtx);
-          pushAddGarmentRoute(
-            context,
-            garment: garment,
-            requireCollection: true,
-            initialCollectionId: garment.collectionId,
-            creatorCatalogMode: true,
-          );
-        },
-        onDelete: () async {
-          Navigator.pop(sheetCtx);
-          final confirmed = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: const Text('Supprimer ce vêtement ?'),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Supprimer')),
-              ],
-            ),
-          );
-          if (confirmed == true) {
-            await ref.read(garmentNotifierProvider.notifier).deleteGarment(uid, garment.id);
-          }
-        },
-      ),
+    GarmentDetailSheet.show(
+      context,
+      garment: garment,
+      onEdit: () {
+        Navigator.pop(context);
+        pushAddGarmentRoute(
+          context,
+          garment: garment,
+          requireCollection: true,
+          initialCollectionId: garment.collectionId,
+          creatorCatalogMode: true,
+        );
+      },
+      onDelete: () async {
+        Navigator.pop(context);
+        final confirmed = await showConfirmDeleteSheet(
+          context,
+          title: 'Supprimer ce vêtement ?',
+          subtitle: '"${garment.name}"',
+        );
+        if (confirmed == true) {
+          await ref
+              .read(garmentNotifierProvider.notifier)
+              .deleteGarment(uid, garment.id);
+        }
+      },
     );
   }
 
