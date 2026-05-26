@@ -16,8 +16,13 @@ import '../../widgets/post_card.dart';
 import '../../widgets/post_detail_sheet.dart';
 import '../../widgets/premium_avatar_ring.dart';
 import '../../widgets/garment_category_glyph.dart';
+import '../../widgets/garment_card.dart';
+import '../../widgets/garment_colors_wrap.dart';
+import '../../widgets/dressing_category_chips_row.dart';
+import '../../widgets/dressing_category_filters_bar.dart';
 import '../../widgets/storage_aware_cached_image.dart';
 import '../../core/constants/categories.dart';
+import '../../utils/dressing_garment_filters.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -806,101 +811,56 @@ class _PostsTab extends ConsumerWidget {
   }
 }
 
-class _DressingTab extends StatelessWidget {
+class _DressingTab extends StatefulWidget {
   final List<GarmentModel> garments;
 
   const _DressingTab({required this.garments});
 
   @override
-  Widget build(BuildContext context) {
-    if (garments.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.checkroom_outlined, size: 56, color: AppColors.textHint.withOpacity(0.3)),
-            const SizedBox(height: 12),
-            const Text('Dressing vide', style: AppTextStyles.bodySecondary),
-          ],
-        ),
-      );
-    }
+  State<_DressingTab> createState() => _DressingTabState();
+}
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 0.75,
-      ),
-      itemCount: garments.length,
-      itemBuilder: (_, i) {
-        final g = garments[i];
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () => _showReadOnlyGarment(context, g),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.divider),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: g.imageUrl.isNotEmpty
-                        ? StorageAwareCachedImage(
-                            imageUrl: g.imageUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            loadingWidget: Container(
-                              color: AppColors.surfaceVariant,
-                              child: const Center(
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              ),
-                            ),
-                            errorWidget: (_, __) => Container(
-                              color: AppColors.surfaceVariant,
-                              child: const Icon(
-                                Icons.broken_image_outlined,
-                                color: AppColors.textHint,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: AppColors.surfaceVariant,
-                            child: Center(
-                              child: GarmentCategoryGlyph(
-                                categoryKey: g.category,
-                                color: AppColors.textHint,
-                                size: 32,
-                              ),
-                            ),
-                          ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Text(
-                      g.name.isNotEmpty ? g.name : g.brand,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+class _DressingTabState extends State<_DressingTab> {
+  String _selectedCategory = '';
+  final TextEditingController _nameFilterController = TextEditingController();
+  String _nameFilter = '';
+  String _brandFilter = '';
+  String _colorFilter = '';
+
+  static const _gridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
+    maxCrossAxisExtent: 180,
+    childAspectRatio: 0.72,
+    crossAxisSpacing: 14,
+    mainAxisSpacing: 14,
+  );
+
+  @override
+  void dispose() {
+    _nameFilterController.dispose();
+    super.dispose();
+  }
+
+  void _setCategory(String key) {
+    setState(() {
+      _selectedCategory = key;
+      _nameFilter = '';
+      _nameFilterController.clear();
+      _brandFilter = '';
+      _colorFilter = '';
+    });
+  }
+
+  List<GarmentModel> _garmentsInCategory(String categoryKey) {
+    return widget.garments.where((g) => g.category == categoryKey).toList();
+  }
+
+  List<GarmentModel> _filteredForCategory(String categoryKey) {
+    final byCat = _garmentsInCategory(categoryKey);
+    return applyDressingGarmentFilters(
+      list: byCat,
+      nameFilter: _nameFilter,
+      brandFilter: _brandFilter,
+      colorFilter: _colorFilter,
     );
   }
 
@@ -910,6 +870,175 @@ class _DressingTab extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _ReadOnlyGarmentSheet(garment: g),
+    );
+  }
+
+  Widget _garmentGrid(List<GarmentModel> items) {
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      gridDelegate: _gridDelegate,
+      itemCount: items.length,
+      itemBuilder: (_, i) {
+        final g = items[i];
+        return GarmentCard(
+          garment: g,
+          onTap: () => _showReadOnlyGarment(context, g),
+        );
+      },
+    );
+  }
+
+  Widget _emptyState({required bool hasItemsInCat, required bool noFilters}) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.checkroom_outlined,
+            size: 56,
+            color: AppColors.textHint.withOpacity(0.3),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            hasItemsInCat && !noFilters ? 'Aucun résultat' : 'Aucun vêtement',
+            style: AppTextStyles.bodySecondary,
+          ),
+          if (hasItemsInCat && !noFilters) ...[
+            const SizedBox(height: 6),
+            const Text(
+              'Essaie un autre nom, marque ou couleur.',
+              style: AppTextStyles.caption,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupedByCategory() {
+    final sections = <Widget>[];
+    for (final cat in categories) {
+      final items = _garmentsInCategory(cat.key);
+      if (items.isEmpty) continue;
+      items.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
+      sections.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+          child: Row(
+            children: [
+              GarmentCategoryGlyph(
+                categoryKey: cat.key,
+                color: AppColors.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                cat.label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${items.length}',
+                style: AppTextStyles.caption,
+              ),
+            ],
+          ),
+        ),
+      );
+      sections.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: _gridDelegate,
+            itemCount: items.length,
+            itemBuilder: (_, i) {
+              final g = items[i];
+              return GarmentCard(
+                garment: g,
+                onTap: () => _showReadOnlyGarment(context, g),
+              );
+            },
+          ),
+        ),
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 24),
+      children: sections,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.garments.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.checkroom_outlined,
+              size: 56,
+              color: AppColors.textHint.withOpacity(0.3),
+            ),
+            const SizedBox(height: 12),
+            const Text('Dressing vide', style: AppTextStyles.bodySecondary),
+          ],
+        ),
+      );
+    }
+
+    final noFilters = _nameFilter.trim().isEmpty &&
+        _brandFilter.isEmpty &&
+        _colorFilter.isEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        DressingCategoryChipsRow(
+          selectedCategory: _selectedCategory,
+          onCategorySelected: _setCategory,
+        ),
+        if (_selectedCategory.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          DressingCategoryFiltersBar(
+            nameController: _nameFilterController,
+            brandFilter: _brandFilter,
+            colorFilter: _colorFilter,
+            garmentsForOptions: _garmentsInCategory(_selectedCategory),
+            onNameChanged: (v) => setState(() => _nameFilter = v),
+            onBrandChanged: (v) => setState(() => _brandFilter = v ?? ''),
+            onColorChanged: (v) => setState(() => _colorFilter = v ?? ''),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Expanded(
+          child: _selectedCategory.isEmpty
+              ? _buildGroupedByCategory()
+              : Builder(
+                  builder: (context) {
+                    final byCat = _garmentsInCategory(_selectedCategory);
+                    final filtered = _filteredForCategory(_selectedCategory);
+                    if (filtered.isEmpty) {
+                      return _emptyState(
+                        hasItemsInCat: byCat.isNotEmpty,
+                        noFilters: noFilters,
+                      );
+                    }
+                    return _garmentGrid(filtered);
+                  },
+                ),
+        ),
+      ],
     );
   }
 }
@@ -1460,13 +1589,7 @@ class _ReadOnlyGarmentSheet extends StatelessWidget {
             ],
             if (garment.colors.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: garment.colors
-                    .map((c) => Chip(label: Text(c, style: const TextStyle(fontSize: 12))))
-                    .toList(),
-              ),
+              GarmentColorsWrap(colors: garment.colors, fontSize: 12),
             ],
           ],
         ),

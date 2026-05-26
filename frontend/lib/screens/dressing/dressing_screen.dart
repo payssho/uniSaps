@@ -4,19 +4,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
-import '../../core/constants/categories.dart';
 import '../../models/garment_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
-import '../../services/color_service.dart';
 import '../../services/firebase_storage_display_url.dart';
 import '../../widgets/garment_card.dart';
-import '../../widgets/category_chip.dart';
-import '../../widgets/garment_category_glyph.dart';
+import '../../widgets/dressing_category_chips_row.dart';
+import '../../widgets/dressing_category_filters_bar.dart';
 import '../../widgets/garment_detail_sheet.dart';
 import '../../widgets/add_garment_sheet.dart';
 import '../../widgets/async_error_state.dart';
 import '../../widgets/loading_shimmer_grid.dart';
+import '../../utils/dressing_garment_filters.dart';
 
 class DressingScreen extends ConsumerStatefulWidget {
   const DressingScreen({super.key});
@@ -94,38 +93,13 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                 child: Text('Mon Dressing', style: AppTextStyles.heading2),
               ),
               const SizedBox(height: 20),
-              SizedBox(
-                height: 44,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  children: [
-                    CategoryChip(
-                      label: 'Tout',
-                      leadingBuilder: (c) => Icon(Icons.grid_view_rounded, size: 16, color: c),
-                      selected: _selectedCategory.isEmpty,
-                      onTap: () => _setCategory(''),
-                    ),
-                    const SizedBox(width: 8),
-                    ...categories.map((cat) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: CategoryChip(
-                            label: cat.label,
-                            leadingBuilder: (c) => GarmentCategoryGlyph(
-                              categoryKey: cat.key,
-                              color: c,
-                              size: 16,
-                            ),
-                            selected: _selectedCategory == cat.key,
-                            onTap: () => _setCategory(cat.key),
-                          ),
-                        )),
-                  ],
-                ),
+              DressingCategoryChipsRow(
+                selectedCategory: _selectedCategory,
+                onCategorySelected: _setCategory,
               ),
               if (_selectedCategory.isNotEmpty) ...[
                 const SizedBox(height: 10),
-                _CategoryFiltersBar(
+                DressingCategoryFiltersBar(
                   nameController: _nameFilterController,
                   brandFilter: _brandFilter,
                   colorFilter: _colorFilter,
@@ -248,31 +222,12 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
 
   List<GarmentModel> _applyLocalFilters(List<GarmentModel> list) {
     if (_selectedCategory.isEmpty) return list;
-
-    final brandLc = _brandFilter.trim().toLowerCase();
-    final brandExists = brandLc.isNotEmpty &&
-        list.any((x) => x.brand.trim().toLowerCase() == brandLc);
-
-    final colorLc = _colorFilter.trim().toLowerCase();
-    final colorExists = colorLc.isNotEmpty &&
-        list.any((x) =>
-            x.colors.any((c) => c.trim().toLowerCase() == colorLc));
-
-    return list.where((g) {
-      final q = _nameFilter.trim().toLowerCase();
-      if (q.isNotEmpty && !g.name.toLowerCase().contains(q)) {
-        return false;
-      }
-      if (brandExists &&
-          g.brand.trim().toLowerCase() != brandLc) {
-        return false;
-      }
-      if (colorExists &&
-          !g.colors.any((c) => c.trim().toLowerCase() == colorLc)) {
-        return false;
-      }
-      return true;
-    }).toList();
+    return applyDressingGarmentFilters(
+      list: list,
+      nameFilter: _nameFilter,
+      brandFilter: _brandFilter,
+      colorFilter: _colorFilter,
+    );
   }
 
   void _showGarmentDetails(GarmentModel garment) {
@@ -411,189 +366,6 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                 const SizedBox(height: 8),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Petite barre de filtres : nom (texte), marque et couleur (menus).
-class _CategoryFiltersBar extends StatelessWidget {
-  final TextEditingController nameController;
-  final String brandFilter;
-  final String colorFilter;
-  final List<GarmentModel> garmentsForOptions;
-  final ValueChanged<String> onNameChanged;
-  final ValueChanged<String?> onBrandChanged;
-  final ValueChanged<String?> onColorChanged;
-
-  const _CategoryFiltersBar({
-    required this.nameController,
-    required this.brandFilter,
-    required this.colorFilter,
-    required this.garmentsForOptions,
-    required this.onNameChanged,
-    required this.onBrandChanged,
-    required this.onColorChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final brands = garmentsForOptions
-        .map((g) => g.brand.trim())
-        .where((b) => b.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    final colors = <String>{};
-    for (final g in garmentsForOptions) {
-      for (final c in g.colors) {
-        final t = c.trim();
-        if (t.isNotEmpty) colors.add(t);
-      }
-    }
-    final colorList = colors.toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-
-    final safeBrand = brandFilter.isNotEmpty && !brands.contains(brandFilter)
-        ? ''
-        : brandFilter;
-    final safeColor = colorFilter.isNotEmpty && !colorList.contains(colorFilter)
-        ? ''
-        : colorFilter;
-
-    const denseStyle = TextStyle(fontSize: 12);
-    const hintStyle = TextStyle(fontSize: 11, color: AppColors.textHint);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Material(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        elevation: 0,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.divider.withOpacity(0.55)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                flex: 5,
-                child: TextField(
-                  controller: nameController,
-                  style: denseStyle,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                    hintText: 'Nom',
-                    hintStyle: hintStyle,
-                    prefixIcon: Icon(Icons.search_rounded,
-                        size: 16, color: AppColors.textHint.withOpacity(0.85)),
-                    prefixIconConstraints:
-                        const BoxConstraints(minWidth: 30, maxHeight: 28),
-                    filled: true,
-                    fillColor: AppColors.canvas,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  onChanged: onNameChanged,
-                ),
-              ),
-              const SizedBox(width: 6),
-              SizedBox(
-                width: 92,
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: safeBrand.isEmpty ? '' : safeBrand,
-                    isDense: true,
-                    iconSize: 18,
-                    isExpanded: true,
-                    items: [
-                      const DropdownMenuItem(
-                          value: '', child: Text('— Marque', style: denseStyle)),
-                      ...brands.map(
-                        (b) => DropdownMenuItem(
-                          value: b,
-                          child: Text(
-                            b,
-                            style: denseStyle,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ],
-                    onChanged: onBrandChanged,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              SizedBox(
-                width: 92,
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: safeColor.isEmpty ? '' : safeColor,
-                    isDense: true,
-                    iconSize: 18,
-                    isExpanded: true,
-                    items: [
-                      const DropdownMenuItem(
-                          value: '', child: Text('— Couleur', style: denseStyle)),
-                      ...colorList.map(
-                        (c) {
-                          final swatch = ColorService.getColors()
-                              .firstWhere(
-                                (opt) =>
-                                    opt.name.toLowerCase() ==
-                                    c.toLowerCase(),
-                                orElse: () => ColorOption(
-                                  name: c,
-                                  color: AppColors.textHint,
-                                ),
-                              )
-                              .color;
-                          return DropdownMenuItem(
-                            value: c,
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    color: swatch,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: AppColors.divider,
-                                      width: 0.8,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    c,
-                                    style: denseStyle,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                    onChanged: onColorChanged,
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ),

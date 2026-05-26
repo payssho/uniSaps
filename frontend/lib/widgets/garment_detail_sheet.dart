@@ -4,8 +4,8 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
-import '../services/color_service.dart';
 import '../providers/auth_provider.dart';
+import 'garment_colors_wrap.dart';
 import 'garment_photo_carousel.dart';
 import 'garment_category_glyph.dart';
 
@@ -174,68 +174,7 @@ class GarmentDetailSheet extends ConsumerWidget {
                   ],
                   if (garment.colors.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: garment.colors.map((colorName) {
-                        final colorOption = _getColorOptionFromString(colorName);
-                        return Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: colorOption.color,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: colorOption.color == AppColors.white ||
-                                          colorOption.color == Colors.transparent
-                                      ? AppColors.divider
-                                      : Colors.transparent,
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.graphite.withOpacity(0.1),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: colorOption.color == Colors.transparent
-                                  ? Center(
-                                      child: Container(
-                                        width: 14,
-                                        height: 14,
-                                        decoration: const BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              AppColors.graphite,
-                                              AppColors.stormyTeal,
-                                              AppColors.white,
-                                              AppColors.alabasterGrey,
-                                              AppColors.yaleBlue,
-                                            ],
-                                          ),
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              colorName,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        );
-                      }).toList(),
-                    ),
+                    GarmentColorsWrap(colors: garment.colors),
                   ],
                 ],
               ),
@@ -300,11 +239,4 @@ class GarmentDetailSheet extends ConsumerWidget {
     );
   }
 
-  ColorOption _getColorOptionFromString(String colorName) {
-    final allColors = ColorService.getColors();
-    return allColors.firstWhere(
-      (c) => c.name.toLowerCase() == colorName.toLowerCase(),
-      orElse: () => ColorOption(name: colorName, color: AppColors.textHint),
-    );
-  }
 }
