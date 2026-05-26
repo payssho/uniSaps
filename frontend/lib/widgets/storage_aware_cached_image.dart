@@ -96,8 +96,13 @@ class _StorageAwareCachedImageState extends State<StorageAwareCachedImage> {
             child: widget.loadingWidget,
           );
         }
-        final url = snapshot.data ?? widget.imageUrl;
-        return _buildImage(url);
+        if (snapshot.hasError) {
+          return widget.errorWidget(widget.imageUrl, snapshot.error);
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return widget.errorWidget(widget.imageUrl, 'no_url');
+        }
+        return _buildImage(snapshot.data!);
       },
     );
   }

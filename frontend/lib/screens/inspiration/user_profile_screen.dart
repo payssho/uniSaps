@@ -16,6 +16,7 @@ import '../../widgets/post_card.dart';
 import '../../widgets/post_detail_sheet.dart';
 import '../../widgets/premium_avatar_ring.dart';
 import '../../widgets/garment_category_glyph.dart';
+import '../../widgets/storage_aware_cached_image.dart';
 import '../../core/constants/categories.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
@@ -251,7 +252,11 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                   children: [
                     _PostsTab(posts: _posts, uid: myUid),
                     _DressingTab(garments: _garments),
-                    _OutfitsTab(outfits: _outfits, ownerUid: user.uid),
+                    _OutfitsTab(
+                      outfits: _outfits,
+                      ownerUid: user.uid,
+                      garments: _garments,
+                    ),
                   ],
                 ),
               ),
@@ -848,14 +853,26 @@ class _DressingTab extends StatelessWidget {
                 children: [
                   Expanded(
                     child: g.imageUrl.isNotEmpty
-                        ? CachedNetworkImage(
+                        ? StorageAwareCachedImage(
                             imageUrl: g.imageUrl,
                             fit: BoxFit.cover,
                             width: double.infinity,
-                            placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
-                            errorWidget: (_, __, ___) => Container(
+                            loadingWidget: Container(
                               color: AppColors.surfaceVariant,
-                              child: const Icon(Icons.broken_image_outlined, color: AppColors.textHint),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                            ),
+                            errorWidget: (_, __) => Container(
+                              color: AppColors.surfaceVariant,
+                              child: const Icon(
+                                Icons.broken_image_outlined,
+                                color: AppColors.textHint,
+                              ),
                             ),
                           )
                         : Container(
@@ -900,8 +917,13 @@ class _DressingTab extends StatelessWidget {
 class _OutfitsTab extends StatelessWidget {
   final List<OutfitModel> outfits;
   final String ownerUid;
+  final List<GarmentModel> garments;
 
-  const _OutfitsTab({required this.outfits, required this.ownerUid});
+  const _OutfitsTab({
+    required this.outfits,
+    required this.ownerUid,
+    required this.garments,
+  });
 
   static String _thumbUrl(OutfitModel o) {
     if (o.referencePhotoUrl.isNotEmpty) return o.referencePhotoUrl;
@@ -951,13 +973,17 @@ class _OutfitsTab extends StatelessWidget {
                       width: 64,
                       height: 64,
                       child: thumb.isNotEmpty
-                          ? CachedNetworkImage(
+                          ? StorageAwareCachedImage(
                               imageUrl: thumb,
                               fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
-                              errorWidget: (_, __, ___) => Container(
+                              loadingWidget:
+                                  Container(color: AppColors.surfaceVariant),
+                              errorWidget: (_, __) => Container(
                                 color: AppColors.surfaceVariant,
-                                child: const Icon(Icons.style_rounded, color: AppColors.textHint),
+                                child: const Icon(
+                                  Icons.style_rounded,
+                                  color: AppColors.textHint,
+                                ),
                               ),
                             )
                           : Container(
@@ -1011,69 +1037,55 @@ class _OutfitsTab extends StatelessWidget {
   }
 
   void _showFriendOutfitDetail(BuildContext context, OutfitModel outfit) {
-    final hostContext = context;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Consumer(
-        builder: (_, ref, __) => _FriendOutfitDetailSheet(
-          outfit: outfit,
-          ownerUid: ownerUid,
-          hostContext: hostContext,
-        ),
+      builder: (_) => _FriendOutfitDetailSheet(
+        outfit: outfit,
+        ownerGarments: garments,
       ),
     );
   }
 }
 
 /// Détail outfit d’un autre utilisateur : photo principale + pièces résolues.
-class _FriendOutfitDetailSheet extends ConsumerStatefulWidget {
+class _FriendOutfitDetailSheet extends StatelessWidget {
   final OutfitModel outfit;
-  final String ownerUid;
-  /// Context sous la feuille (écran profil) pour ouvrir une autre feuille après pop.
-  final BuildContext hostContext;
+  final List<GarmentModel> ownerGarments;
 
   const _FriendOutfitDetailSheet({
     required this.outfit,
-    required this.ownerUid,
-    required this.hostContext,
+    required this.ownerGarments,
   });
 
-  @override
-  ConsumerState<_FriendOutfitDetailSheet> createState() =>
-      _FriendOutfitDetailSheetState();
-}
-
-class _FriendOutfitDetailSheetState
-    extends ConsumerState<_FriendOutfitDetailSheet> {
-  Future<List<GarmentModel>>? _piecesFuture;
-
   String get _heroUrl {
-    final o = widget.outfit;
-    if (o.referencePhotoUrl.isNotEmpty) return o.referencePhotoUrl;
-    if (o.photoUrls.isNotEmpty) return o.photoUrls.first;
+    if (outfit.referencePhotoUrl.isNotEmpty) return outfit.referencePhotoUrl;
+    if (outfit.photoUrls.isNotEmpty) return outfit.photoUrls.first;
     return '';
   }
 
-  Future<List<GarmentModel>> _loadGarments(
-    FirestoreService db,
-    List<String> ids,
-  ) async {
-    if (ids.isEmpty) return [];
-    final out = <GarmentModel>[];
-    for (final id in ids) {
-      final g = await db.getGarment(widget.ownerUid, id);
-      if (g != null) out.add(g);
-    }
-    return out;
+  List<GarmentModel> _resolvePieces() {
+    if (outfit.garmentIds.isEmpty) return [];
+    final byId = {for (final g in ownerGarments) g.id: g};
+    return outfit.garmentIds
+        .map((id) => byId[id])
+        .whereType<GarmentModel>()
+        .toList();
+  }
+
+  void _openGarmentDetail(BuildContext context, GarmentModel g) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ReadOnlyGarmentSheet(garment: g),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final db = ref.watch(firestoreServiceProvider);
-    _piecesFuture ??= _loadGarments(db, widget.outfit.garmentIds);
-    final outfit = widget.outfit;
+    final pieces = _resolvePieces();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.72,
@@ -1116,22 +1128,26 @@ class _FriendOutfitDetailSheetState
                   onTap: () => _openPhotoFullScreen(context, _heroUrl),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(18),
-                    child: CachedNetworkImage(
+                    child: StorageAwareCachedImage(
                       imageUrl: _heroUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: 260,
-                      placeholder: (_, __) => Container(
+                      loadingWidget: Container(
                         height: 260,
                         color: AppColors.surfaceVariant,
                         child: const Center(
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       ),
-                      errorWidget: (_, __, ___) => Container(
+                      errorWidget: (_, __) => Container(
                         height: 260,
                         color: AppColors.surfaceVariant,
-                        child: const Icon(Icons.broken_image_outlined, size: 40, color: AppColors.textHint),
+                        child: const Icon(
+                          Icons.broken_image_outlined,
+                          size: 40,
+                          color: AppColors.textHint,
+                        ),
                       ),
                     ),
                   ),
@@ -1165,10 +1181,19 @@ class _FriendOutfitDetailSheetState
                           child: SizedBox(
                             width: 88,
                             height: 88,
-                            child: CachedNetworkImage(
+                            child: StorageAwareCachedImage(
                               imageUrl: url,
                               fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
+                              loadingWidget:
+                                  Container(color: AppColors.surfaceVariant),
+                              errorWidget: (_, __) => Container(
+                                color: AppColors.surfaceVariant,
+                                child: const Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppColors.textHint,
+                                  size: 24,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -1178,43 +1203,22 @@ class _FriendOutfitDetailSheetState
                 ),
               ],
               const SizedBox(height: 20),
-              FutureBuilder<List<GarmentModel>>(
-                future: _piecesFuture,
-                builder: (context, snap) {
-                  if (snap.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                    );
-                  }
-                  final pieces = snap.data ?? [];
-                  if (pieces.isEmpty) {
-                    return const Text('Aucune pièce liée', style: AppTextStyles.bodySecondary);
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Pièces', style: AppTextStyles.heading3),
-                      const SizedBox(height: 10),
-                      ...pieces.map((g) {
+              if (pieces.isEmpty)
+                const Text('Aucune pièce liée', style: AppTextStyles.bodySecondary)
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Pièces', style: AppTextStyles.heading3),
+                    const SizedBox(height: 10),
+                    ...pieces.map((g) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (!widget.hostContext.mounted) return;
-                                  showModalBottomSheet<void>(
-                                    context: widget.hostContext,
-                                    isScrollControlled: true,
-                                    backgroundColor: Colors.transparent,
-                                    builder: (_) => _ReadOnlyGarmentSheet(garment: g),
-                                  );
-                                });
-                              },
+                              onTap: () => _openGarmentDetail(context, g),
                               child: Row(
                                 children: [
                                   ClipRRect(
@@ -1223,10 +1227,22 @@ class _FriendOutfitDetailSheetState
                                       width: 48,
                                       height: 48,
                                       child: g.imageUrl.isNotEmpty
-                                          ? CachedNetworkImage(
+                                          ? StorageAwareCachedImage(
                                               imageUrl: g.imageUrl,
                                               fit: BoxFit.cover,
-                                              placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
+                                              loadingWidget: Container(
+                                                color: AppColors.surfaceVariant,
+                                              ),
+                                              errorWidget: (_, __) => Container(
+                                                color: AppColors.surfaceVariant,
+                                                child: Center(
+                                                  child: GarmentCategoryGlyph(
+                                                    categoryKey: g.category,
+                                                    color: AppColors.textHint,
+                                                    size: 28,
+                                                  ),
+                                                ),
+                                              ),
                                             )
                                           : Container(
                                               color: AppColors.surfaceVariant,
@@ -1263,10 +1279,8 @@ class _FriendOutfitDetailSheetState
                           ),
                         );
                       }),
-                    ],
-                  );
-                },
-              ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -1285,10 +1299,20 @@ class _FriendOutfitDetailSheetState
           child: InteractiveViewer(
             minScale: 0.5,
             maxScale: 4,
-            child: CachedNetworkImage(
+            child: StorageAwareCachedImage(
               imageUrl: url,
               fit: BoxFit.contain,
-              placeholder: (_, __) => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator(color: AppColors.white))),
+              loadingWidget: const SizedBox(
+                height: 200,
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.white),
+                ),
+              ),
+              errorWidget: (_, __) => const Icon(
+                Icons.broken_image_outlined,
+                color: AppColors.white,
+                size: 48,
+              ),
             ),
           ),
         ),
@@ -1340,12 +1364,21 @@ class _ReadOnlyGarmentSheet extends StatelessWidget {
                             child: InteractiveViewer(
                               minScale: 0.5,
                               maxScale: 4,
-                              child: CachedNetworkImage(
+                              child: StorageAwareCachedImage(
                                 imageUrl: garment.imageUrl,
                                 fit: BoxFit.contain,
-                                placeholder: (_, __) => const SizedBox(
+                                loadingWidget: const SizedBox(
                                   height: 200,
-                                  child: Center(child: CircularProgressIndicator(color: AppColors.white)),
+                                  child: Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.white,
+                                    ),
+                                  ),
+                                ),
+                                errorWidget: (_, __) => const Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppColors.white,
+                                  size: 48,
                                 ),
                               ),
                             ),
@@ -1361,11 +1394,13 @@ class _ReadOnlyGarmentSheet extends StatelessWidget {
                   width: double.infinity,
                   color: AppColors.surfaceVariant,
                   child: garment.imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
+                      ? StorageAwareCachedImage(
                           imageUrl: garment.imageUrl,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                          errorWidget: (_, __, ___) => Center(
+                          loadingWidget: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          errorWidget: (_, __) => Center(
                             child: GarmentCategoryGlyph(
                               categoryKey: garment.category,
                               size: 56,

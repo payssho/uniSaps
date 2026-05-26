@@ -375,8 +375,9 @@ class PostCard extends StatelessWidget {
                       const SizedBox(height: 6),
                       PostGarmentRefsForPost(
                         post: post,
-                        maxVisible: 4,
+                        maxVisible: 3,
                         compact: true,
+                        onViewAll: onTap,
                       ),
                     ],
                   ],
