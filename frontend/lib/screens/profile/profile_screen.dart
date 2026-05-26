@@ -41,11 +41,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   bool _scrollMoreBelow = false;
   bool _friendRequestSnackShown = false;
 
+  int get _tabCount => _ProfileTabRail.entries.length;
+
+  void _initTabController({int? initialIndex}) {
+    final count = _tabCount;
+    final idx = (initialIndex ?? 0).clamp(0, count - 1);
+    _tabController = TabController(
+      length: count,
+      vsync: this,
+      initialIndex: idx,
+    );
+    _tabController.addListener(_onProfileTabChanged);
+  }
+
+  void _syncTabControllerAfterStructureChange() {
+    if (_tabController.length == _tabCount) return;
+    final idx = _tabController.index.clamp(0, _tabCount - 1);
+    _tabController.removeListener(_onProfileTabChanged);
+    _tabController.dispose();
+    _initTabController(initialIndex: idx);
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(_onProfileTabChanged);
+    _initTabController();
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    _syncTabControllerAfterStructureChange();
   }
 
   void _onProfileTabChanged() {
@@ -89,11 +115,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
     ref.listen<int>(receivedRequestsCountProvider, (prev, next) {
       if (!widget.embeddedInMainNav || next <= 0) return;
-      if (_tabController.index == 2) return;
+      if (_tabController.index == _tabCount - 1) return;
       if (prev != null && prev > 0) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _tabController.animateTo(2);
+        _tabController.animateTo(_tabCount - 1);
         if (!_friendRequestSnackShown) {
           _friendRequestSnackShown = true;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -110,7 +136,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     ref.listen(profileInfosTabRequestProvider, (prev, next) {
       if (next == (prev ?? 0)) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _tabController.animateTo(2);
+        if (mounted) _tabController.animateTo(_tabCount - 1);
       });
     });
 
@@ -171,6 +197,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         NotificationListener<Notification>(
                           onNotification: _onProfileTabScrollOrMetrics,
                           child: TabBarView(
+                            key: ValueKey<int>(_tabCount),
                             controller: _tabController,
                             physics: const BouncingScrollPhysics(),
                             children: [
@@ -672,8 +699,8 @@ class _HeroChip extends StatelessWidget {
   }
 }
 
-/// Onglets en pastilles horizontales, synchronisés avec [TabController].
-class _ProfileTabRail extends StatefulWidget {
+/// Onglets en pastilles (3 onglets, pleine largeur — sans scroll ni chevron).
+class _ProfileTabRail extends StatelessWidget {
   final TabController controller;
   final int pendingRequests;
 
@@ -702,276 +729,145 @@ class _ProfileTabRail extends StatefulWidget {
   });
 
   @override
-  State<_ProfileTabRail> createState() => _ProfileTabRailState();
-}
-
-class _ProfileTabRailState extends State<_ProfileTabRail> {
-  final ScrollController _hCtrl = ScrollController();
-  bool _showRightFade = true;
-  bool _showLeftFade = false;
-  bool _userScrolled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _hCtrl.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _hCtrl.removeListener(_onScroll);
-    _hCtrl.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (!_hCtrl.hasClients) return;
-    final pos = _hCtrl.position;
-    final atEnd = pos.pixels >= pos.maxScrollExtent - 1;
-    final atStart = pos.pixels <= 0;
-    final showRight = !atEnd;
-    final showLeft = !atStart;
-    if (showRight != _showRightFade ||
-        showLeft != _showLeftFade ||
-        !_userScrolled) {
-      setState(() {
-        _showRightFade = showRight;
-        _showLeftFade = showLeft;
-        _userScrolled = true;
-      });
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: widget.controller,
+      animation: controller,
       builder: (context, _) {
-        // Affiche le hint chevron tant que l’utilisateur n’a pas scrollé
-        // et qu’il reste manifestement du contenu à droite.
-        final showHintChevron = !_userScrolled && _showRightFade;
         return SizedBox(
-          height: 48,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              NotificationListener<ScrollNotification>(
-                onNotification: (n) {
-                  // Couvre les cas où le listener du controller n’a pas
-                  // encore tagué le rail (premier mouvement).
-                  if (!_userScrolled) {
-                    setState(() => _userScrolled = true);
-                  }
-                  return false;
-                },
-                child: SingleChildScrollView(
-                  controller: _hCtrl,
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  child: Row(
-                    children: List.generate(_ProfileTabRail.entries.length,
-                        (i) => _buildEntry(context, i)),
+          height: 44,
+          child: Row(
+            children: List.generate(entries.length, (i) {
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: i == 0 ? 0 : 4,
+                    right: i == entries.length - 1 ? 0 : 4,
+                  ),
+                  child: _ProfileTabPill(
+                    icon: entries[i].icon,
+                    label: entries[i].short,
+                    selected: controller.index == i,
+                    showBadge: i == entries.length - 1 && pendingRequests > 0,
+                    badgeCount: pendingRequests,
+                    onTap: () => controller.animateTo(i),
                   ),
                 ),
-              ),
-              // Fade gauche
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 22,
-                child: IgnorePointer(
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 220),
-                    opacity: _showLeftFade ? 1 : 0,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            AppColors.background,
-                            AppColors.background.withValues(alpha: 0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // Fade droit + chevron hint
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: 36,
-                child: IgnorePointer(
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 220),
-                    opacity: _showRightFade ? 1 : 0,
-                    child: Stack(
-                      alignment: Alignment.centerRight,
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [
-                                AppColors.background.withValues(alpha: 0),
-                                AppColors.background,
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (showHintChevron)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 2),
-                            child: Icon(
-                              Icons.chevron_right_rounded,
-                              size: 22,
-                              color: AppColors.textSecondary
-                                  .withValues(alpha: 0.9),
-                            )
-                                .animate(
-                                  onPlay: (c) => c.repeat(reverse: true),
-                                )
-                                .moveX(
-                                  begin: -2,
-                                  end: 2,
-                                  duration: 700.ms,
-                                  curve: Curves.easeInOutCubic,
-                                ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              );
+            }),
           ),
         );
       },
     );
   }
+}
 
-  Widget _buildEntry(BuildContext context, int i) {
-    const entries = _ProfileTabRail.entries;
-    final controller = widget.controller;
-    final pendingRequests = widget.pendingRequests;
-    final e = entries[i];
-    final selected = controller.index == i;
-    final showBadge = i == 2 && pendingRequests > 0;
+class _ProfileTabPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final bool showBadge;
+  final int badgeCount;
+  final VoidCallback onTap;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: i == 0 ? 0 : 6,
-        right: i == entries.length - 1 ? 0 : 6,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => controller.animateTo(i),
-          borderRadius: BorderRadius.circular(16),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 11,
-            ),
-            decoration: BoxDecoration(
+  const _ProfileTabPill({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.showBadge,
+    required this.badgeCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
               color: selected
                   ? AppColors.primary
-                  : AppColors.surface.withValues(alpha: 0.92),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: selected
-                    ? AppColors.primary
-                    : AppColors.divider.withValues(alpha: 0.9),
-                width: selected ? 1.5 : 1,
-              ),
-              boxShadow: selected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.28),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
-                  : [
-                      BoxShadow(
-                        color: AppColors.scrimLight,
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                  : AppColors.divider.withValues(alpha: 0.85),
+              width: selected ? 1.5 : 1,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Icon(
-                      e.icon,
-                      size: 20,
-                      color: selected
-                          ? AppColors.surface
-                          : AppColors.textSecondary,
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.22),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                    if (showBadge)
-                      Positioned(
-                        top: -4,
-                        right: -12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 2,
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: selected ? AppColors.surface : AppColors.textSecondary,
+                  ),
+                  if (showBadge)
+                    Positioned(
+                      top: -5,
+                      right: -9,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.notificationBadge,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.surface,
+                            width: 1.2,
                           ),
-                          constraints: const BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.notificationBadge,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: AppColors.surface,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Text(
-                            pendingRequests > 99
-                                ? '99+'
-                                : '$pendingRequests',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: AppColors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              height: 1.05,
-                            ),
+                        ),
+                        child: Text(
+                          badgeCount > 99 ? '99+' : '$badgeCount',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            height: 1.1,
                           ),
                         ),
                       ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  e.short,
+                    ),
+                ],
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    letterSpacing: -0.2,
-                    color: selected
-                        ? AppColors.surface
-                        : AppColors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? AppColors.surface : AppColors.textSecondary,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1345,26 +1241,44 @@ class _AccountTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
-            child: Text('Amis', style: AppTextStyles.heading3),
+          _AccountSurfaceCard(
+            child: _FriendsTab(user: user, embeddedInAccount: true),
           ),
-          _FriendsTab(user: user, embeddedInAccount: true),
-          const Divider(height: 32, indent: 20, endIndent: 20),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text('Paramètres', style: AppTextStyles.heading3),
-          ),
-          _InfosTab(
-            user: user,
-            onLogout: onLogout,
-            embeddedInAccount: true,
+          const SizedBox(height: 12),
+          _AccountSurfaceCard(
+            child: _InfosTab(
+              user: user,
+              onLogout: onLogout,
+              embeddedInAccount: true,
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Carte légère pour regrouper une section de l’onglet Compte.
+class _AccountSurfaceCard extends StatelessWidget {
+  final Widget child;
+
+  const _AccountSurfaceCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.divider.withValues(alpha: 0.7)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: child,
       ),
     );
   }
@@ -1432,30 +1346,42 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                 children: [
                   Row(
                     children: [
-                      const Text('Demandes reçues',
-                          style: AppTextStyles.heading3),
-                      const SizedBox(width: 8),
+                      const Text(
+                        'Demandes',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.notificationBadge,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '${requests.length}',
                           style: const TextStyle(
-                              color: AppColors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700),
+                            color: AppColors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   ...requests.map((req) => Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(14),
@@ -1511,57 +1437,68 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                           ],
                         ),
                       )),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                 ],
               );
             },
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
           ),
-          const SizedBox(height: 24),
-          Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.divider),
+          if (widget.embeddedInAccount) ...[
+            const SizedBox(height: 12),
+            _CompactPrivacyRow(
+              isPrivate: widget.user.isPrivate,
+              onChanged: (val) => ref
+                  .read(friendshipNotifierProvider.notifier)
+                  .togglePrivacy(val),
             ),
-            child: SwitchListTile.adaptive(
-              title: const Text(
-                'Compte privé',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            const SizedBox(height: 12),
+          ] else ...[
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.divider),
               ),
-              subtitle: Text(
-                widget.user.isPrivate
-                    ? 'Seuls tes amis voient ton contenu'
-                    : 'Tout le monde peut voir ton contenu',
-                style: AppTextStyles.caption,
+              child: SwitchListTile.adaptive(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                title: const Text(
+                  'Compte privé',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+                subtitle: Text(
+                  widget.user.isPrivate
+                      ? 'Seuls tes amis voient ton contenu'
+                      : 'Tout le monde peut voir ton contenu',
+                  style: AppTextStyles.caption,
+                ),
+                value: widget.user.isPrivate,
+                activeColor: AppColors.accent,
+                onChanged: (val) {
+                  ref
+                      .read(friendshipNotifierProvider.notifier)
+                      .togglePrivacy(val);
+                },
               ),
-              secondary: Icon(
-                widget.user.isPrivate ? Icons.lock_outline : Icons.public,
-                color: widget.user.isPrivate
-                    ? AppColors.accent
-                    : AppColors.textHint,
-              ),
-              value: widget.user.isPrivate,
-              activeColor: AppColors.accent,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              onChanged: (val) {
-                ref
-                    .read(friendshipNotifierProvider.notifier)
-                    .togglePrivacy(val);
-              },
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 16),
+          ],
           Row(
             children: [
               Text(
-                'Mes amis (${widget.user.friends.length})',
-                style: AppTextStyles.heading3,
+                widget.embeddedInAccount
+                    ? 'Amis · ${widget.user.friends.length}'
+                    : 'Mes amis (${widget.user.friends.length})',
+                style: TextStyle(
+                  fontSize: widget.embeddedInAccount ? 13 : 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const Spacer(),
-              TextButton.icon(
+              IconButton(
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -1570,18 +1507,17 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                   );
                 },
                 icon: const Icon(Icons.person_add_alt_1_outlined,
-                    size: 18, color: AppColors.accent),
-                label: const Text(
-                  'Ajouter un ami',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.accent,
-                  ),
+                    size: 20, color: AppColors.accent),
+                tooltip: 'Ajouter un ami',
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.accent.withValues(alpha: 0.1),
+                  padding: const EdgeInsets.all(8),
+                  minimumSize: const Size(36, 36),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           if (_loadingFriends)
             const Center(child: CircularProgressIndicator())
           else if (_friendUsers.isEmpty)
@@ -1599,17 +1535,23 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
             )
           else
             ...(_friendUsers.map((friend) => Container(
-                  margin: const EdgeInsets.only(bottom: 8),
+                  margin: const EdgeInsets.only(bottom: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.divider),
+                    color: widget.embeddedInAccount
+                        ? AppColors.canvas
+                        : AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.divider.withValues(alpha: 0.65),
+                    ),
                   ),
                   child: ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
                     contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                     leading: CircleAvatar(
-                      radius: 22,
+                      radius: 18,
                       backgroundColor: AppColors.surfaceVariant,
                       backgroundImage: friend.profilePhotoUrl.isNotEmpty
                           ? CachedNetworkImageProvider(friend.profilePhotoUrl)
@@ -1688,10 +1630,7 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
         ],
       );
     if (widget.embeddedInAccount) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: body,
-      );
+      return body;
     }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -1931,174 +1870,274 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
 
   @override
   Widget build(BuildContext context) {
+    final infoRows = <Widget>[
+      _CompactInfoRow(label: 'Email', value: widget.user.email),
+      _divider(),
+      _CompactInfoRow(label: 'Pseudo', value: widget.user.username),
+      if (widget.user.displayName.isNotEmpty) ...[
+        _divider(),
+        _CompactInfoRow(label: 'Nom', value: widget.user.displayName),
+      ],
+      _divider(),
+      _CompactInfoRow(
+        label: 'Membre depuis',
+        value: widget.user.createdAt.isNotEmpty
+            ? widget.user.createdAt.substring(0, 10)
+            : '-',
+      ),
+      _divider(),
+      _CompactInfoRow(
+        label: 'Meilleur streak',
+        value: '${widget.user.bestStreak} j',
+      ),
+      _divider(),
+      _CompactInfoRow(
+        label: 'UniSaps+',
+        value: widget.user.isPremium ? 'Actif' : 'Gratuit',
+        valueColor: widget.user.isPremium ? AppColors.accent : null,
+      ),
+    ];
+
     final body = Column(
-        children: [
-          _InfoRow(label: 'Email', value: widget.user.email),
-          _InfoRow(label: 'Pseudo', value: widget.user.username),
-          _InfoRow(label: 'Nom', value: widget.user.displayName),
-          _InfoRow(
-              label: 'Membre depuis',
-              value: widget.user.createdAt.isNotEmpty
-                  ? widget.user.createdAt.substring(0, 10)
-                  : '-'),
-          _InfoRow(
-              label: 'Meilleur streak',
-              value: '${widget.user.bestStreak} jours'),
-          _InfoRow(label: 'Amis', value: '${widget.user.friends.length}'),
-          _InfoRow(
-              label: 'Compte',
-              value: widget.user.isPrivate ? 'Privé' : 'Public'),
-          _InfoRow(
-            label: 'UniSaps+',
-            value: widget.user.isPremium ? 'Actif' : 'Gratuit',
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.embeddedInAccount)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 10),
+            child: Text(
+              'Informations',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
           ),
-          if (!widget.user.isPremium) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Code d’activation',
-                style: AppTextStyles.bodySecondary.copyWith(
-                  fontWeight: FontWeight.w600,
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: widget.embeddedInAccount
+                ? AppColors.canvas
+                : AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: widget.embeddedInAccount
+                ? null
+                : Border.all(color: AppColors.divider),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Column(children: infoRows),
+          ),
+        ),
+        const SizedBox(height: 14),
+        OutlinedButton.icon(
+          onPressed: widget.onLogout,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.textPrimary,
+            side: BorderSide(color: AppColors.divider.withValues(alpha: 0.9)),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          icon: const Icon(Icons.logout_rounded, size: 18),
+          label: const Text(
+            'Se déconnecter',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+        ),
+        if (!widget.user.isPremium) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Code UniSaps+',
+            style: AppTextStyles.caption.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _premiumCodeController,
+                  textCapitalization: TextCapitalization.characters,
+                  autocorrect: false,
+                  obscureText: true,
+                  style: const TextStyle(fontSize: 13),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    hintText: 'Code',
+                    hintStyle: const TextStyle(fontSize: 13),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _premiumCodeController,
-              textCapitalization: TextCapitalization.characters,
-              autocorrect: false,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: 'Entre ton code UniSaps+',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
+              const SizedBox(width: 8),
+              FilledButton(
+                style: FilledButton.styleFrom(
                   backgroundColor: AppColors.accent,
-                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  minimumSize: const Size(0, 40),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: _premiumApplying ? null : _applyPremiumCode,
                 child: _premiumApplying
                     ? const SizedBox(
-                        width: 22,
-                        height: 22,
+                        width: 18,
+                        height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: AppColors.white,
                         ),
                       )
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.workspace_premium_outlined, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'Activer UniSaps+',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
+                    : const Icon(Icons.check_rounded, size: 20),
               ),
-            ),
-          ],
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.textSecondary,
-                foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              onPressed: widget.onLogout,
-              child: const Text('Se déconnecter',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.error,
-                side: const BorderSide(color: AppColors.error),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              onPressed: _deletingAccount ? null : _showDeleteAccountDialog,
-              child: _deletingAccount
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.error),
-                    )
-                  : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.delete_forever_outlined, size: 18),
-                        SizedBox(width: 8),
-                        Text('Supprimer le compte',
-                            style: TextStyle(fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Cette action est irréversible.',
-            style: TextStyle(
-              fontSize: 11,
-              color: AppColors.textHint,
-            ),
-            textAlign: TextAlign.center,
+            ],
           ),
         ],
-      );
+        const SizedBox(height: 14),
+        Center(
+          child: TextButton(
+            onPressed: _deletingAccount ? null : _showDeleteAccountDialog,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            ),
+            child: _deletingAccount
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.error,
+                    ),
+                  )
+                : const Text(
+                    'Supprimer le compte',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+          ),
+        ),
+      ],
+    );
+
     if (widget.embeddedInAccount) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: body,
-      );
+      return body;
     }
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: body,
     );
   }
+
+  Widget _divider() => const Divider(height: 1, color: AppColors.divider);
 }
 
-class _InfoRow extends StatelessWidget {
+class _CompactPrivacyRow extends StatelessWidget {
+  final bool isPrivate;
+  final ValueChanged<bool> onChanged;
+
+  const _CompactPrivacyRow({
+    required this.isPrivate,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.canvas,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isPrivate ? Icons.lock_outline_rounded : Icons.public_rounded,
+            size: 18,
+            color: isPrivate ? AppColors.accent : AppColors.textHint,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Profil privé',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  isPrivate
+                      ? 'Visible par tes amis'
+                      : 'Visible par tous',
+                  style: AppTextStyles.caption.copyWith(fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: isPrivate,
+            onChanged: onChanged,
+            activeColor: AppColors.accent,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactInfoRow extends StatelessWidget {
   final String label;
   final String value;
+  final Color? valueColor;
 
-  const _InfoRow({required this.label, required this.value});
+  const _CompactInfoRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTextStyles.bodySecondary),
-          const Spacer(),
-          Text(value.isEmpty ? '-' : value,
-              style: const TextStyle(fontWeight: FontWeight.w500)),
+          SizedBox(
+            width: 108,
+            child: Text(
+              label,
+              style: AppTextStyles.caption.copyWith(fontSize: 12),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '—' : value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? AppColors.textPrimary,
+              ),
+            ),
+          ),
         ],
       ),
     );

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_radii.dart';
 import '../core/constants/app_text_styles.dart';
+import '../models/garment_model.dart';
+import '../models/outfit_model.dart';
 import '../models/post_model.dart';
 import '../screens/inspiration/user_profile_screen.dart';
 import 'post_garment_refs.dart';
@@ -13,15 +15,31 @@ import 'storage_aware_cached_image.dart';
 /// Sheet détail d'un post : auteur, photo, légende, pièces du look.
 class PostDetailSheet extends ConsumerStatefulWidget {
   final PostModel post;
+  final List<GarmentModel>? ownerGarments;
+  final List<OutfitModel>? ownerOutfits;
 
-  const PostDetailSheet({super.key, required this.post});
+  const PostDetailSheet({
+    super.key,
+    required this.post,
+    this.ownerGarments,
+    this.ownerOutfits,
+  });
 
-  static Future<void> show(BuildContext context, PostModel post) {
+  static Future<void> show(
+    BuildContext context,
+    PostModel post, {
+    List<GarmentModel>? ownerGarments,
+    List<OutfitModel>? ownerOutfits,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => PostDetailSheet(post: post),
+      builder: (_) => PostDetailSheet(
+        post: post,
+        ownerGarments: ownerGarments,
+        ownerOutfits: ownerOutfits,
+      ),
     );
   }
 
@@ -227,7 +245,11 @@ class _PostDetailSheetState extends ConsumerState<PostDetailSheet> {
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              PostGarmentRefsDetailForPost(post: post),
+                              PostGarmentRefsDetailForPost(
+                                post: widget.post,
+                                ownerGarments: widget.ownerGarments,
+                                ownerOutfits: widget.ownerOutfits,
+                              ),
                             ],
                           ),
                         ),

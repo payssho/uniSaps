@@ -24,6 +24,7 @@ import '../../widgets/dressing_category_filters_bar.dart';
 import '../../widgets/storage_aware_cached_image.dart';
 import '../../core/constants/categories.dart';
 import '../../utils/dressing_garment_filters.dart';
+import '../../utils/post_garment_image_prefetch.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -128,6 +129,18 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
           _outfits = outfits;
           _loading = false;
         });
+        if (posts.isNotEmpty && garments.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            // ignore: discarded_futures
+            prefetchProfilePostGarmentImages(
+              context: context,
+              posts: posts,
+              ownerGarments: garments,
+              ownerOutfits: outfits,
+            );
+          });
+        }
       }
     } catch (e) {
       // Erreur générale : on sort du loading pour ne pas bloquer l'UI
@@ -256,7 +269,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _PostsTab(posts: _posts, uid: myUid),
+                    _PostsTab(
+                      posts: _posts,
+                      uid: myUid,
+                      ownerGarments: _garments,
+                      ownerOutfits: _outfits,
+                    ),
                     _DressingTab(garments: _garments),
                     _OutfitsTab(
                       outfits: _outfits,
@@ -770,8 +788,15 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
 class _PostsTab extends ConsumerWidget {
   final List<PostModel> posts;
   final String uid;
+  final List<GarmentModel> ownerGarments;
+  final List<OutfitModel> ownerOutfits;
 
-  const _PostsTab({required this.posts, required this.uid});
+  const _PostsTab({
+    required this.posts,
+    required this.uid,
+    required this.ownerGarments,
+    required this.ownerOutfits,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -801,6 +826,8 @@ class _PostsTab extends ConsumerWidget {
         post: posts[i],
         currentUid: uid,
         layout: PostCardLayout.grid,
+        ownerGarments: ownerGarments,
+        ownerOutfits: ownerOutfits,
         onLike: () => ref.read(postNotifierProvider.notifier).toggleLike(posts[i].id, uid),
         onTap: () => _showPostDetails(context, posts[i]),
       ),
@@ -808,7 +835,12 @@ class _PostsTab extends ConsumerWidget {
   }
 
   void _showPostDetails(BuildContext context, PostModel post) {
-    PostDetailSheet.show(context, post);
+    PostDetailSheet.show(
+      context,
+      post,
+      ownerGarments: ownerGarments,
+      ownerOutfits: ownerOutfits,
+    );
   }
 }
 

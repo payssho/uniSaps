@@ -4,6 +4,8 @@ import 'storage_aware_cached_image.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_radii.dart';
 import '../core/constants/app_text_styles.dart';
+import '../models/garment_model.dart';
+import '../models/outfit_model.dart';
 import '../models/post_model.dart';
 import 'premium_avatar_ring.dart';
 import 'post_garment_refs.dart';
@@ -23,6 +25,8 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onUserTap;
   final PostCardLayout layout;
+  final List<GarmentModel>? ownerGarments;
+  final List<OutfitModel>? ownerOutfits;
 
   const PostCard({
     super.key,
@@ -32,6 +36,8 @@ class PostCard extends StatelessWidget {
     this.onTap,
     this.onUserTap,
     this.layout = PostCardLayout.standard,
+    this.ownerGarments,
+    this.ownerOutfits,
   });
 
   @override
@@ -378,6 +384,8 @@ class PostCard extends StatelessWidget {
                         maxVisible: 3,
                         compact: true,
                         onViewAll: onTap,
+                        ownerGarments: ownerGarments,
+                        ownerOutfits: ownerOutfits,
                       ),
                     ],
                   ],

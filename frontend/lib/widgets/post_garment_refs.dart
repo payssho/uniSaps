@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_radii.dart';
+import '../models/garment_model.dart';
+import '../models/outfit_model.dart';
 import '../models/post_model.dart';
 import '../providers/post_provider.dart';
 import 'storage_aware_cached_image.dart';
@@ -88,6 +90,9 @@ class PostGarmentRefsForPost extends ConsumerWidget {
   final int maxVisible;
   final VoidCallback? onViewAll;
   final bool compact;
+  /// Dressing déjà chargé (profil) : enrichissement instantané, sans Firestore.
+  final List<GarmentModel>? ownerGarments;
+  final List<OutfitModel>? ownerOutfits;
 
   const PostGarmentRefsForPost({
     super.key,
@@ -95,10 +100,30 @@ class PostGarmentRefsForPost extends ConsumerWidget {
     this.maxVisible = 5,
     this.onViewAll,
     this.compact = false,
+    this.ownerGarments,
+    this.ownerOutfits,
   });
+
+  List<GarmentRef> _resolvedRefs() {
+    final garments = garmentsForPostEnrichment(
+      post,
+      ownerGarments ?? const [],
+      ownerOutfits: ownerOutfits ?? const [],
+    );
+    return enrichGarmentRefs(post: post, garments: garments);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ownerGarments != null) {
+      return PostGarmentRefsStrip(
+        refs: _resolvedRefs(),
+        maxVisible: maxVisible,
+        onViewAll: onViewAll,
+        compact: compact,
+      );
+    }
+
     final refsAsync = ref.watch(enrichedGarmentRefsProvider(post));
     return refsAsync.when(
       data: (refs) => PostGarmentRefsStrip(
@@ -126,11 +151,28 @@ class PostGarmentRefsForPost extends ConsumerWidget {
 /// Liste détail avec photos enrichies.
 class PostGarmentRefsDetailForPost extends ConsumerWidget {
   final PostModel post;
+  final List<GarmentModel>? ownerGarments;
+  final List<OutfitModel>? ownerOutfits;
 
-  const PostGarmentRefsDetailForPost({super.key, required this.post});
+  const PostGarmentRefsDetailForPost({
+    super.key,
+    required this.post,
+    this.ownerGarments,
+    this.ownerOutfits,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ownerGarments != null) {
+      final garments = garmentsForPostEnrichment(
+        post,
+        ownerGarments!,
+        ownerOutfits: ownerOutfits ?? const [],
+      );
+      final refs = enrichGarmentRefs(post: post, garments: garments);
+      return PostGarmentRefsDetailList(refs: refs);
+    }
+
     final refsAsync = ref.watch(enrichedGarmentRefsProvider(post));
     return refsAsync.when(
       data: (refs) => PostGarmentRefsDetailList(refs: refs),

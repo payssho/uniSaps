@@ -199,25 +199,37 @@ final postNotifierProvider = StateNotifierProvider<PostNotifier, AsyncValue<void
   );
 });
 
-/// Enrichit les refs du post avec les photos Firestore (posts anciens sans image_url).
-final enrichedGarmentRefsProvider =
-    FutureProvider.family<List<GarmentRef>, PostModel>((ref, post) async {
+/// Vêtements du propriétaire utiles pour enrichir un post (profil : pas de requête réseau).
+List<GarmentModel> garmentsForPostEnrichment(
+  PostModel post,
+  List<GarmentModel> ownerGarments, {
+  List<OutfitModel> ownerOutfits = const [],
+}) {
+  if (ownerGarments.isEmpty) return const [];
+  if (post.outfitId.isEmpty || ownerOutfits.isEmpty) {
+    return ownerGarments;
+  }
+  for (final o in ownerOutfits) {
+    if (o.id != post.outfitId) continue;
+    final byId = {for (final g in ownerGarments) g.id: g};
+    final fromOutfit = o.garmentIds
+        .map((id) => byId[id])
+        .whereType<GarmentModel>()
+        .toList();
+    if (fromOutfit.isNotEmpty) return fromOutfit;
+    break;
+  }
+  return ownerGarments;
+}
+
+/// Fusionne garment_refs du post avec les URLs du dressing (sync).
+List<GarmentRef> enrichGarmentRefs({
+  required PostModel post,
+  required List<GarmentModel> garments,
+}) {
   if (post.garmentRefs.isEmpty) return post.garmentRefs;
   if (!post.garmentRefs.any((r) => r.imageUrl.isEmpty)) {
     return post.garmentRefs;
-  }
-  if (post.outfitId.isEmpty || post.userId.isEmpty) {
-    return post.garmentRefs;
-  }
-
-  final db = ref.read(firestoreServiceProvider);
-  final outfit = await db.getOutfit(post.userId, post.outfitId);
-  if (outfit == null) return post.garmentRefs;
-
-  final garments = <GarmentModel>[];
-  for (final gid in outfit.garmentIds) {
-    final g = await db.getGarment(post.userId, gid);
-    if (g != null) garments.add(g);
   }
   if (garments.isEmpty) return post.garmentRefs;
 
@@ -253,4 +265,33 @@ final enrichedGarmentRefsProvider =
     }
     return refItem;
   }).toList();
+}
+
+Future<List<GarmentRef>> _enrichGarmentRefsFromFirestore(
+  PostModel post,
+  FirestoreService db,
+) async {
+  if (post.garmentRefs.isEmpty) return post.garmentRefs;
+  if (!post.garmentRefs.any((r) => r.imageUrl.isEmpty)) {
+    return post.garmentRefs;
+  }
+  if (post.outfitId.isEmpty || post.userId.isEmpty) {
+    return post.garmentRefs;
+  }
+
+  final outfit = await db.getOutfit(post.userId, post.outfitId);
+  if (outfit == null) return post.garmentRefs;
+
+  final results = await Future.wait(
+    outfit.garmentIds.map((gid) => db.getGarment(post.userId, gid)),
+  );
+  final garments = results.whereType<GarmentModel>().toList();
+  return enrichGarmentRefs(post: post, garments: garments);
+}
+
+/// Enrichit les refs du post avec les photos Firestore (posts anciens sans image_url).
+final enrichedGarmentRefsProvider =
+    FutureProvider.family<List<GarmentRef>, PostModel>((ref, post) async {
+  final db = ref.read(firestoreServiceProvider);
+  return _enrichGarmentRefsFromFirestore(post, db);
 });
