@@ -200,7 +200,11 @@ class PostCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    PostGarmentRefsStrip(refs: post.garmentRefs),
+                    PostGarmentRefsForPost(
+                      post: post,
+                      ownerGarments: ownerGarments,
+                      ownerOutfits: ownerOutfits,
+                    ),
                   ],
                 ],
               ),

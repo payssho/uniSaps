@@ -24,6 +24,12 @@ service cloud.firestore {
         .affectedKeys().hasOnly(['liked_by', 'likes']);
     }
 
+    // Seul view_count est modifié (impression feed)
+    function onlyViewCountChanged() {
+      return request.resource.data.diff(resource.data)
+        .affectedKeys().hasOnly(['view_count']);
+    }
+
     // ── Users ────────────────────────────────────────────────────────────────
     match /users/{uid} {
       // Lecture de profil : tout user connecté (recherche, profil ami, etc.)
@@ -79,7 +85,8 @@ service cloud.firestore {
       //   - n'importe quel user connecté peut modifier liked_by + likes (like/unlike)
       allow update: if isAuth()
                  && (resource.data.user_id == request.auth.uid
-                     || onlyLikeChanged());
+                     || onlyLikeChanged()
+                     || onlyViewCountChanged());
 
       // Suppression : créateur uniquement
       allow delete: if isAuth()

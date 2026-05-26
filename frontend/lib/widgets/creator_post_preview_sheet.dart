@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
+import '../models/garment_model.dart';
+import '../models/outfit_model.dart';
 import '../models/post_model.dart';
 import '../models/user_model.dart';
 import 'post_card.dart';
@@ -8,19 +10,32 @@ import 'post_card.dart';
 class CreatorPostPreviewSheet extends StatelessWidget {
   final PostModel post;
   final String previewUid;
+  final List<GarmentModel> ownerGarments;
+  final List<OutfitModel> ownerOutfits;
 
   const CreatorPostPreviewSheet({
     super.key,
     required this.post,
     this.previewUid = 'preview',
+    this.ownerGarments = const [],
+    this.ownerOutfits = const [],
   });
 
-  static Future<void> show(BuildContext context, PostModel post) {
+  static Future<void> show(
+    BuildContext context,
+    PostModel post, {
+    List<GarmentModel> ownerGarments = const [],
+    List<OutfitModel> ownerOutfits = const [],
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: AppColors.canvas,
-      builder: (_) => CreatorPostPreviewSheet(post: post),
+      builder: (_) => CreatorPostPreviewSheet(
+        post: post,
+        ownerGarments: ownerGarments,
+        ownerOutfits: ownerOutfits,
+      ),
     );
   }
 
@@ -53,6 +68,8 @@ class CreatorPostPreviewSheet extends StatelessWidget {
                   post: post,
                   currentUid: previewUid,
                   onLike: () {},
+                  ownerGarments: ownerGarments,
+                  ownerOutfits: ownerOutfits,
                 ),
               ),
             ),

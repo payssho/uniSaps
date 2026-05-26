@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/constants/app_colors.dart';
+import '../../providers/auth_provider.dart';
+import '../../widgets/nav_profile_bubble.dart';
 import 'creator_dressing_screen.dart';
 import 'creator_posts_screen.dart';
 import 'creator_profile_screen.dart';
@@ -30,6 +33,7 @@ class _CreatorHomeScreenState extends ConsumerState<CreatorHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final tab = ref.watch(creatorTabProvider);
+    final user = ref.watch(currentUserProvider).valueOrNull;
 
     return Scaffold(
       body: PageView(
@@ -42,24 +46,93 @@ class _CreatorHomeScreenState extends ConsumerState<CreatorHomeScreen> {
           CreatorProfileScreen(),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: tab,
-        onDestinationSelected: _goTo,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.checkroom_outlined),
-            selectedIcon: Icon(Icons.checkroom),
-            label: 'Vêtements',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.graphite.withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _CreatorNavItem(
+                    icon: Icons.checkroom_outlined,
+                    activeIcon: Icons.checkroom,
+                    label: 'Vêtements',
+                    selected: tab == 0,
+                    onTap: () => _goTo(0),
+                  ),
+                ),
+                Expanded(
+                  child: _CreatorNavItem(
+                    icon: Icons.campaign_outlined,
+                    activeIcon: Icons.campaign,
+                    label: 'Posts',
+                    selected: tab == 1,
+                    onTap: () => _goTo(1),
+                  ),
+                ),
+                Expanded(
+                  child: NavProfileBubble(
+                    selected: tab == 2,
+                    locked: false,
+                    badgeCount: 0,
+                    photoUrl: user?.displayAvatarUrl ?? '',
+                    username: user?.username ?? '',
+                    fallbackIcon: Icons.storefront,
+                    onTap: () => _goTo(2),
+                  ),
+                ),
+              ],
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.campaign_outlined),
-            selectedIcon: Icon(Icons.campaign),
-            label: 'Posts',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profil',
+        ),
+      ),
+    );
+  }
+}
+
+class _CreatorNavItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CreatorNavItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppColors.accent : AppColors.textHint;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(selected ? activeIcon : icon, size: 24, color: color),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              color: color,
+            ),
           ),
         ],
       ),

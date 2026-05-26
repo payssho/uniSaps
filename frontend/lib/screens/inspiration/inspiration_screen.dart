@@ -16,6 +16,9 @@ import '../../providers/post_provider.dart';
 import '../../providers/inspiration_feed_dev_provider.dart';
 import '../../data/mock_explore_feed_posts.dart';
 import '../../providers/friendship_provider.dart';
+import '../../providers/garment_provider.dart';
+import '../../providers/outfit_provider.dart';
+import '../../providers/post_view_tracker_provider.dart';
 import '../../providers/widget_launch_provider.dart';
 import '../home/home_screen.dart';
 import 'search_users_screen.dart';
@@ -965,6 +968,8 @@ class _ContinuousFeed extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final topInset = MediaQuery.paddingOf(context).top + 56;
     final bottomInset = MediaQuery.paddingOf(context).bottom + 96;
+    final myGarments = ref.watch(garmentsProvider(uid)).valueOrNull ?? [];
+    final myOutfits = ref.watch(outfitsProvider(uid)).valueOrNull ?? [];
 
     return NotificationListener<ScrollStartNotification>(
       onNotification: (_) {
@@ -982,10 +987,16 @@ class _ContinuousFeed extends ConsumerWidget {
           if (index == posts.length) return const _FeedEndFooter();
 
           final post = posts[index];
+          final isOwn = post.userId == uid;
+          if (post.isSponsored && post.id.isNotEmpty) {
+            unawaited(ref.read(postViewTrackerProvider).registerView(post.id));
+          }
           return _InspoPostCard(
             key: ValueKey<String>('explore_${index}_${post.id}'),
             post: post,
             uid: uid,
+            ownerGarments: isOwn ? myGarments : null,
+            ownerOutfits: isOwn ? myOutfits : null,
             onLike: () {
               ref
                   .read(postNotifierProvider.notifier)
@@ -1106,6 +1117,8 @@ class _FeedEndFooter extends StatelessWidget {
 class _InspoPostCard extends StatefulWidget {
   final PostModel post;
   final String uid;
+  final List<GarmentModel>? ownerGarments;
+  final List<OutfitModel>? ownerOutfits;
   final VoidCallback onLike;
   final VoidCallback onDoubleTapLike;
   final VoidCallback onUserTap;
@@ -1116,6 +1129,8 @@ class _InspoPostCard extends StatefulWidget {
     super.key,
     required this.post,
     required this.uid,
+    this.ownerGarments,
+    this.ownerOutfits,
     required this.onLike,
     required this.onDoubleTapLike,
     required this.onUserTap,
@@ -1220,7 +1235,12 @@ class _InspoPostCardState extends State<_InspoPostCard>
   }
 
   void _showPostDetails(BuildContext context, PostModel post) {
-    PostDetailSheet.show(context, post);
+    PostDetailSheet.show(
+      context,
+      post,
+      ownerGarments: widget.ownerGarments,
+      ownerOutfits: widget.ownerOutfits,
+    );
   }
 
   Future<void> _showPostMenu() async {

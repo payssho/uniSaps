@@ -30,6 +30,7 @@ class PostModel {
   final List<GarmentRef> garmentRefs;
   final String caption;
   final int likes;
+  final int viewCount;
   final List<String> likedBy;
   final String createdAt;
   /// Dénormalisé : statut premium de l’auteur au moment du post.
@@ -50,6 +51,7 @@ class PostModel {
     this.garmentRefs = const [],
     this.caption = '',
     this.likes = 0,
+    this.viewCount = 0,
     this.likedBy = const [],
     this.createdAt = '',
     this.authorIsPremium = false,
@@ -79,6 +81,7 @@ class PostModel {
       garmentRefs: refs,
       caption: map['caption'] ?? '',
       likes: map['likes'] ?? 0,
+      viewCount: (map['view_count'] as num?)?.toInt() ?? 0,
       likedBy: List<String>.from(map['liked_by'] ?? []),
       createdAt: map['created_at'] ?? '',
       authorIsPremium: map['author_is_premium'] == true,
@@ -99,6 +102,7 @@ class PostModel {
         'garment_refs': garmentRefs.map((r) => r.toMap()).toList(),
         'caption': caption,
         'likes': likes,
+        'view_count': viewCount,
         'liked_by': likedBy,
         'created_at': createdAt,
         'author_is_premium': authorIsPremium,

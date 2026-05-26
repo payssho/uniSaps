@@ -235,6 +235,14 @@ class FirestoreService {
     await _postCol.doc(postId).update(data);
   }
 
+  /// Incrémente le compteur de vues (1× par appareil/session côté client).
+  Future<void> incrementPostView(String postId) async {
+    if (postId.isEmpty || isDevMockExplorePostId(postId)) return;
+    await _postCol.doc(postId).update({
+      'view_count': FieldValue.increment(1),
+    });
+  }
+
   Future<bool> toggleLike(String postId, String uid) async {
     // Posts factices Explorer (dev) : pas de document Firestore.
     if (isDevMockExplorePostId(postId)) {

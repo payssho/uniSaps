@@ -15,19 +15,19 @@ import '../../providers/collection_provider.dart';
 import '../../providers/creator_post_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../widgets/creator_post_preview_sheet.dart';
-import '../../widgets/garment_category_glyph.dart';
+import '../../widgets/creation_step_breadcrumb.dart';
 import '../../widgets/garment_picker_grid_sheet.dart';
 import '../../widgets/storage_aware_cached_image.dart';
 
-class CreatorPostCreateSheet extends ConsumerStatefulWidget {
-  const CreatorPostCreateSheet({super.key});
+class CreatorPostCreateScreen extends ConsumerStatefulWidget {
+  const CreatorPostCreateScreen({super.key});
 
   @override
-  ConsumerState<CreatorPostCreateSheet> createState() =>
-      _CreatorPostCreateSheetState();
+  ConsumerState<CreatorPostCreateScreen> createState() =>
+      _CreatorPostCreateScreenState();
 }
 
-class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet> {
+class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScreen> {
   final _nameController = TextEditingController();
   final _captionController = TextEditingController();
   late final FocusNode _nameFocusNode;
@@ -39,6 +39,55 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
   bool _isActive = true;
   bool _saving = false;
   String? _error;
+  int _creationStep = 0;
+
+  static const _zones = [
+    ('head', 'Tête', Icons.face_rounded, 'headwear'),
+    ('jacket', 'Veste', Icons.dry_cleaning_rounded, 'outerwear'),
+    ('torso', 'Haut', Icons.checkroom_rounded, 'top'),
+    ('legs', 'Bas', Icons.accessibility_new_rounded, 'bottom'),
+    ('feet', 'Chaussures', Icons.ice_skating_rounded, 'shoes'),
+    ('wrist', 'Accessoire', Icons.watch_rounded, 'accessory'),
+  ];
+
+  bool _validateStep(int step) {
+    switch (step) {
+      case 0:
+        if (_selected.isEmpty) {
+          setState(() => _error = 'Ajoute au moins une pièce au look.');
+          return false;
+        }
+        return true;
+      case 1:
+        if (_previewBytes == null) {
+          setState(() => _error = 'Ajoute une photo pour le post.');
+          return false;
+        }
+        if (_nameController.text.trim().isEmpty) {
+          setState(() => _error = 'Donne un nom à ton post / look.');
+          return false;
+        }
+        return true;
+      default:
+        return true;
+    }
+  }
+
+  void _goToStep(int step) {
+    setState(() {
+      _creationStep = step;
+      _error = null;
+    });
+  }
+
+  void _onNextStep() {
+    if (!_validateStep(_creationStep)) return;
+    if (_creationStep < 2) _goToStep(_creationStep + 1);
+  }
+
+  void _onPrevStep() {
+    if (_creationStep > 0) _goToStep(_creationStep - 1);
+  }
 
   void _onNameFocusChanged() {
     if (!_nameFocusNode.hasFocus) {
@@ -180,7 +229,11 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
       caption: _captionController.text.trim(),
     );
     if (!mounted) return;
-    await CreatorPostPreviewSheet.show(context, post);
+    await CreatorPostPreviewSheet.show(
+      context,
+      post,
+      ownerGarments: _selectedGarments.values.toList(),
+    );
   }
 
   Future<void> _publish() async {
@@ -201,6 +254,12 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
     }
     if (_selected.isEmpty) {
       setState(() => _error = 'Ajoute au moins une pièce au look.');
+      return;
+    }
+    final noPhoto = _selectedGarments.values.where((g) => g.imageUrl.isEmpty);
+    if (noPhoto.isNotEmpty) {
+      setState(() => _error =
+          'La pièce « ${noPhoto.first.name} » n’a pas de photo.');
       return;
     }
 
@@ -623,61 +682,193 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
     );
   }
 
+  List<Widget> _buildGarmentZoneTiles(int selectedCount) {
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
+        child: Row(
+          children: [
+            const Text(
+              'Pièces du look',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: selectedCount > 0
+                    ? AppColors.accent.withValues(alpha: 0.1)
+                    : AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$selectedCount/6',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selectedCount > 0 ? AppColors.accent : AppColors.textHint,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      ..._zones.asMap().entries.map((entry) {
+        final i = entry.key;
+        final z = entry.value;
+        final (zoneKey, label, icon, catKey) = z;
+        final garment = _selectedGarments[zoneKey];
+        final hasGarment = garment != null;
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Material(
+            color: hasGarment ? AppColors.surface : AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _pickGarment(zoneKey, catKey),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: hasGarment
+                        ? AppColors.accent.withValues(alpha: 0.2)
+                        : Colors.transparent,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    if (hasGarment && garment.imageUrl.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: StorageAwareCachedImage(
+                          imageUrl: garment.imageUrl,
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __) => _zonePlaceholder(icon, catKey),
+                        ),
+                      )
+                    else
+                      _zonePlaceholder(icon, catKey, filled: hasGarment),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hasGarment ? garment.name : label,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight:
+                                  hasGarment ? FontWeight.w600 : FontWeight.w500,
+                              color: hasGarment
+                                  ? AppColors.textPrimary
+                                  : AppColors.textHint,
+                            ),
+                          ),
+                          if (hasGarment && garment.brand.isNotEmpty)
+                            Text(
+                              garment.brand,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (hasGarment)
+                      GestureDetector(
+                        onTap: () => setState(() {
+                          _selected.remove(zoneKey);
+                          _selectedGarments.remove(zoneKey);
+                        }),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close_rounded,
+                              size: 14, color: AppColors.error),
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.add_rounded,
+                            size: 14, color: AppColors.accent),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        )
+            .animate()
+            .fadeIn(duration: 300.ms, delay: (50 * i).ms)
+            .slideX(begin: 0.04, end: 0, duration: 300.ms, delay: (50 * i).ms);
+      }),
+    ];
+  }
+
+  Widget _zonePlaceholder(IconData icon, String catKey, {bool filled = false}) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: filled ? AppColors.surfaceVariant : AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Icon(icon, size: 20, color: AppColors.textHint),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final uid = ref.watch(authServiceProvider).uid;
     final collectionsAsync = ref.watch(collectionsProvider(uid));
-    final zones = [
-      ('head', 'Tête', Icons.face_rounded, 'headwear'),
-      ('jacket', 'Veste', Icons.dry_cleaning_rounded, 'outerwear'),
-      ('torso', 'Haut', Icons.checkroom_rounded, 'top'),
-      ('legs', 'Bas', Icons.accessibility_new_rounded, 'bottom'),
-      ('feet', 'Chaussures', Icons.ice_skating_rounded, 'shoes'),
-      ('wrist', 'Accessoire', Icons.watch_rounded, 'accessory'),
-    ];
     final selectedCount = _selected.length;
 
-    return DraggableScrollableSheet(
-      initialChildSize: 0.92,
-      minChildSize: 0.5,
-      maxChildSize: 0.98,
-      expand: false,
-      builder: (context, scrollController) => Material(
-        color: AppColors.background,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: AppColors.textHint.withValues(alpha: 0.35),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 12, 0),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text('Nouveau post pub', style: AppTextStyles.heading2),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 24),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                controller: scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
-                children: [
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Nouveau post pub', style: AppTextStyles.heading3),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: AppColors.background,
+      ),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CreationStepBreadcrumb(
+            currentStep: _creationStep,
+            onStep: (i) {
+              if (i < _creationStep || _validateStep(_creationStep)) {
+                _goToStep(i);
+              }
+            },
+            steps: creatorPostCreationSteps,
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              children: [
+                if (_creationStep == 0) ..._buildGarmentZoneTiles(selectedCount),
+                if (_creationStep == 1) ...[
                   _buildPhotoHero(),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+                    padding: const EdgeInsets.only(top: 20),
                     child: TextField(
                       controller: _nameController,
                       focusNode: _nameFocusNode,
@@ -685,22 +876,27 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                         _nameFocusNode.canRequestFocus = true;
                         _nameFocusNode.requestFocus();
                       },
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         hintText: 'Nom du post / look',
-                        prefixIcon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.textHint),
+                        prefixIcon: const Icon(Icons.edit_outlined,
+                            size: 20, color: AppColors.textHint),
                         filled: true,
                         fillColor: AppColors.surfaceVariant,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                       ),
                     ),
                   ),
+                ],
+                if (_creationStep == 2) ...[
                   Padding(
-                    padding: const EdgeInsets.only(top: 20),
+                    padding: const EdgeInsets.only(top: 8),
                     child: collectionsAsync.when(
                       data: (cols) {
                         final sorted = List<CollectionModel>.from(cols)
@@ -735,168 +931,6 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                     onChanged: (v) => setState(() => _isActive = v),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 16, 4, 12),
-                    child: Row(
-                      children: [
-                        const Text(
-                          'Pièces du look',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: selectedCount > 0
-                                ? AppColors.accent.withValues(alpha: 0.1)
-                                : AppColors.surfaceVariant,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            '$selectedCount/6',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: selectedCount > 0 ? AppColors.accent : AppColors.textHint,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ...zones.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final z = entry.value;
-                    final (zoneKey, label, icon, catKey) = z;
-                    final garment = _selectedGarments[zoneKey];
-                    final hasGarment = garment != null;
-
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-                      child: Material(
-                        color: hasGarment ? AppColors.surface : AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(16),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => _pickGarment(zoneKey, catKey),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: hasGarment
-                                    ? AppColors.accent.withValues(alpha: 0.2)
-                                    : Colors.transparent,
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                if (hasGarment && garment.imageUrl.isNotEmpty)
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: StorageAwareCachedImage(
-                                      imageUrl: garment.imageUrl,
-                                      width: 44,
-                                      height: 44,
-                                      fit: BoxFit.cover,
-                                      loadingWidget: const Center(
-                                        child: SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
-                                        ),
-                                      ),
-                                      errorWidget: (_, __) => Container(
-                                        width: 44,
-                                        height: 44,
-                                        color: AppColors.surfaceVariant,
-                                        child: Center(
-                                          child: GarmentCategoryGlyph(
-                                            categoryKey: catKey,
-                                            color: AppColors.textHint,
-                                            size: 22,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: hasGarment ? AppColors.surfaceVariant : AppColors.surface,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Icon(icon, size: 20, color: AppColors.textHint),
-                                  ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        hasGarment ? garment.name : label,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight:
-                                              hasGarment ? FontWeight.w600 : FontWeight.w500,
-                                          color: hasGarment
-                                              ? AppColors.textPrimary
-                                              : AppColors.textHint,
-                                        ),
-                                      ),
-                                      if (hasGarment && garment.brand.isNotEmpty)
-                                        Text(
-                                          garment.brand,
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                                if (hasGarment)
-                                  GestureDetector(
-                                    onTap: () => setState(() {
-                                      _selected.remove(zoneKey);
-                                      _selectedGarments.remove(zoneKey);
-                                    }),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.error.withValues(alpha: 0.08),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.close_rounded,
-                                          size: 14, color: AppColors.error),
-                                    ),
-                                  )
-                                else
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.accent.withValues(alpha: 0.1),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.add_rounded, size: 14, color: AppColors.accent),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                        .animate()
-                        .fadeIn(duration: 300.ms, delay: (50 * i).ms)
-                        .slideX(begin: 0.04, end: 0, duration: 300.ms, delay: (50 * i).ms);
-                  }),
-                  Padding(
                     padding: const EdgeInsets.only(top: 20),
                     child: TextField(
                       controller: _captionController,
@@ -918,7 +952,7 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                     const SizedBox(height: 12),
                     Text(_error!, style: const TextStyle(color: AppColors.error)),
                   ],
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
@@ -943,10 +977,39 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
                     ],
                   ),
                 ],
+                if (_error != null && _creationStep != 2) ...[
+                  const SizedBox(height: 12),
+                  Text(_error!, style: const TextStyle(color: AppColors.error)),
+                ],
+              ],
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Row(
+                children: [
+                  if (_creationStep > 0)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _onPrevStep,
+                        child: const Text('Précédent'),
+                      ),
+                    ),
+                  if (_creationStep > 0) const SizedBox(width: 12),
+                  if (_creationStep < 2)
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _onNextStep,
+                        child: const Text('Suivant'),
+                      ),
+                    ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

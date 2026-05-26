@@ -8,8 +8,12 @@ import '../../models/post_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../providers/creator_post_provider.dart';
-import '../../widgets/creator_post_preview_sheet.dart';
-import 'creator_post_create_sheet.dart';
+import '../../models/garment_model.dart';
+import '../../models/outfit_model.dart';
+import '../../providers/garment_provider.dart';
+import '../../providers/outfit_provider.dart';
+import '../../widgets/post_detail_sheet.dart';
+import 'creator_post_create_screen.dart';
 
 class CreatorPostsScreen extends ConsumerStatefulWidget {
   const CreatorPostsScreen({super.key});
@@ -22,11 +26,10 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
   String? _filterCollectionId;
 
   void _openCreate() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const CreatorPostCreateSheet(),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const CreatorPostCreateScreen(),
+      ),
     );
   }
 
@@ -52,6 +55,8 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
     final uid = ref.watch(authServiceProvider).uid;
     final postsAsync = ref.watch(creatorPostsProvider(uid));
     final collectionsAsync = ref.watch(collectionsProvider(uid));
+    final garments = ref.watch(garmentsProvider(uid)).valueOrNull ?? [];
+    final outfits = ref.watch(outfitsProvider(uid)).valueOrNull ?? [];
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -148,8 +153,11 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                                   childAspectRatio: 0.51,
                                 ),
                                 itemCount: e.value.length,
-                                itemBuilder: (_, i) =>
-                                    _PostTile(post: e.value[i]),
+                                itemBuilder: (_, i) => _PostTile(
+                                  post: e.value[i],
+                                  ownerGarments: garments,
+                                  ownerOutfits: outfits,
+                                ),
                               ),
                             ],
                           );
@@ -175,8 +183,14 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
 
 class _PostTile extends ConsumerWidget {
   final PostModel post;
+  final List<GarmentModel> ownerGarments;
+  final List<OutfitModel> ownerOutfits;
 
-  const _PostTile({required this.post});
+  const _PostTile({
+    required this.post,
+    required this.ownerGarments,
+    required this.ownerOutfits,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -190,7 +204,12 @@ class _PostTile extends ConsumerWidget {
         side: BorderSide(color: AppColors.divider.withValues(alpha: 0.65)),
       ),
       child: InkWell(
-        onTap: () => CreatorPostPreviewSheet.show(context, post),
+        onTap: () => PostDetailSheet.show(
+          context,
+          post,
+          ownerGarments: ownerGarments,
+          ownerOutfits: ownerOutfits,
+        ),
         borderRadius: radius,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
