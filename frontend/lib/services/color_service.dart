@@ -87,6 +87,17 @@ class ColorService {
 
   static List<ColorOption> getColors() => _colors;
 
+  static ColorOption resolveColorOption(String colorName) {
+    final q = colorName.trim().toLowerCase();
+    if (q.isEmpty) {
+      return const ColorOption(name: '', color: AppColors.textHint);
+    }
+    return _colors.firstWhere(
+      (c) => c.name.toLowerCase() == q,
+      orElse: () => ColorOption(name: colorName, color: AppColors.textHint),
+    );
+  }
+
   /// Couleurs simples les plus utiles en premier (pas les nuances de gris, etc.).
   static List<ColorOption> quickPickColors() {
     final byLower = <String, ColorOption>{};

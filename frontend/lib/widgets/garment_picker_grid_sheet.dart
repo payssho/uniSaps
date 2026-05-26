@@ -4,9 +4,7 @@ import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
 import '../models/garment_model.dart';
-import 'garment_category_glyph.dart';
-import 'storage_aware_cached_image.dart';
-import '../l10n/l10n_context.dart';
+import 'garment_thumbnail.dart';
 
 /// Bottom sheet grille 3 colonnes — même UI que [CreationScreen] lors du choix d'une pièce.
 Future<GarmentModel?> showGarmentPickerGridSheet(
@@ -41,16 +39,16 @@ Future<GarmentModel?> showGarmentPickerGridSheet(
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              categoryLabel(categoryKey, ctx.l10n),
+              categoryLabel(categoryKey),
               style: AppTextStyles.heading3,
             ),
           ),
           const SizedBox(height: 8),
           Expanded(
             child: garments.isEmpty
-                ? Center(
+                ? const Center(
                     child: Text(
-                      ctx.l10n.garmentNoItemsInCategory,
+                      'Aucun vêtement dans cette catégorie',
                       style: AppTextStyles.bodySecondary,
                     ),
                   )
@@ -82,39 +80,11 @@ Future<GarmentModel?> showGarmentPickerGridSheet(
                               Column(
                                 children: [
                                   Expanded(
-                                    child: g.imageUrl.isNotEmpty
-                                        ? StorageAwareCachedImage(
-                                            imageUrl: g.imageUrl,
-                                            fit: BoxFit.cover,
-                                            width: double.infinity,
-                                            loadingWidget: const Center(
-                                              child: SizedBox(
-                                                width: 22,
-                                                height: 22,
-                                                child: CircularProgressIndicator(strokeWidth: 2),
-                                              ),
-                                            ),
-                                            errorWidget: (_, __) => Container(
-                                              color: AppColors.surfaceVariant,
-                                              child: Center(
-                                                child: GarmentCategoryGlyph(
-                                                  categoryKey: categoryKey,
-                                                  color: AppColors.textHint,
-                                                  size: 36,
-                                                ),
-                                              ),
-                                            ),
-                                          )
-                                        : Container(
-                                            color: AppColors.surfaceVariant,
-                                            child: Center(
-                                              child: GarmentCategoryGlyph(
-                                                categoryKey: categoryKey,
-                                                color: AppColors.textHint,
-                                                size: 36,
-                                              ),
-                                            ),
-                                          ),
+                                    child: GarmentThumbnail(
+                                      garment: g,
+                                      categoryKey: categoryKey,
+                                      width: double.infinity,
+                                    ),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.all(5),

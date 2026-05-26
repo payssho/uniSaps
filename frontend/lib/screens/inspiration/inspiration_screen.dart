@@ -16,6 +16,9 @@ import '../../providers/post_provider.dart';
 import '../../providers/inspiration_feed_dev_provider.dart';
 import '../../data/mock_explore_feed_posts.dart';
 import '../../providers/friendship_provider.dart';
+import '../../providers/garment_provider.dart';
+import '../../providers/outfit_provider.dart';
+import '../../providers/post_view_tracker_provider.dart';
 import '../../providers/widget_launch_provider.dart';
 import '../home/home_screen.dart';
 import 'search_users_screen.dart';
@@ -24,7 +27,10 @@ import '../../widgets/premium_avatar_ring.dart';
 import '../../widgets/async_error_state.dart';
 import '../../widgets/loading_shimmer_grid.dart';
 import '../../widgets/inspiration/empty_feed_message.dart';
-import '../../l10n/l10n_context.dart';
+import '../../widgets/storage_aware_cached_image.dart';
+import '../../widgets/garment_category_glyph.dart';
+import '../../widgets/post_garment_refs.dart';
+import '../../widgets/post_detail_sheet.dart';
 
 class InspirationScreen extends ConsumerStatefulWidget {
   const InspirationScreen({super.key});
@@ -194,7 +200,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                           ],
                         ),
                         child: Text(
-                          context.l10n.inspoScrollHint,
+                          'Fais défiler pour parcourir les looks',
                           style: TextStyle(
                             color: AppColors.textPrimary.withValues(alpha: 0.88),
                             fontSize: 14,
@@ -229,7 +235,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: Text(context.l10n.inspoChooseOutfitFirst),
+            content: const Text('Choisis d\'abord ton outfit du jour'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.accent.withOpacity(0.92),
             shape:
@@ -252,8 +258,8 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: Text(
-                context.l10n.inspoOutfitNoLongerExists,
+              content: const Text(
+                'Cet outfit n\'existe plus. Choisis un outfit du jour.',
               ),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.accent.withOpacity(0.92),
@@ -275,8 +281,8 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: Text(
-                context.l10n.inspoAddPhotoToPublish,
+              content: const Text(
+                'Ajoute au moins une photo à ton outfit pour publier.',
               ),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.accent.withOpacity(0.92),
@@ -305,8 +311,8 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
     } catch (_) {
       if (!mounted || !context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(context.l10n.inspoPreparePostError)),
+        const SnackBar(
+            content: Text('Erreur lors de la préparation du post.')),
       );
     }
   }
@@ -322,187 +328,335 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        final l10n = ctx.l10n;
+        final viewInsets = MediaQuery.viewInsetsOf(ctx).bottom;
+        final maxSheetH = MediaQuery.sizeOf(ctx).height * 0.92;
+        final previewImageH =
+            (MediaQuery.sizeOf(ctx).height * 0.34).clamp(180.0, 300.0);
+
         return Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(l10n.inspoPublishTodayTitle,
-                      style: AppTextStyles.heading3),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(Icons.close,
-                        color: AppColors.textSecondary),
-                    onPressed: () => Navigator.pop(ctx),
+          padding: EdgeInsets.only(bottom: viewInsets),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxSheetH),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.divider,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: AspectRatio(
-                  aspectRatio: 3 / 4,
-                  child: CachedNetworkImage(
-                    imageUrl: postImageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(
-                      color: AppColors.surfaceVariant,
-                      child: const Center(
-                        child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2)),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Publier l\'outfit du jour',
+                                style: AppTextStyles.heading3,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close,
+                                  color: AppColors.textSecondary),
+                              onPressed: () => Navigator.pop(ctx),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: previewImageH,
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final w = constraints.maxWidth;
+                                final h = constraints.maxHeight;
+                                return StorageAwareCachedImage(
+                              imageUrl: postImageUrl,
+                              width: w,
+                              height: h,
+                              fit: BoxFit.cover,
+                              preferHighQuality: true,
+                              loadingWidget: Container(
+                                color: AppColors.surfaceVariant,
+                                child: const Center(
+                                  child: SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (_, __) => Container(
+                                color: AppColors.surfaceVariant,
+                                child: const Icon(
+                                  Icons.broken_image_outlined,
+                                  color: AppColors.textHint,
+                                  size: 40,
+                                ),
+                              ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          outfit.name.isNotEmpty
+                              ? outfit.name
+                              : 'Mon outfit du jour',
+                          style: AppTextStyles.body
+                              .copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        if (garments.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          Text(
+                            'Pièces du look',
+                            style: AppTextStyles.body.copyWith(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: 118,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: garments.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 10),
+                              itemBuilder: (_, i) => _DailyPostGarmentTile(
+                                garment: garments[i],
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: captionController,
+                          maxLines: 3,
+                          minLines: 1,
+                          decoration: InputDecoration(
+                            hintText: 'Légende (optionnel)...',
+                            filled: true,
+                            fillColor: AppColors.surfaceVariant
+                                .withValues(alpha: 0.45),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: AppColors.scrimLight,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          final result = await ref
+                              .read(postNotifierProvider.notifier)
+                              .createPostFromDaily(
+                                user: user,
+                                outfit: outfit,
+                                garments: garments,
+                                caption: captionController.text.trim(),
+                              );
+                          if (!mounted) return;
+                          if (result == 'ok') {
+                            _toggleFeed(false);
+                            ScaffoldMessenger.of(context)
+                              ..clearSnackBars()
+                              ..showSnackBar(
+                                SnackBar(
+                                  content: const Row(
+                                    children: [
+                                      Icon(Icons.check_circle,
+                                          color: AppColors.white, size: 18),
+                                      SizedBox(width: 10),
+                                      Text('Outfit publié !',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                  backgroundColor: AppColors.success,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(14)),
+                                  margin: const EdgeInsets.fromLTRB(
+                                      16, 0, 16, 16),
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                          } else if (result == 'already_posted') {
+                            ScaffoldMessenger.of(context)
+                              ..clearSnackBars()
+                              ..showSnackBar(
+                                SnackBar(
+                                  content: const Row(
+                                    children: [
+                                      Icon(Icons.info_outline,
+                                          color: AppColors.white, size: 18),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          'Tu as déjà publié ton outfit aujourd\'hui !',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  backgroundColor: AppColors.warning,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(14)),
+                                  margin: const EdgeInsets.fromLTRB(
+                                      16, 0, 16, 16),
+                                  duration: const Duration(seconds: 4),
+                                ),
+                              );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text(
+                                      'Erreur lors de la publication.')),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14)),
+                        ),
+                        child: const Text(
+                          'Publier',
+                          style: TextStyle(
+                              color: AppColors.white,
+                              fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                outfit.name.isNotEmpty ? outfit.name : l10n.inspoDefaultOutfitName,
-                style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              if (garments.isNotEmpty)
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: garments.map((g) {
-                    final text = [g.brand, g.name]
-                        .where((s) => s.isNotEmpty)
-                        .join(' - ');
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(text,
-                          style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary)),
-                    );
-                  }).toList(),
-                ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: captionController,
-                maxLines: 3,
-                minLines: 1,
-                decoration: InputDecoration(
-                  hintText: l10n.inspoCaptionOptional,
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12))),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    final result = await ref
-                        .read(postNotifierProvider.notifier)
-                        .createPostFromDaily(
-                          user: user,
-                          outfit: outfit,
-                          garments: garments,
-                          caption: captionController.text.trim(),
-                        );
-                    if (!mounted) return;
-                    if (result == 'ok') {
-                      _toggleFeed(false);
-                      ScaffoldMessenger.of(context)
-                        ..clearSnackBars()
-                        ..showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: [
-                                const Icon(Icons.check_circle,
-                                    color: AppColors.white, size: 18),
-                                const SizedBox(width: 10),
-                                Text(l10n.inspoPublishedSnack,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                            backgroundColor: AppColors.success,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                            margin:
-                                const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            duration: const Duration(seconds: 3),
-                          ),
-                        );
-                    } else if (result == 'already_posted') {
-                      ScaffoldMessenger.of(context)
-                        ..clearSnackBars()
-                        ..showSnackBar(
-                          SnackBar(
-                            content: Row(
-                              children: [
-                                const Icon(Icons.info_outline,
-                                    color: AppColors.white, size: 18),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    l10n.inspoAlreadyPostedSnack,
-                                    style: const TextStyle(fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            backgroundColor: AppColors.warning,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                            margin:
-                                const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            duration: const Duration(seconds: 4),
-                          ),
-                        );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text(l10n.inspoPublishFailed)),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.accent,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: Text(
-                    l10n.commonPublish,
-                    style: const TextStyle(
-                        color: AppColors.white, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
     );
   }
 
+}
+
+/// Vignette pièce dans la preview de publication outfit du jour.
+class _DailyPostGarmentTile extends StatelessWidget {
+  final GarmentModel garment;
+
+  const _DailyPostGarmentTile({required this.garment});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = [garment.brand, garment.name]
+        .where((s) => s.isNotEmpty)
+        .join('\n');
+
+    return SizedBox(
+      width: 76,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 76,
+              height: 76,
+              child: garment.imageUrl.isNotEmpty
+                  ? StorageAwareCachedImage(
+                      imageUrl: garment.imageUrl,
+                      width: 76,
+                      height: 76,
+                      fit: BoxFit.cover,
+                      loadingWidget: Container(
+                        color: AppColors.surfaceVariant,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (_, __) => Container(
+                        color: AppColors.surfaceVariant,
+                        alignment: Alignment.center,
+                        child: GarmentCategoryGlyph(
+                          categoryKey: garment.category,
+                          size: 28,
+                          color: AppColors.textHint,
+                        ),
+                      ),
+                    )
+                  : Container(
+                      color: AppColors.surfaceVariant,
+                      alignment: Alignment.center,
+                      child: GarmentCategoryGlyph(
+                        categoryKey: garment.category,
+                        size: 28,
+                        color: AppColors.textHint,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label.isNotEmpty ? label : 'Pièce',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -518,12 +672,10 @@ class _FeedToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     const pad = 4.0;
     const pillW = (_FeedToggle._w - pad * 3) / 2;
     return Semantics(
-      label:
-          '${l10n.inspoFeedSemanticsPrefix}${showFriends ? l10n.inspoFeedFriends : l10n.inspoFeedExplore}',
+      label: 'Fil Inspiration : ${showFriends ? "Amis" : "Explorer"}',
       child: SizedBox(
       width: _FeedToggle._w,
       height: 44,
@@ -587,7 +739,7 @@ class _FeedToggle extends StatelessWidget {
                               ? AppColors.surface
                               : AppColors.textSecondary,
                         ),
-                        child: Text(l10n.inspoFeedFriends),
+                        child: const Text('Amis'),
                       ),
                     ),
                   ),
@@ -611,7 +763,7 @@ class _FeedToggle extends StatelessWidget {
                               ? AppColors.surface
                               : AppColors.textSecondary,
                         ),
-                        child: Text(l10n.inspoFeedExplore),
+                        child: const Text('Explorer'),
                       ),
                     ),
                   ),
@@ -635,9 +787,8 @@ class _PublishButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     return Semantics(
-      label: l10n.inspoPublishToday,
+      label: 'Publier mon look du jour',
       button: true,
       child: Material(
         color: AppColors.primary,
@@ -654,7 +805,7 @@ class _PublishButton extends StatelessWidget {
                     color: AppColors.white.withValues(alpha: 0.95), size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  l10n.commonPublish,
+                  'Publier',
                   style: TextStyle(
                     color: AppColors.white.withValues(alpha: 0.98),
                     fontWeight: FontWeight.w600,
@@ -689,7 +840,6 @@ class _FriendsFeed extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
     final postsAsync = ref.watch(friendsPostsProvider);
 
     return postsAsync.when(
@@ -697,8 +847,8 @@ class _FriendsFeed extends ConsumerWidget {
         if (user != null && user!.friends.isEmpty) {
           return EmptyFeedMessage(
             icon: Icons.people_outline,
-            title: l10n.emptyFeedFriendsNoFriendsTitle,
-            subtitle: l10n.emptyFeedFriendsNoFriendsSubtitle,
+            title: 'Aucun ami pour le moment',
+            subtitle: 'Recherche des utilisateurs pour les ajouter !',
             action: ElevatedButton.icon(
               onPressed: () {
                 Navigator.of(context).push(
@@ -707,7 +857,7 @@ class _FriendsFeed extends ConsumerWidget {
                 );
               },
               icon: const Icon(Icons.search, size: 18),
-              label: Text(l10n.inspoFindFriends),
+              label: const Text('Trouver des amis'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 foregroundColor: AppColors.white,
@@ -736,10 +886,10 @@ class _FriendsFeed extends ConsumerWidget {
         });
 
         if (todayPosts.isEmpty) {
-          return EmptyFeedMessage(
+          return const EmptyFeedMessage(
             icon: Icons.article_outlined,
-            title: l10n.emptyFeedFriendsTodayTitle,
-            subtitle: l10n.emptyFeedFriendsTodaySubtitle,
+            title: 'Aucun post de tes amis aujourd\'hui',
+            subtitle: 'Reviens demain ou invite tes amis à publier.',
           );
         }
 
@@ -776,16 +926,15 @@ class _ExploreFeed extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
     final postsAsync = ref.watch(exploreFeedProvider);
 
     return postsAsync.when(
       data: (posts) {
         if (posts.isEmpty) {
-          return EmptyFeedMessage(
+          return const EmptyFeedMessage(
             icon: Icons.explore_outlined,
-            title: l10n.emptyFeedExploreEmptyTitle,
-            subtitle: l10n.emptyFeedExploreEmptySubtitle,
+            title: 'Aucun post à explorer',
+            subtitle: 'Reviens plus tard pour découvrir de nouveaux looks.',
           );
         }
         return _ContinuousFeed(
@@ -797,7 +946,10 @@ class _ExploreFeed extends ConsumerWidget {
       },
       loading: () => const LoadingShimmerFeed(),
       error: (e, _) => AsyncErrorState(
-            onRetry: () => ref.invalidate(exploreFeedProvider),
+            onRetry: () {
+              ref.invalidate(postsProvider);
+              ref.invalidate(sponsoredActivePostsProvider);
+            },
           ),
     );
   }
@@ -830,6 +982,8 @@ class _ContinuousFeed extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final topInset = MediaQuery.paddingOf(context).top + 56;
     final bottomInset = MediaQuery.paddingOf(context).bottom + 96;
+    final myGarments = ref.watch(garmentsProvider(uid)).valueOrNull ?? [];
+    final myOutfits = ref.watch(outfitsProvider(uid)).valueOrNull ?? [];
 
     return NotificationListener<ScrollStartNotification>(
       onNotification: (_) {
@@ -847,10 +1001,16 @@ class _ContinuousFeed extends ConsumerWidget {
           if (index == posts.length) return const _FeedEndFooter();
 
           final post = posts[index];
+          final isOwn = post.userId == uid;
+          if (post.isSponsored && post.id.isNotEmpty) {
+            unawaited(ref.read(postViewTrackerProvider).registerView(post.id));
+          }
           return _InspoPostCard(
             key: ValueKey<String>('explore_${index}_${post.id}'),
             post: post,
             uid: uid,
+            ownerGarments: isOwn ? myGarments : null,
+            ownerOutfits: isOwn ? myOutfits : null,
             onLike: () {
               ref
                   .read(postNotifierProvider.notifier)
@@ -876,8 +1036,8 @@ class _ContinuousFeed extends ConsumerWidget {
                         SnackBar(
                           content: Text(
                             ok
-                                ? context.l10n.inspoPostDeleted
-                                : context.l10n.inspoPostDeleteFailed,
+                                ? 'Post supprimé.'
+                                : 'Impossible de supprimer le post.',
                           ),
                           backgroundColor:
                               ok ? AppColors.success : AppColors.error,
@@ -939,7 +1099,7 @@ class _FeedEndFooter extends StatelessWidget {
                   ),
               const SizedBox(height: 12),
               Text(
-                context.l10n.inspoFeedEndTitle,
+                'Fin des posts du jour',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.heading3.copyWith(
                   letterSpacing: -0.35,
@@ -948,7 +1108,7 @@ class _FeedEndFooter extends StatelessWidget {
               ).animate(delay: 50.ms).fadeIn(duration: 420.ms),
               const SizedBox(height: 8),
               Text(
-                context.l10n.inspoFeedEndSubtitle,
+                'Reviens demain pour de nouveaux looks.',
                 textAlign: TextAlign.center,
                 style: AppTextStyles.bodySecondary.copyWith(
                   height: 1.35,
@@ -971,6 +1131,8 @@ class _FeedEndFooter extends StatelessWidget {
 class _InspoPostCard extends StatefulWidget {
   final PostModel post;
   final String uid;
+  final List<GarmentModel>? ownerGarments;
+  final List<OutfitModel>? ownerOutfits;
   final VoidCallback onLike;
   final VoidCallback onDoubleTapLike;
   final VoidCallback onUserTap;
@@ -981,6 +1143,8 @@ class _InspoPostCard extends StatefulWidget {
     super.key,
     required this.post,
     required this.uid,
+    this.ownerGarments,
+    this.ownerOutfits,
     required this.onLike,
     required this.onDoubleTapLike,
     required this.onUserTap,
@@ -1085,11 +1249,11 @@ class _InspoPostCardState extends State<_InspoPostCard>
   }
 
   void _showPostDetails(BuildContext context, PostModel post) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _PostDetailSheet(post: post),
+    PostDetailSheet.show(
+      context,
+      post,
+      ownerGarments: widget.ownerGarments,
+      ownerOutfits: widget.ownerOutfits,
     );
   }
 
@@ -1142,15 +1306,15 @@ class _InspoPostCardState extends State<_InspoPostCard>
                       ),
                       leading: const Icon(Icons.edit_outlined,
                           color: AppColors.accent),
-                      title: Text(
-                        context.l10n.inspoEditCaptionTitle,
-                        style: const TextStyle(
+                      title: const Text(
+                        'Modifier la légende',
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      subtitle: Text(
-                        context.l10n.inspoCaptionVisibleHint,
+                      subtitle: const Text(
+                        'Texte visible sous la photo',
                         style: AppTextStyles.caption,
                       ),
                       onTap: () {
@@ -1172,15 +1336,15 @@ class _InspoPostCardState extends State<_InspoPostCard>
                       ),
                       leading: const Icon(Icons.delete_outline,
                           color: AppColors.error),
-                      title: Text(
-                        context.l10n.inspoDeletePostTitle,
-                        style: const TextStyle(
+                      title: const Text(
+                        'Supprimer le post',
+                        style: TextStyle(
                           color: AppColors.error,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       subtitle: Text(
-                        context.l10n.inspoDeletePostIrreversible,
+                        'Irréversible',
                         style: AppTextStyles.caption.copyWith(
                           color:
                               AppColors.error.withValues(alpha: 0.72),
@@ -1191,24 +1355,22 @@ class _InspoPostCardState extends State<_InspoPostCard>
                         if (!mounted || !context.mounted) return;
                         final confirm = await showDialog<bool>(
                           context: context,
-                          builder: (d) {
-                            final l10n = d.l10n;
-                            return AlertDialog(
+                          builder: (d) => AlertDialog(
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(22),
                             ),
-                            title: Text(
-                              l10n.inspoDeletePostConfirmTitle,
-                              style: const TextStyle(fontWeight: FontWeight.w800),
+                            title: const Text(
+                              'Supprimer le post ?',
+                              style: TextStyle(fontWeight: FontWeight.w800),
                             ),
-                            content: Text(
-                              l10n.inspoDeletePostConfirmBody,
+                            content: const Text(
+                              'Cette publication sera retirée du fil.',
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () =>
                                     Navigator.pop(d, false),
-                                child: Text(l10n.commonCancel),
+                                child: const Text('Annuler'),
                               ),
                               FilledButton(
                                 onPressed: () =>
@@ -1221,11 +1383,10 @@ class _InspoPostCardState extends State<_InspoPostCard>
                                         BorderRadius.circular(12),
                                   ),
                                 ),
-                                child: Text(l10n.commonDelete),
+                                child: const Text('Supprimer'),
                               ),
                             ],
-                          );
-                          },
+                          ),
                         );
                         if (confirm == true && mounted) {
                           widget.onDelete?.call();
@@ -1254,21 +1415,19 @@ class _InspoPostCardState extends State<_InspoPostCard>
     final controller = TextEditingController(text: widget.post.caption);
     showDialog<void>(
       context: context,
-      builder: (d) {
-        final l10n = d.l10n;
-        return AlertDialog(
+      builder: (d) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: Text(
-          l10n.inspoEditCaptionTitle,
-          style: const TextStyle(fontWeight: FontWeight.w800),
+        title: const Text(
+          'Modifier la légende',
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
         content: TextField(
           controller: controller,
           maxLines: 4,
           minLines: 1,
           autofocus: true,
-          decoration: InputDecoration(
-            hintText: l10n.inspoCaption,
+          decoration: const InputDecoration(
+            hintText: 'Légende...',
             filled: true,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(14)),
@@ -1279,7 +1438,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(d),
-            child: Text(l10n.commonCancel),
+            child: const Text('Annuler'),
           ),
           FilledButton(
             onPressed: () {
@@ -1295,11 +1454,10 @@ class _InspoPostCardState extends State<_InspoPostCard>
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            child: Text(l10n.commonSave),
+            child: const Text('Enregistrer'),
           ),
         ],
-      );
-      },
+      ),
     ).then((_) {
       FocusManager.instance.primaryFocus?.unfocus();
     });
@@ -1487,7 +1645,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    context.l10n.inspoSponsored,
+                                    'Sponsorisé',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
@@ -1512,7 +1670,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
                       return Transform.rotate(
                         angle: t * -0.16,
                             child: IconButton(
-                          tooltip: context.l10n.inspoOptions,
+                          tooltip: 'Options',
                           onPressed: () => unawaited(_showPostMenu()),
                           icon: Icon(
                             Icons.more_horiz_rounded,
@@ -1534,44 +1692,57 @@ class _InspoPostCardState extends State<_InspoPostCard>
           GestureDetector(
             onDoubleTap: _onDoubleTapImage,
             child: AspectRatio(
-              // Ratio plus « portrait » pour mieux voir les photos verticales.
-              aspectRatio: 2 / 3,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  widget.post.imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: widget.post.imageUrl,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.topCenter,
-                          placeholder: (_, __) => Container(
-                            color:
-                                AppColors.surfaceVariant.withValues(alpha: 0.72),
-                            child: Center(
-                              child: SizedBox(
-                                width: 28,
-                                height: 28,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color:
-                                      AppColors.accent.withValues(alpha: 0.7),
+              aspectRatio: 3 / 4,
+              child: ClipRect(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final w = constraints.maxWidth;
+                    final h = constraints.maxHeight;
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        widget.post.displayImageUrl.isNotEmpty
+                            ? StorageAwareCachedImage(
+                                imageUrl: widget.post.displayImageUrl,
+                                width: w,
+                                height: h,
+                                fit: BoxFit.cover,
+                                preferHighQuality: true,
+                                loadingWidget: Container(
+                                  width: w,
+                                  height: h,
+                                  color: AppColors.surfaceVariant
+                                      .withValues(alpha: 0.72),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 28,
+                                      height: 28,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.accent
+                                            .withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                  ),
                                 ),
+                                errorWidget: (_, __) => Container(
+                                  width: w,
+                                  height: h,
+                                  color: AppColors.surfaceVariant
+                                      .withValues(alpha: 0.75),
+                                  child: const Icon(
+                                    Icons.photo_library_outlined,
+                                    size: 40,
+                                    color: AppColors.textHint,
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                width: w,
+                                height: h,
+                                color: AppColors.surfaceVariant
+                                    .withValues(alpha: 0.75),
                               ),
-                            ),
-                          ),
-                          errorWidget: (_, __, ___) => Container(
-                            color: AppColors.surfaceVariant
-                                .withValues(alpha: 0.75),
-                            child: const Icon(
-                              Icons.photo_library_outlined,
-                              size: 40,
-                              color: AppColors.textHint,
-                            ),
-                          ),
-                        )
-                      : Container(
-                          color: AppColors.surfaceVariant.withValues(alpha: 0.75),
-                        ),
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -1588,8 +1759,11 @@ class _InspoPostCardState extends State<_InspoPostCard>
                       ),
                     ),
                   ),
-                  _burstOverlay(),
-                ],
+                        _burstOverlay(),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -1627,24 +1801,29 @@ class _InspoPostCardState extends State<_InspoPostCard>
                         _showPostDetails(context, widget.post),
                     icon: const Icon(
                       Icons.checkroom_rounded,
-                      size: 20,
-                      color: AppColors.textSecondary,
+                      size: 18,
+                      color: AppColors.accent,
                     ),
                     label: Text(
-                      context.l10n.inspoDetails,
-                      style:
-                          TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      'Détails · ${widget.post.garmentRefs.length}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
                     ),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: AppColors.accent,
                       backgroundColor:
-                          AppColors.surfaceVariant.withValues(alpha: 0.55),
+                          AppColors.accent.withValues(alpha: 0.1),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 8,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: AppColors.accent.withValues(alpha: 0.25),
+                        ),
                       ),
                     ),
                   ),
@@ -1671,41 +1850,25 @@ class _InspoPostCardState extends State<_InspoPostCard>
                 right: 14,
                 bottom: 14,
               ),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: widget.post.garmentRefs.take(4).map((refItem) {
-                  final text = [refItem.brand, refItem.name]
-                      .where((s) => s.isNotEmpty)
-                      .join(' · ');
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pièces du look',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.2,
+                      color: AppColors.textSecondary.withValues(alpha: 0.95),
                     ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.surfaceVariant.withValues(alpha: 0.92),
-                          AppColors.surface,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      border: Border.all(color: AppColors.scrimLight),
-                    ),
-                    child: Text(
-                      text,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11.5,
-                        color:
-                            AppColors.textSecondary.withValues(alpha: 0.95),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                  ),
+                  const SizedBox(height: 8),
+                  PostGarmentRefsForPost(
+                    post: widget.post,
+                    onViewAll: () =>
+                        _showPostDetails(context, widget.post),
+                  ),
+                ],
               ),
             ),
         ],
@@ -1718,134 +1881,6 @@ class _InspoPostCardState extends State<_InspoPostCard>
           duration: 360.ms,
           curve: Curves.easeOutCubic,
         );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Post detail sheet
-// ---------------------------------------------------------------------------
-class _PostDetailSheet extends StatelessWidget {
-  final PostModel post;
-
-  const _PostDetailSheet({required this.post});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints:
-          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 20),
-            decoration: BoxDecoration(
-              color: AppColors.textHint.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Flexible(
-            child: SingleChildScrollView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              UserProfileScreen(userId: post.userId),
-                        ),
-                      );
-                    },
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 22,
-                          backgroundColor: AppColors.surfaceVariant,
-                          backgroundImage: post.userPhotoUrl.isNotEmpty
-                              ? CachedNetworkImageProvider(post.userPhotoUrl)
-                              : null,
-                          child: post.userPhotoUrl.isEmpty
-                              ? Text(
-                                  post.username.isNotEmpty
-                                      ? post.username[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textHint),
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(post.username,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16)),
-                              if (post.createdAt.isNotEmpty)
-                                Text(post.createdAt.substring(0, 10),
-                                    style: AppTextStyles.caption),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (post.caption.isNotEmpty) ...[
-                    Text(post.caption, style: AppTextStyles.body),
-                    const SizedBox(height: 16),
-                  ],
-                  if (post.garmentRefs.isNotEmpty) ...[
-                    Text(context.l10n.inspoFitPieces,
-                        style: AppTextStyles.heading3),
-                    const SizedBox(height: 8),
-                    Column(
-                      children: post.garmentRefs.map<Widget>((ref) {
-                        final text = [ref.brand, ref.name]
-                            .where((s) => s.isNotEmpty)
-                            .join(' - ');
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.checkroom,
-                                size: 20, color: AppColors.textHint),
-                          ),
-                          title: Text(text,
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500)),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -1929,7 +1964,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(context.l10n.inspoRequestsSection),
+                    const Text('Demandes'),
                     if ((requestsAsync.valueOrNull?.length ?? 0) > 0) ...[
                       const SizedBox(width: 6),
                       Container(
@@ -1951,7 +1986,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
                   ],
                 ),
               ),
-              Tab(text: context.l10n.searchTab),
+              const Tab(text: 'Rechercher'),
             ],
           ),
           Flexible(
@@ -1974,10 +2009,10 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
     return requestsAsync.when(
       data: (requests) {
         if (requests.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(40),
+          return const Padding(
+            padding: EdgeInsets.all(40),
             child: Center(
-              child: Text(context.l10n.friendRequestPending,
+              child: Text('Aucune demande en attente',
                   style: AppTextStyles.bodySecondary),
             ),
           );
@@ -2024,7 +2059,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
                           style: const TextStyle(
                               fontWeight: FontWeight.w600, fontSize: 15),
                         ),
-                        Text(context.l10n.friendWantsToBe,
+                        const Text('Veut être ton ami',
                             style: AppTextStyles.caption),
                       ],
                     ),
@@ -2073,7 +2108,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: context.l10n.inspoSearchUser,
+              hintText: 'Rechercher un utilisateur...',
               prefixIcon:
                   const Icon(Icons.search, color: AppColors.textHint),
               border: OutlineInputBorder(
@@ -2096,8 +2131,8 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
                 ? Center(
                     child: Text(
                       _searchController.text.isEmpty
-                          ? context.l10n.inspoSearchTypeHint
-                          : context.l10n.inspoSearchNoResults,
+                          ? 'Tape un nom pour chercher'
+                          : 'Aucun résultat',
                       style: AppTextStyles.bodySecondary,
                     ),
                   )
@@ -2132,7 +2167,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
                             style: const TextStyle(
                                 fontWeight: FontWeight.w500)),
                         trailing: u.uid == uid
-                            ? Chip(label: Text(context.l10n.inspoChipYou))
+                            ? const Chip(label: Text('Toi'))
                             : IconButton(
                                 icon: const Icon(Icons.person_add_outlined,
                                     color: AppColors.accent),
@@ -2148,7 +2183,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
                                       .showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                          '${context.l10n.inspoFriendRequestSent}${u.username}'),
+                                          'Demande envoyée à ${u.username}'),
                                       behavior:
                                           SnackBarBehavior.floating,
                                       shape: RoundedRectangleBorder(

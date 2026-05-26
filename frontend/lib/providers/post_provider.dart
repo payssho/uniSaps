@@ -20,30 +20,38 @@ final postsProvider = StreamProvider<List<PostModel>>((ref) {
 List<PostModel> _organicOnly(List<PostModel> all) =>
     all.where((p) => p.isOrganic && !p.isSponsored).toList();
 
+/// Posts sponsorisés actifs (fil Explorer). Erreur isolée : ne bloque pas le feed.
+final sponsoredActivePostsProvider = StreamProvider<List<PostModel>>((ref) {
+  return ref.watch(firestoreServiceProvider).sponsoredActivePostsStream();
+});
+
 /// Feed Explorer : organiques + sponsorisés actifs mélangés.
+///
+/// Les posts organiques ([postsProvider]) pilotent l’état ; les sponsorisés sont
+/// ajoutés en best-effort (erreur ou chargement sponsorisé ≠ écran d’erreur).
 final exploreFeedProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
   final all = ref.watch(postsProvider);
-  final sponsoredAsync = ref.watch(_sponsoredActiveProvider);
+  final sponsoredAsync = ref.watch(sponsoredActivePostsProvider);
   final mockAdsOn =
       kDebugMode && ref.watch(exploreDevMockPostsEnabledProvider);
+
+  List<PostModel> sponsoredBestEffort() {
+    if (sponsoredAsync.hasError) return [];
+    return sponsoredAsync.valueOrNull ?? [];
+  }
 
   return all.when(
     data: (organicPosts) {
       final organic = _organicOnly(organicPosts);
-      final sponsoredPosts = sponsoredAsync.valueOrNull ?? [];
+      final sponsoredPosts = sponsoredBestEffort();
 
       if (!mockAdsOn) {
-        return sponsoredAsync.when(
-          data: (_) => AsyncValue.data(
-            mixExploreFeed(organic: organic, sponsoredActive: sponsoredPosts),
-          ),
-          loading: () => const AsyncValue.loading(),
-          error: (e, st) => AsyncValue.error(e, st),
+        return AsyncValue.data(
+          mixExploreFeed(organic: organic, sponsoredActive: sponsoredPosts),
         );
       }
 
       // Mode dev : mocks en tête (organiques, sans pastille pub).
-      // Mélange tous les 7 : uniquement les pubs Firestore (compte créateur, etc.).
       if (organic.isEmpty) {
         return AsyncValue.data(List<PostModel>.from(kMockExploreFeedPosts));
       }
@@ -60,10 +68,6 @@ final exploreFeedProvider = Provider<AsyncValue<List<PostModel>>>((ref) {
     loading: () => const AsyncValue.loading(),
     error: (e, st) => AsyncValue.error(e, st),
   );
-});
-
-final _sponsoredActiveProvider = StreamProvider<List<PostModel>>((ref) {
-  return ref.watch(firestoreServiceProvider).sponsoredActivePostsStream();
 });
 
 /// True si l'utilisateur courant a déjà posté aujourd'hui.
@@ -149,7 +153,7 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
       }
 
       final refs = garments
-          .map((g) => GarmentRef(name: g.name, brand: g.brand))
+          .map((g) => GarmentRef(name: g.name, brand: g.brand, imageUrl: g.imageUrl))
           .toList();
 
       final post = PostModel(
@@ -197,4 +201,101 @@ final postNotifierProvider = StateNotifierProvider<PostNotifier, AsyncValue<void
     ref.watch(firestoreServiceProvider),
     ref.watch(storageServiceProvider),
   );
+});
+
+/// Vêtements du propriétaire utiles pour enrichir un post (profil : pas de requête réseau).
+List<GarmentModel> garmentsForPostEnrichment(
+  PostModel post,
+  List<GarmentModel> ownerGarments, {
+  List<OutfitModel> ownerOutfits = const [],
+}) {
+  if (ownerGarments.isEmpty) return const [];
+  if (post.outfitId.isEmpty || ownerOutfits.isEmpty) {
+    return ownerGarments;
+  }
+  for (final o in ownerOutfits) {
+    if (o.id != post.outfitId) continue;
+    final byId = {for (final g in ownerGarments) g.id: g};
+    final fromOutfit = o.garmentIds
+        .map((id) => byId[id])
+        .whereType<GarmentModel>()
+        .toList();
+    if (fromOutfit.isNotEmpty) return fromOutfit;
+    break;
+  }
+  return ownerGarments;
+}
+
+/// Fusionne garment_refs du post avec les URLs du dressing (sync).
+List<GarmentRef> enrichGarmentRefs({
+  required PostModel post,
+  required List<GarmentModel> garments,
+}) {
+  if (post.garmentRefs.isEmpty) return post.garmentRefs;
+  if (!post.garmentRefs.any((r) => r.imageUrl.isEmpty)) {
+    return post.garmentRefs;
+  }
+  if (garments.isEmpty) return post.garmentRefs;
+
+  if (garments.length == post.garmentRefs.length) {
+    return [
+      for (var i = 0; i < garments.length; i++)
+        GarmentRef(
+          name: post.garmentRefs[i].name.isNotEmpty
+              ? post.garmentRefs[i].name
+              : garments[i].name,
+          brand: post.garmentRefs[i].brand.isNotEmpty
+              ? post.garmentRefs[i].brand
+              : garments[i].brand,
+          imageUrl: garments[i].imageUrl,
+        ),
+    ];
+  }
+
+  return post.garmentRefs.map((refItem) {
+    GarmentModel? match;
+    for (final g in garments) {
+      if (g.name == refItem.name && g.brand == refItem.brand) {
+        match = g;
+        break;
+      }
+    }
+    if (match != null && match.imageUrl.isNotEmpty) {
+      return GarmentRef(
+        name: refItem.name,
+        brand: refItem.brand,
+        imageUrl: match.imageUrl,
+      );
+    }
+    return refItem;
+  }).toList();
+}
+
+Future<List<GarmentRef>> _enrichGarmentRefsFromFirestore(
+  PostModel post,
+  FirestoreService db,
+) async {
+  if (post.garmentRefs.isEmpty) return post.garmentRefs;
+  if (!post.garmentRefs.any((r) => r.imageUrl.isEmpty)) {
+    return post.garmentRefs;
+  }
+  if (post.outfitId.isEmpty || post.userId.isEmpty) {
+    return post.garmentRefs;
+  }
+
+  final outfit = await db.getOutfit(post.userId, post.outfitId);
+  if (outfit == null) return post.garmentRefs;
+
+  final results = await Future.wait(
+    outfit.garmentIds.map((gid) => db.getGarment(post.userId, gid)),
+  );
+  final garments = results.whereType<GarmentModel>().toList();
+  return enrichGarmentRefs(post: post, garments: garments);
+}
+
+/// Enrichit les refs du post avec les photos Firestore (posts anciens sans image_url).
+final enrichedGarmentRefsProvider =
+    FutureProvider.family<List<GarmentRef>, PostModel>((ref, post) async {
+  final db = ref.read(firestoreServiceProvider);
+  return _enrichGarmentRefsFromFirestore(post, db);
 });

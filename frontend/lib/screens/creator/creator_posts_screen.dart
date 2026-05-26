@@ -1,4 +1,3 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
@@ -8,9 +7,12 @@ import '../../models/post_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/collection_provider.dart';
 import '../../providers/creator_post_provider.dart';
-import '../../widgets/creator_post_preview_sheet.dart';
-import 'creator_post_create_sheet.dart';
-import '../../l10n/l10n_context.dart';
+import '../../providers/garment_provider.dart';
+import '../../providers/outfit_provider.dart';
+import '../../widgets/app_empty_state.dart';
+import '../../widgets/post_card.dart';
+import '../../widgets/post_detail_sheet.dart';
+import 'creator_post_create_screen.dart';
 
 class CreatorPostsScreen extends ConsumerStatefulWidget {
   const CreatorPostsScreen({super.key});
@@ -23,11 +25,10 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
   String? _filterCollectionId;
 
   void _openCreate() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const CreatorPostCreateSheet(),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const CreatorPostCreateScreen(),
+      ),
     );
   }
 
@@ -50,25 +51,26 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final uid = ref.watch(authServiceProvider).uid;
     final postsAsync = ref.watch(creatorPostsProvider(uid));
     final collectionsAsync = ref.watch(collectionsProvider(uid));
+    final garments = ref.watch(garmentsProvider(uid)).valueOrNull ?? [];
+    final outfits = ref.watch(outfitsProvider(uid)).valueOrNull ?? [];
 
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreate,
         icon: const Icon(Icons.add),
-        label: Text(l10n.creatorPostPubLabel),
+        label: const Text('Post pub'),
       ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text(l10n.creatorPostsTitle, style: AppTextStyles.heading2),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text('Posts publicitaires', style: AppTextStyles.heading2),
             ),
             collectionsAsync.when(
               data: (cols) {
@@ -80,7 +82,7 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
                       FilterChip(
-                        label: Text(l10n.commonAll),
+                        label: const Text('Toutes'),
                         selected: _filterCollectionId == null,
                         onSelected: (_) => setState(() => _filterCollectionId = null),
                       ),
@@ -110,23 +112,15 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                     data: (collections) {
                       final grouped = _groupByCollection(posts, collections);
                       if (grouped.values.every((l) => l.isEmpty)) {
-                        return Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.campaign_outlined,
-                                  size: 48,
-                                  color: AppColors.textHint.withValues(alpha: 0.6)),
-                              const SizedBox(height: 12),
-                              Text(l10n.creatorPostsEmpty,
-                                  style: AppTextStyles.bodySecondary),
-                            ],
-                          ),
+                        return const AppEmptyState(
+                          icon: Icons.campaign_outlined,
+                          title: 'Aucun post pour l’instant.',
+                          size: AppEmptyStateSize.compact,
                         );
                       }
                       final colNames = {
                         for (final c in collections) c.id: c.name,
-                        '_none': l10n.creatorPostsNoCollection,
+                        '_none': 'Sans collection',
                       };
                       return ListView(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
@@ -150,8 +144,30 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                                   childAspectRatio: 0.51,
                                 ),
                                 itemCount: e.value.length,
-                                itemBuilder: (_, i) =>
-                                    _PostTile(post: e.value[i]),
+                                itemBuilder: (_, i) {
+                                  final post = e.value[i];
+                                  final uid =
+                                      ref.read(authServiceProvider).uid;
+                                  return PostCard(
+                                    post: post,
+                                    currentUid: uid,
+                                    layout: PostCardLayout.grid,
+                                    creatorGrid: true,
+                                    ownerGarments: garments,
+                                    ownerOutfits: outfits,
+                                    onLike: () {},
+                                    onTap: () => PostDetailSheet.show(
+                                      context,
+                                      post,
+                                      ownerGarments: garments,
+                                      ownerOutfits: outfits,
+                                    ),
+                                    onActiveChanged: (v) => ref
+                                        .read(creatorPostNotifierProvider
+                                            .notifier)
+                                        .setPostActive(post.id, v),
+                                  );
+                                },
                               ),
                             ],
                           );
@@ -165,130 +181,7 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                 loading: () => const Center(
                   child: CircularProgressIndicator(color: AppColors.accent),
                 ),
-                error: (e, _) => Center(
-                      child: Text(l10n.commonErrorDetail(e)),
-                    ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PostTile extends ConsumerWidget {
-  final PostModel post;
-
-  const _PostTile({required this.post});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final imageUrl = post.displayImageUrl;
-    final radius = BorderRadius.circular(14);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: radius,
-        side: BorderSide(color: AppColors.divider.withValues(alpha: 0.65)),
-      ),
-      child: InkWell(
-        onTap: () => CreatorPostPreviewSheet.show(context, post),
-        borderRadius: radius,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AspectRatio(
-              aspectRatio: 3 / 4,
-              child: imageUrl.isNotEmpty
-                  ? CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                      placeholder: (_, __) => Container(
-                        color: AppColors.surfaceVariant,
-                        child: const Center(
-                          child: SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      ),
-                    )
-                  : Container(
-                      color: AppColors.surfaceVariant,
-                      child:
-                          const Icon(Icons.image_outlined, color: AppColors.textHint),
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 8, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    post.caption.isNotEmpty
-                        ? post.caption
-                        : context.l10n.creatorPostDefaultCaption,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: post.isActive
-                                  ? AppColors.success.withValues(alpha: 0.12)
-                                  : AppColors.textHint.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              post.isActive
-                                  ? context.l10n.creatorPostStatusActive
-                                  : context.l10n.creatorPostStatusInactive,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: post.isActive
-                                    ? AppColors.success
-                                    : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        height: 30,
-                        width: 42,
-                        child: FittedBox(
-                          fit: BoxFit.contain,
-                          alignment: Alignment.centerRight,
-                          child: Switch.adaptive(
-                            value: post.isActive,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            onChanged: (v) => ref
-                                .read(creatorPostNotifierProvider.notifier)
-                                .setPostActive(post.id, v),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                error: (e, _) => Center(child: Text('Erreur : $e')),
               ),
             ),
           ],

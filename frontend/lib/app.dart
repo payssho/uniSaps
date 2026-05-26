@@ -4,7 +4,6 @@ import 'core/theme/app_theme.dart';
 import 'core/routes/app_router.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'providers/locale_provider.dart';
-import 'providers/theme_mode_provider.dart';
 import 'widgets/widget_sync_listener.dart';
 
 class UniSapsApp extends ConsumerWidget {
@@ -13,7 +12,6 @@ class UniSapsApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    final themeMode = ref.watch(themeModeProvider);
     final localeState = ref.watch(localeProvider);
 
     if (localeState.isLoading) {
@@ -31,8 +29,6 @@ class UniSapsApp extends ConsumerWidget {
         title: 'uniSaps',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: themeMode,
         locale: localeState.locale,
         supportedLocales: AppLocalizations.supportedLocales,
         localizationsDelegates: AppLocalizations.localizationsDelegates,

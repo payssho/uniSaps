@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../models/friend_request_model.dart';
@@ -8,15 +7,25 @@ import '../../models/user_model.dart';
 import '../../models/post_model.dart';
 import '../../models/garment_model.dart';
 import '../../models/outfit_model.dart';
+import '../../models/collection_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/friendship_provider.dart';
 import '../../providers/post_provider.dart';
-import '../../services/firestore_service.dart';
 import '../../widgets/post_card.dart';
+import '../../widgets/post_detail_sheet.dart';
 import '../../widgets/premium_avatar_ring.dart';
 import '../../widgets/garment_category_glyph.dart';
+import '../../widgets/garment_card.dart';
+import '../../widgets/garment_detail_sheet.dart';
+import '../../widgets/app_empty_state.dart';
+import '../../widgets/outfit_detail_sheet.dart';
+import '../../widgets/user_list_tile.dart';
+import '../../widgets/dressing_category_chips_row.dart';
+import '../../widgets/dressing_category_filters_bar.dart';
+import '../../widgets/storage_aware_cached_image.dart';
 import '../../core/constants/categories.dart';
-import '../../l10n/l10n_context.dart';
+import '../../utils/dressing_garment_filters.dart';
+import '../../utils/post_garment_image_prefetch.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -37,19 +46,32 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
   List<PostModel> _posts = [];
   List<GarmentModel> _garments = [];
   List<OutfitModel> _outfits = [];
+  List<CollectionModel> _collections = [];
 
-  late TabController _tabController;
+  TabController? _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _loadProfile();
+  }
+
+  /// Recréé uniquement pendant [_loading] (pas de TabBar monté) pour éviter crash / dirty build.
+  void _syncTabController(UserModel user) {
+    final len = user.isCreator ? 2 : 3;
+    if (_tabController != null && _tabController!.length == len) return;
+    final index = (_tabController?.index ?? 0).clamp(0, len - 1);
+    _tabController?.dispose();
+    _tabController = TabController(
+      length: len,
+      vsync: this,
+      initialIndex: index,
+    );
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -101,26 +123,45 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       var posts = <PostModel>[];
       var garments = <GarmentModel>[];
       var outfits = <OutfitModel>[];
+      var collections = <CollectionModel>[];
 
       if (canSeeContent) {
         try {
           posts = await db.getUserPosts(user.uid);
           garments = await db.getGarments(user.uid);
-          outfits = await db.getOutfits(user.uid);
+          if (user.isCreator) {
+            collections = await db.getCollections(user.uid);
+          } else {
+            outfits = await db.getOutfits(user.uid);
+          }
         } catch (_) {
           // Contenu inaccessible - on affiche le profil vide
         }
       }
 
       if (mounted) {
+        _syncTabController(user);
         setState(() {
           _targetUser = user;
           _relationship = rel;
           _posts = posts;
           _garments = garments;
           _outfits = outfits;
+          _collections = collections;
           _loading = false;
         });
+        if (posts.isNotEmpty && garments.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            // ignore: discarded_futures
+            prefetchProfilePostGarmentImages(
+              context: context,
+              posts: posts,
+              ownerGarments: garments,
+              ownerOutfits: outfits,
+            );
+          });
+        }
       }
     } catch (e) {
       // Erreur générale : on sort du loading pour ne pas bloquer l'UI
@@ -151,12 +192,8 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                 children: [
                   const Icon(Icons.check_circle, color: AppColors.white, size: 18),
                   const SizedBox(width: 10),
-                  Text(
-                    context.l10n.inspoFriendRequestSentExclaim(
-                      _targetUser!.username,
-                    ),
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
+                  Text('Demande envoyée à @${_targetUser!.username} !',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
                 ],
               ),
               backgroundColor: AppColors.success,
@@ -172,7 +209,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       setState(() => _actionLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(context.l10n.commonErrorDetail(e)),
+          content: Text('Erreur : $e'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -219,19 +256,18 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-        body: Center(
-          child: Text(
-            context.l10n.userProfileNotFound,
-            style: AppTextStyles.bodySecondary,
-          ),
-        ),
+        body: const Center(child: Text('Utilisateur introuvable', style: AppTextStyles.bodySecondary)),
       );
     }
 
     final user = _targetUser!;
+    final isCreatorProfile = user.isCreator;
+    final tabCount = isCreatorProfile ? 2 : 3;
     final canSeeContent = !user.isPrivate || _relationship == RelationshipStatus.friends;
     final myUid = ref.watch(authServiceProvider).uid;
     final isMe = myUid == user.uid;
+    final tabsReady =
+        _tabController != null && _tabController!.length == tabCount;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -240,29 +276,60 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
           children: [
             _buildHeader(user, isMe),
             if (!isMe) _buildActionButton(),
-            if (canSeeContent || isMe) ...[
+            if ((canSeeContent || isMe) && tabsReady) ...[
               TabBar(
-                controller: _tabController,
+                controller: _tabController!,
                 indicatorColor: AppColors.accent,
                 labelColor: AppColors.accent,
                 unselectedLabelColor: AppColors.textHint,
                 indicatorSize: TabBarIndicatorSize.label,
                 dividerColor: AppColors.divider,
-                tabs: const [
-                  Tab(text: 'Posts'),
-                  Tab(text: 'Dressing'),
-                  Tab(text: 'Outfits'),
-                ],
+                tabs: isCreatorProfile
+                    ? const [
+                        Tab(text: 'Posts'),
+                        Tab(text: 'Collections'),
+                      ]
+                    : const [
+                        Tab(text: 'Posts'),
+                        Tab(text: 'Dressing'),
+                        Tab(text: 'Outfits'),
+                      ],
               ),
               Expanded(
                 child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _PostsTab(posts: _posts, uid: myUid),
-                    _DressingTab(garments: _garments),
-                    _OutfitsTab(outfits: _outfits, ownerUid: user.uid),
-                  ],
+                  controller: _tabController!,
+                  children: isCreatorProfile
+                      ? [
+                          _PostsTab(
+                            posts: _posts,
+                            uid: myUid,
+                            ownerGarments: _garments,
+                            ownerOutfits: _outfits,
+                          ),
+                          _CreatorCollectionsTab(
+                            collections: _collections,
+                            garments: _garments,
+                          ),
+                        ]
+                      : [
+                          _PostsTab(
+                            posts: _posts,
+                            uid: myUid,
+                            ownerGarments: _garments,
+                            ownerOutfits: _outfits,
+                          ),
+                          _DressingTab(garments: _garments),
+                          _OutfitsTab(
+                            outfits: _outfits,
+                            ownerUid: user.uid,
+                            garments: _garments,
+                          ),
+                        ],
                 ),
+              ),
+            ] else if (canSeeContent || isMe) ...[
+              const Expanded(
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
               ),
             ] else ...[
               Expanded(
@@ -282,13 +349,13 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                           child: const Icon(Icons.lock_outline, size: 36, color: AppColors.textHint),
                         ),
                         const SizedBox(height: 20),
-                        Text(
-                          context.l10n.profilePrivateAccount,
+                        const Text(
+                          'Compte prive',
                           style: AppTextStyles.heading3,
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          context.l10n.userProfilePrivateViewBody,
+                        const Text(
+                          'Ajoute cet utilisateur en ami pour voir son contenu.',
                           style: AppTextStyles.bodySecondary,
                           textAlign: TextAlign.center,
                         ),
@@ -323,37 +390,19 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                     color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.lock_outline, size: 14, color: AppColors.textHint),
-                      const SizedBox(width: 4),
-                      Text(
-                        context.l10n.userProfilePrivate,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textHint),
-                      ),
+                      Icon(Icons.lock_outline, size: 14, color: AppColors.textHint),
+                      SizedBox(width: 4),
+                      Text('Privé', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
                     ],
                   ),
                 ),
               const SizedBox(width: 8),
             ],
           ),
-          PremiumAvatarRing(
-            isPremium: user.isPremium,
-            padding: 4,
-            child: CircleAvatar(
-              radius: 44,
-              backgroundColor: AppColors.surfaceVariant,
-              backgroundImage:
-                  user.profilePhotoUrl.isNotEmpty ? CachedNetworkImageProvider(user.profilePhotoUrl) : null,
-              child: user.profilePhotoUrl.isEmpty
-                  ? Text(
-                      user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: AppColors.textHint),
-                    )
-                  : null,
-            ),
-          ),
+          _ProfileAvatar(user: user),
           const SizedBox(height: 12),
           Text(
             user.displayName.isNotEmpty ? user.displayName : user.username,
@@ -361,20 +410,72 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
           ),
           if (user.username.isNotEmpty)
             Text('@${user.username}', style: AppTextStyles.bodySecondary),
+          if (user.isCreator) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.25),
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.storefront_rounded, size: 14, color: AppColors.primary),
+                  SizedBox(width: 6),
+                  Text(
+                    'Créateur',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (user.creatorBio.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  user.creatorBio,
+                  textAlign: TextAlign.center,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.bodySecondary,
+                ),
+              ),
+            ],
+          ],
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _StatBadge(
-                value: '${user.friends.length}',
-                label: context.l10n.profileFriendsLabel,
-                onTap: () => _openProfileFriendsList(user, isMe),
-              ),
-              const SizedBox(width: 28),
-              _StatBadge(value: '${user.currentStreak}', label: context.l10n.statStreak),
-              const SizedBox(width: 28),
-              _StatBadge(value: '${user.bestStreak}', label: context.l10n.statBest),
-            ],
+            children: user.isCreator
+                ? [
+                    _StatBadge(value: '${_posts.length}', label: 'Posts'),
+                    const SizedBox(width: 28),
+                    _StatBadge(
+                      value: '${_collections.length}',
+                      label: 'Collections',
+                    ),
+                    const SizedBox(width: 28),
+                    _StatBadge(value: '${_garments.length}', label: 'Pièces'),
+                  ]
+                : [
+                    _StatBadge(
+                      value: '${user.friends.length}',
+                      label: 'Amis',
+                      onTap: () => _openProfileFriendsList(user, isMe),
+                    ),
+                    const SizedBox(width: 28),
+                    _StatBadge(value: '${user.currentStreak}', label: 'Streak'),
+                    const SizedBox(width: 28),
+                    _StatBadge(value: '${user.bestStreak}', label: 'Best'),
+                  ],
           ),
         ],
       ),
@@ -395,7 +496,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = OutlinedButton.icon(
           onPressed: () => _showRemoveDialog(),
           icon: const Icon(Icons.check, size: 18, color: AppColors.success),
-          label: Text(context.l10n.userProfileFriend, style: const TextStyle(color: AppColors.success)),
+          label: const Text('Ami', style: TextStyle(color: AppColors.success)),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: AppColors.success),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -406,7 +507,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = OutlinedButton.icon(
           onPressed: null,
           icon: const Icon(Icons.hourglass_empty, size: 18),
-          label: Text(context.l10n.userProfileRequestSent),
+          label: const Text('Demande envoyee'),
           style: OutlinedButton.styleFrom(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -416,7 +517,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = ElevatedButton.icon(
           onPressed: _acceptRequest,
           icon: const Icon(Icons.person_add, size: 18, color: AppColors.white),
-          label: Text(context.l10n.userProfileAccept, style: const TextStyle(color: AppColors.white)),
+          label: const Text('Accepter', style: TextStyle(color: AppColors.white)),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -427,7 +528,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = ElevatedButton.icon(
           onPressed: _sendRequest,
           icon: const Icon(Icons.person_add_outlined, size: 18, color: AppColors.white),
-          label: Text(context.l10n.userProfileAddFriend, style: const TextStyle(color: AppColors.white)),
+          label: const Text('Ajouter en ami', style: TextStyle(color: AppColors.white)),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accent,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -447,24 +548,21 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(ctx.l10n.profileRemoveFriendTitle),
+        title: const Text('Retirer cet ami ?'),
         content: Text(
-          '${ctx.l10n.profileRemoveFriendBodyPrefix}@${_targetUser!.username}${ctx.l10n.profileRemoveFriendBodySuffix}',
+          'Retirer @${_targetUser!.username} de ta liste d\'amis ?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(ctx.l10n.commonCancel),
+            child: const Text('Annuler'),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _removeFriend();
             },
-            child: Text(
-              ctx.l10n.profileRemoveFriendAction,
-              style: const TextStyle(color: AppColors.error),
-            ),
+            child: const Text('Retirer', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -481,6 +579,64 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         profileUser: profileUser,
         showAddActions: !isMe,
         hostContext: hostCtx,
+      ),
+    );
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  final UserModel user;
+
+  const _ProfileAvatar({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    const radius = 44.0;
+    const size = radius * 2;
+    final url = user.displayAvatarUrl;
+
+    Widget fallback() {
+      if (user.isCreator) {
+        return const Icon(Icons.storefront_rounded, size: 40, color: AppColors.primary);
+      }
+      return Text(
+        user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
+        style: const TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textHint,
+        ),
+      );
+    }
+
+    return PremiumAvatarRing(
+      isPremium: user.isPremium,
+      padding: 4,
+      child: ClipOval(
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: ColoredBox(
+            color: AppColors.surfaceVariant,
+            child: url.isNotEmpty
+                ? StorageAwareCachedImage(
+                    imageUrl: url,
+                    fit: BoxFit.cover,
+                    width: size,
+                    height: size,
+                    preferHighQuality: true,
+                    loadingWidget: Center(
+                      child: SizedBox(
+                        width: size * 0.35,
+                        height: size * 0.35,
+                        child: const CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    errorWidget: (_, __) => Center(child: fallback()),
+                  )
+                : Center(child: fallback()),
+          ),
+        ),
       ),
     );
   }
@@ -630,10 +786,8 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                   Expanded(
                     child: Text(
                       widget.profileUser.username.isNotEmpty
-                          ? context.l10n.userProfileFriendsOf(
-                              widget.profileUser.username,
-                            )
-                          : context.l10n.profileFriendsLabel,
+                          ? 'Amis de @${widget.profileUser.username}'
+                          : 'Amis',
                       style: AppTextStyles.heading3,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -657,23 +811,16 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Text(
-                          context.l10n.userProfileFriendsLoadFailed(snap.error!),
-                          style: AppTextStyles.bodySecondary,
-                        ),
+                        child: Text('Impossible de charger la liste : ${snap.error}', style: AppTextStyles.bodySecondary),
                       ),
                     );
                   }
                   final friends = _orderLikeProfile(snap.data ?? []);
                   if (friends.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          context.l10n.userProfileNoFriendsYet,
-                          style: AppTextStyles.bodySecondary,
-                        ),
-                      ),
+                    return const AppEmptyState(
+                      icon: Icons.people_outline,
+                      title: 'Aucun ami pour le moment',
+                      size: AppEmptyStateSize.compact,
                     );
                   }
                   return ListView.separated(
@@ -692,19 +839,9 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                       Widget? trailing;
                       if (widget.showAddActions && myUser != null && !isSelf) {
                         if (isFriend) {
-                          trailing = Text(
-                            context.l10n.userProfileFriend,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.success,
-                            ),
-                          );
+                          trailing = const Text('Ami', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.success));
                         } else if (pendingSent != null) {
-                          trailing = Text(
-                            context.l10n.userProfilePending,
-                            style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
-                          );
+                          trailing = Text('En attente', style: AppTextStyles.caption.copyWith(color: AppColors.textHint));
                         } else if (pendingRecv != null) {
                           trailing = busy
                               ? const SizedBox(
@@ -717,7 +854,7 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                                 )
                               : TextButton(
                                   onPressed: () => _acceptRequest(pendingRecv),
-                                  child: Text(context.l10n.userProfileAccept),
+                                  child: const Text('Accepter'),
                                 );
                         } else {
                           trailing = busy
@@ -731,54 +868,21 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                                 )
                               : TextButton(
                                   onPressed: () => _sendRequest(u),
-                                  child: Text(context.l10n.commonAdd),
+                                  child: const Text('Ajouter'),
                                 );
                         }
                       }
 
-                      return InkWell(
+                      return UserListTile(
+                        user: u,
+                        prefixAtUsername: true,
+                        bordered: false,
                         onTap: () => _goToProfile(u),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 24,
-                                backgroundColor: AppColors.surfaceVariant,
-                                backgroundImage: u.profilePhotoUrl.isNotEmpty ? CachedNetworkImageProvider(u.profilePhotoUrl) : null,
-                                child: u.profilePhotoUrl.isEmpty
-                                    ? Text(
-                                        u.username.isNotEmpty ? u.username[0].toUpperCase() : '?',
-                                        style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textHint),
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      u.username.isNotEmpty ? '@${u.username}' : u.displayName,
-                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    if (u.displayName.isNotEmpty && u.username.isNotEmpty)
-                                      Text(u.displayName, style: AppTextStyles.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  ],
-                                ),
-                              ),
-                              if (isSelf)
-                                Text(
-                                  context.l10n.inspoChipYou,
-                                  style: AppTextStyles.caption.copyWith(color: AppColors.textHint),
-                                )
-                              else if (trailing != null)
-                                trailing,
-                            ],
-                          ),
-                        ),
+                        trailing: isSelf
+                            ? Text('Toi',
+                                style: AppTextStyles.caption
+                                    .copyWith(color: AppColors.textHint))
+                            : trailing,
                       );
                     },
                   );
@@ -795,21 +899,23 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
 class _PostsTab extends ConsumerWidget {
   final List<PostModel> posts;
   final String uid;
+  final List<GarmentModel> ownerGarments;
+  final List<OutfitModel> ownerOutfits;
 
-  const _PostsTab({required this.posts, required this.uid});
+  const _PostsTab({
+    required this.posts,
+    required this.uid,
+    required this.ownerGarments,
+    required this.ownerOutfits,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (posts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.article_outlined, size: 56, color: AppColors.textHint.withOpacity(0.3)),
-            const SizedBox(height: 12),
-            Text(context.l10n.userProfileNoPosts, style: AppTextStyles.bodySecondary),
-          ],
-        ),
+      return const AppEmptyState(
+        icon: Icons.article_outlined,
+        title: 'Aucun post',
+        size: AppEmptyStateSize.compact,
       );
     }
 
@@ -826,6 +932,8 @@ class _PostsTab extends ConsumerWidget {
         post: posts[i],
         currentUid: uid,
         layout: PostCardLayout.grid,
+        ownerGarments: ownerGarments,
+        ownerOutfits: ownerOutfits,
         onLike: () => ref.read(postNotifierProvider.notifier).toggleLike(posts[i].id, uid),
         onTap: () => _showPostDetails(context, posts[i]),
       ),
@@ -833,76 +941,273 @@ class _PostsTab extends ConsumerWidget {
   }
 
   void _showPostDetails(BuildContext context, PostModel post) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _SimplePostDetail(post: post),
+    PostDetailSheet.show(
+      context,
+      post,
+      ownerGarments: ownerGarments,
+      ownerOutfits: ownerOutfits,
+      showAuthorHeader: false,
     );
   }
 }
 
-class _SimplePostDetail extends StatelessWidget {
-  final PostModel post;
-  const _SimplePostDetail({required this.post});
+/// Collections créateur (profil public), triées de la plus récente à la plus ancienne.
+class _CreatorCollectionsTab extends StatelessWidget {
+  final List<CollectionModel> collections;
+  final List<GarmentModel> garments;
+
+  const _CreatorCollectionsTab({
+    required this.collections,
+    required this.garments,
+  });
+
+  static int _sortKey(CollectionModel c) {
+    final created = DateTime.tryParse(c.createdAt);
+    if (created != null) return created.millisecondsSinceEpoch;
+    final end = DateTime.tryParse(c.endDate);
+    if (end != null) return end.millisecondsSinceEpoch;
+    return 0;
+  }
+
+  Map<String, List<GarmentModel>> _groupGarments() {
+    final map = <String, List<GarmentModel>>{};
+    for (final g in garments) {
+      final key = g.collectionId.isNotEmpty ? g.collectionId : '_none';
+      map.putIfAbsent(key, () => []).add(g);
+    }
+    return map;
+  }
+
+  void _openGarment(BuildContext context, GarmentModel g) {
+    GarmentDetailSheet.show(
+      context,
+      garment: g,
+      mode: GarmentDetailMode.readOnly,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40, height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 16),
-            decoration: BoxDecoration(
-              color: AppColors.textHint.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
+    final sorted = List<CollectionModel>.from(collections)
+      ..sort((a, b) => _sortKey(b).compareTo(_sortKey(a)));
+    final grouped = _groupGarments();
+
+    if (sorted.isEmpty) {
+      return const AppEmptyState(
+        icon: Icons.collections_bookmark_outlined,
+        title: 'Aucune collection',
+        subtitle: 'Ce créateur n’a pas encore publié de collection.',
+        size: AppEmptyStateSize.compact,
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      itemCount: sorted.length,
+      itemBuilder: (context, index) {
+        final col = sorted[index];
+        final items = grouped[col.id] ?? <GarmentModel>[];
+        return _CreatorPublicCollectionCard(
+          collection: col,
+          garments: items,
+          onGarmentTap: (g) => _openGarment(context, g),
+        );
+      },
+    );
+  }
+}
+
+class _CreatorPublicCollectionCard extends StatelessWidget {
+  final CollectionModel collection;
+  final List<GarmentModel> garments;
+  final void Function(GarmentModel) onGarmentTap;
+
+  const _CreatorPublicCollectionCard({
+    required this.collection,
+    required this.garments,
+    required this.onGarmentTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final count = garments.length;
+    final dateLine = collection.startDate.isNotEmpty
+        ? '${collection.startDate} → ${collection.endDate}'
+        : '';
+    final recentLabel = collection.createdAt.length >= 10
+        ? collection.createdAt.substring(0, 10)
+        : collection.createdAt;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.divider.withValues(alpha: 0.55)),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.graphite.withValues(alpha: 0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
-          ),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (post.imageUrl.isNotEmpty)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: CachedNetworkImage(
-                        imageUrl: post.imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                      ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  width: 4,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppColors.accent,
+                        AppColors.primary.withValues(alpha: 0.85),
+                      ],
                     ),
-                  if (post.caption.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    Text(post.caption, style: AppTextStyles.body),
-                  ],
-                  if (post.garmentRefs.isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    ...post.garmentRefs.map((r) {
-                      final text = [r.brand, r.name].where((s) => s.isNotEmpty).join(' - ');
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            const Icon(Icons.checkroom, size: 16, color: AppColors.textHint),
+                            Icon(
+                              Icons.collections_bookmark_rounded,
+                              size: 18,
+                              color: AppColors.accent.withValues(alpha: 0.95),
+                            ),
                             const SizedBox(width: 8),
-                            Text(text, style: AppTextStyles.caption),
+                            Expanded(
+                              child: Text(
+                                collection.name,
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
-                      );
-                    }),
-                  ],
-                  const SizedBox(height: 24),
-                ],
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            if (recentLabel.isNotEmpty)
+                              _CollectionMetaChip(
+                                icon: Icons.schedule_rounded,
+                                label: 'Ajoutée le $recentLabel',
+                              ),
+                            if (dateLine.isNotEmpty)
+                              _CollectionMetaChip(
+                                icon: Icons.calendar_month_rounded,
+                                label: dateLine,
+                              ),
+                            _CollectionMetaChip(
+                              icon: Icons.checkroom_rounded,
+                              label: count == 1 ? '1 pièce' : '$count pièces',
+                              accent: AppColors.primary,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (garments.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+                child: Text(
+                  'Aucune pièce dans cette collection pour le moment.',
+                  style: AppTextStyles.caption,
+                ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 0.72,
+                  ),
+                  itemCount: garments.length.clamp(0, 6),
+                  itemBuilder: (_, i) {
+                    final g = garments[i];
+                    return GarmentCard(
+                      garment: g,
+                      onTap: () => onGarmentTap(g),
+                    );
+                  },
+                ),
               ),
+            if (garments.length > 6)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                child: Text(
+                  '+ ${garments.length - 6} autre${garments.length - 6 > 1 ? 's' : ''} pièce${garments.length - 6 > 1 ? 's' : ''}',
+                  style: AppTextStyles.caption.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CollectionMetaChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color? accent;
+
+  const _CollectionMetaChip({
+    required this.icon,
+    required this.label,
+    this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = accent ?? AppColors.accent;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color.withValues(alpha: 0.95)),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary.withValues(alpha: 0.95),
             ),
           ),
         ],
@@ -911,98 +1216,245 @@ class _SimplePostDetail extends StatelessWidget {
   }
 }
 
-class _DressingTab extends StatelessWidget {
+class _DressingTab extends StatefulWidget {
   final List<GarmentModel> garments;
 
   const _DressingTab({required this.garments});
 
   @override
-  Widget build(BuildContext context) {
-    if (garments.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.checkroom_outlined, size: 56, color: AppColors.textHint.withOpacity(0.3)),
-            const SizedBox(height: 12),
-            Text(context.l10n.userProfileEmptyDressing, style: AppTextStyles.bodySecondary),
-          ],
-        ),
-      );
-    }
+  State<_DressingTab> createState() => _DressingTabState();
+}
 
+class _DressingTabState extends State<_DressingTab> {
+  String _selectedCategory = '';
+  final TextEditingController _nameFilterController = TextEditingController();
+  String _nameFilter = '';
+  String _brandFilter = '';
+  String _colorFilter = '';
+
+  static const _gridDelegate = SliverGridDelegateWithMaxCrossAxisExtent(
+    maxCrossAxisExtent: 180,
+    childAspectRatio: 0.72,
+    crossAxisSpacing: 14,
+    mainAxisSpacing: 14,
+  );
+
+  @override
+  void dispose() {
+    _nameFilterController.dispose();
+    super.dispose();
+  }
+
+  void _setCategory(String key) {
+    setState(() {
+      _selectedCategory = key;
+      _nameFilter = '';
+      _nameFilterController.clear();
+      _brandFilter = '';
+      _colorFilter = '';
+    });
+  }
+
+  List<GarmentModel> _garmentsInCategory(String categoryKey) {
+    return widget.garments.where((g) => g.category == categoryKey).toList();
+  }
+
+  List<GarmentModel> _garmentsForFilterOptions() {
+    if (_selectedCategory.isEmpty) return widget.garments;
+    return _garmentsInCategory(_selectedCategory);
+  }
+
+  List<GarmentModel> _applyFilters(List<GarmentModel> list) {
+    return applyDressingGarmentFilters(
+      list: list,
+      nameFilter: _nameFilter,
+      brandFilter: _brandFilter,
+      colorFilter: _colorFilter,
+    );
+  }
+
+  List<GarmentModel> _filteredForCategory(String categoryKey) {
+    return _applyFilters(_garmentsInCategory(categoryKey));
+  }
+
+  void _showReadOnlyGarment(BuildContext context, GarmentModel g) {
+    GarmentDetailSheet.show(
+      context,
+      garment: g,
+      mode: GarmentDetailMode.readOnly,
+    );
+  }
+
+  Widget _garmentGrid(List<GarmentModel> items) {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
-        childAspectRatio: 0.75,
-      ),
-      itemCount: garments.length,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      gridDelegate: _gridDelegate,
+      itemCount: items.length,
       itemBuilder: (_, i) {
-        final g = garments[i];
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () => _showReadOnlyGarment(context, g),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.divider),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: g.imageUrl.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: g.imageUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
-                            errorWidget: (_, __, ___) => Container(
-                              color: AppColors.surfaceVariant,
-                              child: const Icon(Icons.broken_image_outlined, color: AppColors.textHint),
-                            ),
-                          )
-                        : Container(
-                            color: AppColors.surfaceVariant,
-                            child: Center(
-                              child: GarmentCategoryGlyph(
-                                categoryKey: g.category,
-                                color: AppColors.textHint,
-                                size: 32,
-                              ),
-                            ),
-                          ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Text(
-                      g.name.isNotEmpty ? g.name : g.brand,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        final g = items[i];
+        return GarmentCard(
+          garment: g,
+          onTap: () => _showReadOnlyGarment(context, g),
         );
       },
     );
   }
 
-  void _showReadOnlyGarment(BuildContext context, GarmentModel g) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _ReadOnlyGarmentSheet(garment: g),
+  Widget _emptyState({required bool hasItemsInCat, required bool noFilters}) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.checkroom_outlined,
+            size: 56,
+            color: AppColors.textHint.withOpacity(0.3),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            hasItemsInCat && !noFilters ? 'Aucun résultat' : 'Aucun vêtement',
+            style: AppTextStyles.bodySecondary,
+          ),
+          if (hasItemsInCat && !noFilters) ...[
+            const SizedBox(height: 6),
+            const Text(
+              'Essaie un autre nom, marque ou couleur.',
+              style: AppTextStyles.caption,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupedByCategory({required bool noFilters}) {
+    final sections = <Widget>[];
+    for (final cat in categories) {
+      final items = _applyFilters(_garmentsInCategory(cat.key));
+      if (items.isEmpty) continue;
+      items.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
+      sections.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
+          child: Row(
+            children: [
+              GarmentCategoryGlyph(
+                categoryKey: cat.key,
+                color: AppColors.textSecondary,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                cat.label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${items.length}',
+                style: AppTextStyles.caption,
+              ),
+            ],
+          ),
+        ),
+      );
+      sections.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: _gridDelegate,
+            itemCount: items.length,
+            itemBuilder: (_, i) {
+              final g = items[i];
+              return GarmentCard(
+                garment: g,
+                onTap: () => _showReadOnlyGarment(context, g),
+              );
+            },
+          ),
+        ),
+      );
+    }
+    if (sections.isEmpty) {
+      return _emptyState(
+        hasItemsInCat: widget.garments.isNotEmpty,
+        noFilters: noFilters,
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 24),
+      children: sections,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.garments.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.checkroom_outlined,
+              size: 56,
+              color: AppColors.textHint.withOpacity(0.3),
+            ),
+            const SizedBox(height: 12),
+            const Text('Dressing vide', style: AppTextStyles.bodySecondary),
+          ],
+        ),
+      );
+    }
+
+    final noFilters = _nameFilter.trim().isEmpty &&
+        _brandFilter.isEmpty &&
+        _colorFilter.isEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 12),
+        DressingCategoryChipsRow(
+          selectedCategory: _selectedCategory,
+          onCategorySelected: _setCategory,
+        ),
+        const SizedBox(height: 10),
+        DressingCategoryFiltersBar(
+          nameController: _nameFilterController,
+          brandFilter: _brandFilter,
+          colorFilter: _colorFilter,
+          garmentsForOptions: _garmentsForFilterOptions(),
+          onNameChanged: (v) => setState(() => _nameFilter = v),
+          onBrandChanged: (v) => setState(() => _brandFilter = v ?? ''),
+          onColorChanged: (v) => setState(() => _colorFilter = v ?? ''),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: _selectedCategory.isEmpty
+              ? _buildGroupedByCategory(noFilters: noFilters)
+              : Builder(
+                  builder: (context) {
+                    final byCat = _garmentsInCategory(_selectedCategory);
+                    final filtered = _filteredForCategory(_selectedCategory);
+                    if (filtered.isEmpty) {
+                      return _emptyState(
+                        hasItemsInCat: byCat.isNotEmpty,
+                        noFilters: noFilters,
+                      );
+                    }
+                    return _garmentGrid(filtered);
+                  },
+                ),
+        ),
+      ],
     );
   }
 }
@@ -1010,8 +1462,13 @@ class _DressingTab extends StatelessWidget {
 class _OutfitsTab extends StatelessWidget {
   final List<OutfitModel> outfits;
   final String ownerUid;
+  final List<GarmentModel> garments;
 
-  const _OutfitsTab({required this.outfits, required this.ownerUid});
+  const _OutfitsTab({
+    required this.outfits,
+    required this.ownerUid,
+    required this.garments,
+  });
 
   static String _thumbUrl(OutfitModel o) {
     if (o.referencePhotoUrl.isNotEmpty) return o.referencePhotoUrl;
@@ -1022,15 +1479,10 @@ class _OutfitsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (outfits.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.style_outlined, size: 56, color: AppColors.textHint.withOpacity(0.3)),
-            const SizedBox(height: 12),
-            Text(context.l10n.profileNoOutfits, style: AppTextStyles.bodySecondary),
-          ],
-        ),
+      return const AppEmptyState(
+        icon: Icons.style_outlined,
+        title: 'Aucun outfit',
+        size: AppEmptyStateSize.compact,
       );
     }
 
@@ -1061,13 +1513,17 @@ class _OutfitsTab extends StatelessWidget {
                       width: 64,
                       height: 64,
                       child: thumb.isNotEmpty
-                          ? CachedNetworkImage(
+                          ? StorageAwareCachedImage(
                               imageUrl: thumb,
                               fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
-                              errorWidget: (_, __, ___) => Container(
+                              loadingWidget:
+                                  Container(color: AppColors.surfaceVariant),
+                              errorWidget: (_, __) => Container(
                                 color: AppColors.surfaceVariant,
-                                child: const Icon(Icons.style_rounded, color: AppColors.textHint),
+                                child: const Icon(
+                                  Icons.style_rounded,
+                                  color: AppColors.textHint,
+                                ),
                               ),
                             )
                           : Container(
@@ -1121,443 +1577,12 @@ class _OutfitsTab extends StatelessWidget {
   }
 
   void _showFriendOutfitDetail(BuildContext context, OutfitModel outfit) {
-    final hostContext = context;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Consumer(
-        builder: (_, ref, __) => _FriendOutfitDetailSheet(
-          outfit: outfit,
-          ownerUid: ownerUid,
-          hostContext: hostContext,
-        ),
-      ),
-    );
-  }
-}
-
-/// Détail outfit d’un autre utilisateur : photo principale + pièces résolues.
-class _FriendOutfitDetailSheet extends ConsumerStatefulWidget {
-  final OutfitModel outfit;
-  final String ownerUid;
-  /// Context sous la feuille (écran profil) pour ouvrir une autre feuille après pop.
-  final BuildContext hostContext;
-
-  const _FriendOutfitDetailSheet({
-    required this.outfit,
-    required this.ownerUid,
-    required this.hostContext,
-  });
-
-  @override
-  ConsumerState<_FriendOutfitDetailSheet> createState() =>
-      _FriendOutfitDetailSheetState();
-}
-
-class _FriendOutfitDetailSheetState
-    extends ConsumerState<_FriendOutfitDetailSheet> {
-  Future<List<GarmentModel>>? _piecesFuture;
-
-  String get _heroUrl {
-    final o = widget.outfit;
-    if (o.referencePhotoUrl.isNotEmpty) return o.referencePhotoUrl;
-    if (o.photoUrls.isNotEmpty) return o.photoUrls.first;
-    return '';
-  }
-
-  Future<List<GarmentModel>> _loadGarments(
-    FirestoreService db,
-    List<String> ids,
-  ) async {
-    if (ids.isEmpty) return [];
-    final out = <GarmentModel>[];
-    for (final id in ids) {
-      final g = await db.getGarment(widget.ownerUid, id);
-      if (g != null) out.add(g);
-    }
-    return out;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final db = ref.watch(firestoreServiceProvider);
-    _piecesFuture ??= _loadGarments(db, widget.outfit.garmentIds);
-    final outfit = widget.outfit;
-
-    return DraggableScrollableSheet(
-      initialChildSize: 0.72,
-      minChildSize: 0.45,
-      maxChildSize: 0.94,
-      expand: false,
-      builder: (_, scrollCtrl) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SingleChildScrollView(
-          controller: scrollCtrl,
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.textHint.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text(
-                outfit.name.isEmpty ? 'Outfit' : outfit.name,
-                style: AppTextStyles.heading3,
-              ),
-              if (outfit.lastWorn.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  '${context.l10n.profileLastWornPrefix}${outfit.lastWorn}',
-                  style: AppTextStyles.caption,
-                ),
-              ],
-              const SizedBox(height: 14),
-              if (_heroUrl.isNotEmpty)
-                GestureDetector(
-                  onTap: () => _openPhotoFullScreen(context, _heroUrl),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: CachedNetworkImage(
-                      imageUrl: _heroUrl,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: 260,
-                      placeholder: (_, __) => Container(
-                        height: 260,
-                        color: AppColors.surfaceVariant,
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                      errorWidget: (_, __, ___) => Container(
-                        height: 260,
-                        color: AppColors.surfaceVariant,
-                        child: const Icon(Icons.broken_image_outlined, size: 40, color: AppColors.textHint),
-                      ),
-                    ),
-                  ),
-                )
-              else
-                Container(
-                  height: 120,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: const Icon(Icons.photo_library_outlined, size: 40, color: AppColors.textHint),
-                ),
-              if (outfit.photoUrls.length > 1) ...[
-                const SizedBox(height: 14),
-                Text(
-                  context.l10n.userProfileOtherPhotos,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 88,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: outfit.photoUrls.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (_, i) {
-                      final url = outfit.photoUrls[i];
-                      return GestureDetector(
-                        onTap: () => _openPhotoFullScreen(context, url),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: SizedBox(
-                            width: 88,
-                            height: 88,
-                            child: CachedNetworkImage(
-                              imageUrl: url,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-              const SizedBox(height: 20),
-              FutureBuilder<List<GarmentModel>>(
-                future: _piecesFuture,
-                builder: (context, snap) {
-                  if (snap.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24),
-                      child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                    );
-                  }
-                  final pieces = snap.data ?? [];
-                  if (pieces.isEmpty) {
-                    return Text(
-                      context.l10n.userProfileNoLinkedPieces,
-                      style: AppTextStyles.bodySecondary,
-                    );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(context.l10n.userProfilePieces, style: AppTextStyles.heading3),
-                      const SizedBox(height: 10),
-                      ...pieces.map((g) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
-                                  if (!widget.hostContext.mounted) return;
-                                  showModalBottomSheet<void>(
-                                    context: widget.hostContext,
-                                    isScrollControlled: true,
-                                    backgroundColor: Colors.transparent,
-                                    builder: (_) => _ReadOnlyGarmentSheet(garment: g),
-                                  );
-                                });
-                              },
-                              child: Row(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: SizedBox(
-                                      width: 48,
-                                      height: 48,
-                                      child: g.imageUrl.isNotEmpty
-                                          ? CachedNetworkImage(
-                                              imageUrl: g.imageUrl,
-                                              fit: BoxFit.cover,
-                                              placeholder: (_, __) => Container(color: AppColors.surfaceVariant),
-                                            )
-                                          : Container(
-                                              color: AppColors.surfaceVariant,
-                                              child: Center(
-                                                child: GarmentCategoryGlyph(
-                                                  categoryKey: g.category,
-                                                  color: AppColors.textHint,
-                                                  size: 28,
-                                                ),
-                                              ),
-                                            ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          g.name.isNotEmpty ? g.name : 'Sans nom',
-                                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        if (g.brand.isNotEmpty)
-                                          Text(g.brand, style: AppTextStyles.caption),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _openPhotoFullScreen(BuildContext context, String url) {
-    showDialog<void>(
-      context: context,
-      builder: (dCtx) => Dialog(
-        insetPadding: const EdgeInsets.all(12),
-        backgroundColor: Colors.black87,
-        child: GestureDetector(
-          onTap: () => Navigator.pop(dCtx),
-          child: InteractiveViewer(
-            minScale: 0.5,
-            maxScale: 4,
-            child: CachedNetworkImage(
-              imageUrl: url,
-              fit: BoxFit.contain,
-              placeholder: (_, __) => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator(color: AppColors.white))),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Détail dressing en lecture seule (profil ami).
-class _ReadOnlyGarmentSheet extends StatelessWidget {
-  final GarmentModel garment;
-
-  const _ReadOnlyGarmentSheet({required this.garment});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.textHint.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            GestureDetector(
-              onTap: garment.imageUrl.isNotEmpty
-                  ? () {
-                      showDialog<void>(
-                        context: context,
-                        builder: (dCtx) => Dialog(
-                          insetPadding: const EdgeInsets.all(12),
-                          backgroundColor: Colors.black87,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(dCtx),
-                            child: InteractiveViewer(
-                              minScale: 0.5,
-                              maxScale: 4,
-                              child: CachedNetworkImage(
-                                imageUrl: garment.imageUrl,
-                                fit: BoxFit.contain,
-                                placeholder: (_, __) => const SizedBox(
-                                  height: 200,
-                                  child: Center(child: CircularProgressIndicator(color: AppColors.white)),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                  : null,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: Container(
-                  height: 260,
-                  width: double.infinity,
-                  color: AppColors.surfaceVariant,
-                  child: garment.imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: garment.imageUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (_, __) => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                          errorWidget: (_, __, ___) => Center(
-                            child: GarmentCategoryGlyph(
-                              categoryKey: garment.category,
-                              size: 56,
-                              color: AppColors.textHint,
-                            ),
-                          ),
-                        )
-                      : Center(
-                          child: GarmentCategoryGlyph(
-                            categoryKey: garment.category,
-                            size: 56,
-                            color: AppColors.textHint,
-                          ),
-                        ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      GarmentCategoryGlyph(
-                        categoryKey: garment.category,
-                        size: 16,
-                        color: AppColors.accent,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        categoryLabel(garment.category, context.l10n),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent),
-                      ),
-                    ],
-                  ),
-                ),
-                if (garment.timesWorn > 0) ...[
-                  const SizedBox(width: 10),
-                  Text(
-                    context.l10n.userProfileTimesWorn(garment.timesWorn),
-                    style: AppTextStyles.caption,
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              garment.name.isNotEmpty ? garment.name : 'Sans nom',
-              style: AppTextStyles.heading3,
-            ),
-            if (garment.brand.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(garment.brand, style: const TextStyle(fontSize: 16, color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
-            ],
-            if (garment.colors.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: garment.colors
-                    .map((c) => Chip(label: Text(c, style: const TextStyle(fontSize: 12))))
-                    .toList(),
-              ),
-            ],
-          ],
-        ),
-      ),
+    final cache = {for (final g in garments) g.id: g};
+    OutfitDetailSheet.show(
+      context,
+      outfit: outfit,
+      garmentCache: cache,
+      mode: OutfitDetailMode.readOnly,
     );
   }
 }

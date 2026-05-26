@@ -10,8 +10,6 @@ import '../../screens/creator/creator_landing_screen.dart';
 import '../../screens/creator/creator_checkout_screen.dart';
 import '../../screens/creator/creator_onboarding_screen.dart';
 import '../../screens/creator/creator_home_screen.dart';
-import '../../providers/locale_provider.dart';
-import '../../screens/settings/language_selection_screen.dart';
 
 /// Notifier qui écoute les changements d'auth et de user pour déclencher
 /// une réévaluation des redirects GoRouter - sans recréer le router.
@@ -21,29 +19,21 @@ class _RouterNotifier extends ChangeNotifier {
   _RouterNotifier(this._ref) {
     _ref.listen(authStateProvider, (_, __) => notifyListeners());
     _ref.listen(currentUserProvider, (_, __) => notifyListeners());
-    _ref.listen(localeProvider, (_, __) => notifyListeners());
   }
 
   String? redirect(BuildContext context, GoRouterState state) {
-    final localeState = _ref.read(localeProvider);
-    final loc = state.matchedLocation;
-
-    if (localeState.isLoading) return null;
-
-    if (!localeState.languageChoiceCompleted) {
-      if (loc != '/language') return '/language';
-      return null;
-    }
-    if (loc == '/language') return '/login';
-
     final authState = _ref.read(authStateProvider);
     final currentUser = _ref.read(currentUserProvider);
 
     final isAuth = authState.valueOrNull != null;
     final authLoading = authState.isLoading;
     final userLoading = currentUser.isLoading;
-    final isOnAuthPage =
-        loc == '/login' || loc == '/signup' || loc.startsWith('/creator');
+    final loc = state.matchedLocation;
+
+    final isLoginOrSignup = loc == '/login' || loc == '/signup';
+    final isCreatorLanding = loc == '/creator';
+    /// Routes accessibles sans être connecté (pas /creator/home, etc.).
+    final isPublicWhenLoggedOut = isLoginOrSignup || isCreatorLanding;
     final isOnboarding = loc == '/onboarding';
     final isCreatorOnboarding = loc == '/creator/onboarding';
     final isCreatorCheckout = loc == '/creator/checkout';
@@ -51,12 +41,7 @@ class _RouterNotifier extends ChangeNotifier {
     if (authLoading) return null;
 
     if (!isAuth) {
-      if (loc.startsWith('/creator') && loc != '/creator') {
-        return null;
-      }
-      if (!isOnAuthPage && loc != '/creator' && loc != '/language') {
-        return '/login';
-      }
+      if (!isPublicWhenLoggedOut) return '/login';
       return null;
     }
 
@@ -82,11 +67,10 @@ class _RouterNotifier extends ChangeNotifier {
       if (loc == '/creator/onboarding') {
         return '/creator/home';
       }
-      if (loc == '/login' ||
-          loc == '/signup' ||
+      if (isLoginOrSignup ||
           isOnboarding ||
           loc == '/home' ||
-          loc == '/creator' ||
+          isCreatorLanding ||
           loc == '/creator/checkout') {
         return '/creator/home';
       }
@@ -125,10 +109,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       return notifier.redirect(context, state);
     },
     routes: [
-      GoRoute(
-        path: '/language',
-        builder: (_, __) => const LanguageSelectionScreen(),
-      ),
       GoRoute(
         path: '/login',
         builder: (_, __) => const LoginScreen(),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/image_capture.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
 import '../../core/constants/weather_catalog.dart';
@@ -13,10 +14,9 @@ import '../../providers/outfit_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/garment_picker_grid_sheet.dart';
+import '../../widgets/garment_thumbnail.dart';
 import '../../widgets/storage_aware_cached_image.dart';
-import '../../l10n/generated/app_localizations.dart';
-import '../../l10n/l10n_context.dart';
-import '../../l10n/domain_l10n.dart';
+import '../../widgets/creation_step_breadcrumb.dart';
 
 IconData _creationWeatherIcon(String id) {
   switch (id) {
@@ -93,8 +93,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: source,
-      maxWidth: 800,
-      imageQuality: 82,
+      maxWidth: ImageCaptureDefaults.outfitPhotoMaxWidth,
+      imageQuality: ImageCaptureDefaults.outfitPhotoQuality,
     );
     if (picked == null) return;
     setState(() => _uploadingPhoto = true);
@@ -107,7 +107,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.creationUploadError)),
+        const SnackBar(content: Text("Erreur lors de l'upload")),
       );
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
@@ -136,7 +136,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            Text(context.l10n.creationAddPhotoSheetTitle,
+            const Text('Ajouter la photo de l\'outfit',
                 style: AppTextStyles.heading3),
             const SizedBox(height: 20),
             Row(
@@ -144,7 +144,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 Expanded(
                   child: _SourceOption(
                     icon: Icons.camera_alt_rounded,
-                    label: context.l10n.pickerCamera,
+                    label: 'Appareil photo',
                     onTap: () {
                       Navigator.pop(context);
                       _pickPhoto(ImageSource.camera);
@@ -155,7 +155,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 Expanded(
                   child: _SourceOption(
                     icon: Icons.photo_library_rounded,
-                    label: context.l10n.pickerGallery,
+                    label: 'Galerie',
                     onTap: () {
                       Navigator.pop(context);
                       _pickPhoto(ImageSource.gallery);
@@ -234,14 +234,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(categoryLabelL10n(context.l10n, categoryKey),
+              child: Text(categoryLabel(categoryKey),
                   style: AppTextStyles.heading3),
             ),
             const SizedBox(height: 4),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                context.l10n.creationLayersHint,
+                'Tu peux ajouter plusieurs pièces — l\'ordre suit celui de la liste (la première est la plus près du corps).',
                 style: TextStyle(
                   fontSize: 12,
                   height: 1.35,
@@ -252,8 +252,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             const SizedBox(height: 8),
             Expanded(
               child: garments.isEmpty
-                  ? Center(
-                      child: Text(context.l10n.creationNoGarmentInCategory,
+                  ? const Center(
+                      child: Text('Aucun vêtement dans cette catégorie',
                           style: AppTextStyles.bodySecondary))
                   : GridView.builder(
                       padding: const EdgeInsets.all(12),
@@ -286,43 +286,11 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                 Column(
                                   children: [
                                     Expanded(
-                                      child: g.imageUrl.isNotEmpty
-                                          ? StorageAwareCachedImage(
-                                              imageUrl: g.imageUrl,
-                                              fit: BoxFit.cover,
-                                              width: double.infinity,
-                                              loadingWidget: Container(
-                                                color: AppColors.surfaceVariant,
-                                                child: const Center(
-                                                  child: SizedBox(
-                                                    width: 22,
-                                                    height: 22,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                            strokeWidth: 2),
-                                                  ),
-                                                ),
-                                              ),
-                                              errorWidget: (_, __) =>
-                                                  Container(
-                                                color:
-                                                    AppColors.surfaceVariant,
-                                                child: GarmentCategoryGlyph(
-                                                  categoryKey: categoryKey,
-                                                  color: AppColors.textHint,
-                                                  size: 24,
-                                                ),
-                                              ),
-                                            )
-                                          : Container(
-                                              color:
-                                                  AppColors.surfaceVariant,
-                                              child: GarmentCategoryGlyph(
-                                                  categoryKey: categoryKey,
-                                                  color:
-                                                      AppColors.textHint,
-                                                  size: 24),
-                                            ),
+                                      child: GarmentThumbnail(
+                                        garment: g,
+                                        categoryKey: categoryKey,
+                                        width: double.infinity,
+                                      ),
                                     ),
                                     Padding(
                                       padding:
@@ -372,7 +340,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: Text(context.l10n.creationPieceAlreadyListed),
+              content: const Text('Cette pièce est déjà dans la liste.'),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -399,7 +367,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: Text(context.l10n.creationAddOutfitPhotoSnack),
+            content: const Text('Ajoute la photo de ton outfit.'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.error.withOpacity(0.96),
             shape: RoundedRectangleBorder(
@@ -417,7 +385,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: Text(context.l10n.creationNameRequiredSnack),
+            content: const Text('Donne un nom à ton outfit.'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.error.withOpacity(0.96),
             shape: RoundedRectangleBorder(
@@ -434,7 +402,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: Text(context.l10n.creationSelectGarmentSnack),
+            content: const Text('Sélectionne au moins un vêtement.'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.error.withOpacity(0.96),
             shape: RoundedRectangleBorder(
@@ -475,7 +443,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.l10n.creationCreatedSnack),
+            content: const Text('Outfit créé !'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.success,
             shape: RoundedRectangleBorder(
@@ -487,7 +455,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: Text(context.l10n.creationCreateErrorSnack),
+              content: const Text('Erreur lors de la création.'),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.error.withOpacity(0.96),
               shape: RoundedRectangleBorder(
@@ -501,19 +469,19 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
     }
   }
 
-  String _weatherSummaryText(AppLocalizations l10n) {
+  String _weatherSummaryText() {
     if (_selectedSimpleWeatherIds.isEmpty) return '';
     return WeatherTagKeys.creationSimpleWeatherIds
         .where(_selectedSimpleWeatherIds.contains)
-        .map((id) => creationWeatherLabelL10n(l10n, id))
+        .map(WeatherTagKeys.creationSimpleLabelFr)
         .join(', ');
   }
 
-  String _seasonSummaryText(AppLocalizations l10n) {
+  String _seasonSummaryText() {
     if (_selectedSeasonKeys.isEmpty) return '';
     return SeasonKeys.all
         .where(_selectedSeasonKeys.contains)
-        .map((key) => seasonLabelL10n(l10n, key))
+        .map(SeasonKeys.labelFr)
         .join(', ');
   }
 
@@ -525,12 +493,11 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
   }) {
     if (_isMultiZone(zoneKey)) {
       final layers = zoneKey == 'torso' ? _torsoLayers : _wristAccessories;
-      final l10n = context.l10n;
       final subtitle = zoneKey == 'torso'
-          ? l10n.creationTorsoLayersSubtitle
-          : l10n.creationWristAccessoriesSubtitle;
+          ? 'Plusieurs couches : à gauche, la plus près du corps.'
+          : 'Ajoute autant d\'accessoires que tu veux.';
       final title =
-          zoneKey == 'torso' ? l10n.creationTorsoLayersTitle : l10n.categoryAccessory;
+          zoneKey == 'torso' ? 'Hauts (superposition)' : 'Accessoires';
       final hasAny = layers.isNotEmpty;
 
       return Padding(
@@ -602,11 +569,11 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.add_rounded,
+                              Icon(Icons.add_rounded,
                                   size: 18, color: AppColors.accent),
                               SizedBox(width: 4),
                               Text(
-                                context.l10n.creationAddZone,
+                                'Ajouter',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
@@ -678,36 +645,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             ),
             child: Row(
               children: [
-                if (hasGarment && garment.imageUrl.isNotEmpty)
+                if (hasGarment)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
-                    child: SizedBox(
+                    child: GarmentThumbnail(
+                      garment: garment,
+                      categoryKey: catKey,
                       width: 44,
                       height: 44,
-                      child: StorageAwareCachedImage(
-                        imageUrl: garment.imageUrl,
-                        fit: BoxFit.cover,
-                        width: 44,
-                        height: 44,
-                        loadingWidget: Container(
-                          color: AppColors.surfaceVariant,
-                          child: const Center(
-                            child: SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ),
-                        ),
-                        errorWidget: (_, __) => Container(
-                          color: AppColors.surfaceVariant,
-                          child: GarmentCategoryGlyph(
-                            categoryKey: catKey,
-                            size: 22,
-                            color: AppColors.textHint,
-                          ),
-                        ),
-                      ),
                     ),
                   )
                 else
@@ -787,14 +732,13 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final zones = [
-      ('head', l10n.creationZoneHead, Icons.face_rounded, 'headwear'),
-      ('jacket', l10n.creationZoneJacket, Icons.dry_cleaning_rounded, 'outerwear'),
-      ('torso', l10n.creationZoneTorso, Icons.checkroom_rounded, 'top'),
-      ('legs', l10n.creationZoneLegs, Icons.accessibility_new_rounded, 'bottom'),
-      ('feet', l10n.creationZoneFeet, Icons.ice_skating_rounded, 'shoes'),
-      ('wrist', l10n.creationZoneWrist, Icons.watch_rounded, 'accessory'),
+      ('head', 'Tête', Icons.face_rounded, 'headwear'),
+      ('jacket', 'Veste', Icons.dry_cleaning_rounded, 'outerwear'),
+      ('torso', 'Haut', Icons.checkroom_rounded, 'top'),
+      ('legs', 'Bas', Icons.accessibility_new_rounded, 'bottom'),
+      ('feet', 'Chaussures', Icons.ice_skating_rounded, 'shoes'),
+      ('wrist', 'Accessoire', Icons.watch_rounded, 'accessory'),
     ];
 
     final hasPhoto =
@@ -808,7 +752,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           icon: const Icon(Icons.close_rounded, size: 24),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text(l10n.creationNewLookTitle),
+        title: const Text('Nouveau look'),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -823,7 +767,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                       height: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppColors.accent))
-                  : Text(l10n.creationSaveButton,
+                  : const Text('Sauver',
                       style: TextStyle(
                           fontWeight: FontWeight.w700,
                           color: AppColors.accent)),
@@ -835,47 +779,10 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Row(
-                children: List.generate(3, (i) {
-                  final active = _creationStep == i;
-                  final labels = [
-                    l10n.creationStepPieces,
-                    l10n.creationStepNamePhoto,
-                    l10n.creationStepWeather,
-                  ];
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.only(left: i == 0 ? 0 : 4),
-                      child: Material(
-                        color: active
-                            ? AppColors.accent.withValues(alpha: 0.12)
-                            : AppColors.surfaceVariant,
-                        borderRadius: BorderRadius.circular(10),
-                        child: InkWell(
-                          onTap: () => setState(() => _creationStep = i),
-                          borderRadius: BorderRadius.circular(10),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            child: Text(
-                              labels[i],
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: active
-                                    ? AppColors.accent
-                                    : AppColors.textHint,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
+            CreationStepBreadcrumb(
+              currentStep: _creationStep,
+              onStep: (i) => setState(() => _creationStep = i),
+              steps: outfitCreationSteps,
             ),
             if (_creationStep == 1) ...[
             // --- Photo section (mandatory, prominent) ---
@@ -907,13 +814,13 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: _uploadingPhoto
-                    ? Center(
+                    ? const Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const CircularProgressIndicator(strokeWidth: 2),
-                            const SizedBox(height: 12),
-                            Text(l10n.creationUploading,
+                            CircularProgressIndicator(strokeWidth: 2),
+                            SizedBox(height: 12),
+                            Text('Upload en cours...',
                                 style: TextStyle(
                                     color: AppColors.textHint,
                                     fontSize: 13)),
@@ -950,14 +857,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                     borderRadius:
                                         BorderRadius.circular(10),
                                   ),
-                                  child: Row(
+                                  child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.edit_rounded,
+                                      Icon(Icons.edit_rounded,
                                           size: 14,
                                           color: AppColors.white),
-                                      const SizedBox(width: 4),
-                                      Text(l10n.creationChangePhoto,
+                                      SizedBox(width: 4),
+                                      Text('Changer',
                                           style: TextStyle(
                                               color: AppColors.white,
                                               fontSize: 12,
@@ -986,8 +893,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                     color: AppColors.accent),
                               ),
                               const SizedBox(height: 14),
-                              Text(
-                                l10n.creationAddPhotoPrompt,
+                              const Text(
+                                'Ajoute la photo de ton outfit',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -995,8 +902,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                l10n.creationPhotoRequired,
+                              const Text(
+                                'Obligatoire pour créer un look',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textHint,
@@ -1014,8 +921,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
               child: Row(
                 children: [
-                  Text(
-                    l10n.creationPiecesTitle,
+                  const Text(
+                    'Pièces du look',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -1074,7 +981,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 style: const TextStyle(
                     fontSize: 15, fontWeight: FontWeight.w500),
                 decoration: InputDecoration(
-                  hintText: l10n.creationOutfitName,
+                  hintText: 'Nom de l\'outfit',
                   prefixIcon: const Icon(Icons.edit_outlined,
                       size: 20, color: AppColors.textHint),
                   filled: true,
@@ -1093,14 +1000,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 28, 16, 0),
               child: _MultiSelectDropdownTile(
-                label: l10n.creationWeatherLabel,
-                hintWhenEmpty: l10n.creationWeatherAll,
-                summary: _weatherSummaryText(l10n),
+                label: 'Temps',
+                hintWhenEmpty: 'Toutes les conditions',
+                summary: _weatherSummaryText(),
                 expanded: _weatherDropdownOpen,
                 headerIcon: Icons.cloud_outlined,
                 optionIds: WeatherTagKeys.creationSimpleWeatherIds,
                 selected: _selectedSimpleWeatherIds,
-                labelForKey: (id) => creationWeatherLabelL10n(l10n, id),
+                labelForKey: WeatherTagKeys.creationSimpleLabelFr,
                 iconForKey: _creationWeatherIcon,
                 onHeaderTap: () => setState(() {
                   _weatherDropdownOpen = !_weatherDropdownOpen;
@@ -1118,14 +1025,14 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: _MultiSelectDropdownTile(
-                label: l10n.creationSeasonsLabel,
-                hintWhenEmpty: l10n.creationSeasonsAll,
-                summary: _seasonSummaryText(l10n),
+                label: 'Saisons',
+                hintWhenEmpty: 'Toutes les saisons',
+                summary: _seasonSummaryText(),
                 expanded: _seasonDropdownOpen,
                 headerIcon: Icons.calendar_today_outlined,
                 optionIds: SeasonKeys.all,
                 selected: _selectedSeasonKeys,
-                labelForKey: (key) => seasonLabelL10n(l10n, key),
+                labelForKey: SeasonKeys.labelFr,
                 iconForKey: _creationSeasonIcon,
                 onHeaderTap: () => setState(() {
                   _seasonDropdownOpen = !_seasonDropdownOpen;
@@ -1146,17 +1053,41 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
               child: Row(
                 children: [
                   if (_creationStep > 0)
-                    OutlinedButton(
-                      onPressed: () =>
-                          setState(() => _creationStep = _creationStep - 1),
-                      child: Text(l10n.commonPrevious),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () =>
+                            setState(() => _creationStep = _creationStep - 1),
+                        icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                        label: const Text('Précédent'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.accent,
+                          side: const BorderSide(color: AppColors.accent),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
                     ),
-                  const Spacer(),
+                  if (_creationStep > 0 && _creationStep < 2)
+                    const SizedBox(width: 12),
                   if (_creationStep < 2)
-                    FilledButton(
-                      onPressed: () =>
-                          setState(() => _creationStep = _creationStep + 1),
-                      child: Text(l10n.commonNext),
+                    Expanded(
+                      flex: _creationStep > 0 ? 1 : 1,
+                      child: FilledButton.icon(
+                        onPressed: () =>
+                            setState(() => _creationStep = _creationStep + 1),
+                        icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                        label: const Text('Suivant'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: AppColors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
                     ),
                 ],
               ),

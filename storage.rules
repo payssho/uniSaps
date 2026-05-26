@@ -1,0 +1,24 @@
+rules_version = '2';
+
+// Lecture des images par tout utilisateur connecté (profil ami, outfits, feed).
+// Écriture limitée au propriétaire du dossier {userId}.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /garments/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /outfits/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /profiles/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /posts/{userId}/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

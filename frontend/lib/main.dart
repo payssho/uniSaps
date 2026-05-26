@@ -1,9 +1,11 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'firebase_options.dart';
 import 'app.dart';
 import 'l10n/generated/app_localizations.dart';
@@ -34,9 +36,8 @@ class _UniSapsBootstrapState extends State<_UniSapsBootstrap> {
           options: DefaultFirebaseOptions.currentPlatform,
         );
       }
+      await _activateAppCheckIfAvailable();
     } on FirebaseException catch (e) {
-      // Sur certains environnements (Android natif qui initialise Firebase avant Flutter),
-      // l'app par défaut peut déjà exister. Dans ce cas on ignore simplement.
       final msg = e.message ?? '';
       if (e.code != 'duplicate-app' &&
           !msg.contains('already exists') &&
@@ -53,6 +54,20 @@ class _UniSapsBootstrapState extends State<_UniSapsBootstrap> {
     await SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
+  }
+
+  Future<void> _activateAppCheckIfAvailable() async {
+    if (!kDebugMode) return;
+    try {
+      await FirebaseAppCheck.instance.activate(
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.debug,
+      );
+    } catch (e) {
+      debugPrint(
+        'App Check non activé ($e). Relance avec flutter run (pas hot restart).',
+      );
+    }
   }
 
   @override

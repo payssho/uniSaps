@@ -6,22 +6,21 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/premium_unlock.dart';
-import '../../core/constants/categories.dart';
 import '../../models/user_model.dart';
 import '../../models/garment_model.dart';
 import '../../models/outfit_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/outfit_provider.dart';
+import '../../providers/garment_provider.dart';
 import '../../providers/friendship_provider.dart';
-import '../../services/firestore_service.dart';
-import '../../widgets/stat_card.dart';
 import '../../widgets/premium_avatar_ring.dart';
+import '../../widgets/app_empty_state.dart';
+import '../../widgets/outfit_detail_sheet.dart';
+import '../../widgets/storage_aware_cached_image.dart';
 import '../../widgets/async_error_state.dart';
+import '../../widgets/stat_row.dart';
+import '../../widgets/user_list_tile.dart';
 import '../../providers/ui_navigation_provider.dart';
-import '../../providers/theme_mode_provider.dart';
-import '../../providers/locale_provider.dart';
-import '../../l10n/l10n_context.dart';
-import '../../l10n/domain_l10n.dart';
 import '../inspiration/user_profile_screen.dart';
 import '../inspiration/search_users_screen.dart';
 
@@ -45,11 +44,45 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   bool _scrollMoreBelow = false;
   bool _friendRequestSnackShown = false;
 
+  static const int _tabAmis = 1;
+  static const int _tabCompte = 2;
+
+  int get _tabCount => _ProfileTabRail.entries.length;
+
+  void _goToFriendsTab() {
+    if (!mounted) return;
+    _tabController.animateTo(_tabAmis);
+  }
+
+  void _initTabController({int? initialIndex}) {
+    final count = _tabCount;
+    final idx = (initialIndex ?? 0).clamp(0, count - 1);
+    _tabController = TabController(
+      length: count,
+      vsync: this,
+      initialIndex: idx,
+    );
+    _tabController.addListener(_onProfileTabChanged);
+  }
+
+  void _syncTabControllerAfterStructureChange() {
+    if (_tabController.length == _tabCount) return;
+    final idx = _tabController.index.clamp(0, _tabCount - 1);
+    _tabController.removeListener(_onProfileTabChanged);
+    _tabController.dispose();
+    _initTabController(initialIndex: idx);
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(_onProfileTabChanged);
+    _initTabController();
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    _syncTabControllerAfterStructureChange();
   }
 
   void _onProfileTabChanged() {
@@ -88,24 +121,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final user = ref.watch(currentUserProvider).valueOrNull;
     final requestCount = ref.watch(receivedRequestsCountProvider);
 
     ref.listen<int>(receivedRequestsCountProvider, (prev, next) {
       if (!widget.embeddedInMainNav || next <= 0) return;
-      if (_tabController.index == 3) return;
       if (prev != null && prev > 0) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _tabController.animateTo(3);
+        if (!mounted || user == null) return;
+        _goToFriendsTab();
         if (!_friendRequestSnackShown) {
           _friendRequestSnackShown = true;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.profileFriendRequestSnack),
+            const SnackBar(
+              content: Text('Nouvelle demande d’ami'),
               behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3),
+              duration: Duration(seconds: 3),
             ),
           );
         }
@@ -115,13 +146,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     ref.listen(profileInfosTabRequestProvider, (prev, next) {
       if (next == (prev ?? 0)) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _tabController.animateTo(3);
+        if (mounted) _tabController.animateTo(_tabCompte);
       });
     });
 
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
+    // Précharge la liste d’amis dès l’ouverture du profil.
+    ref.watch(friendUsersProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -139,7 +173,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     icon: const Icon(Icons.arrow_back_ios_new_rounded,
                         size: 20, color: AppColors.textPrimary),
                     onPressed: () => Navigator.of(context).pop(),
-                    tooltip: l10n.commonBack,
+                    tooltip: 'Retour',
                   ),
                 ),
               ),
@@ -157,14 +191,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     child: _ProfileHero(
                       embeddedInMainNav: widget.embeddedInMainNav,
                       user: user,
-                      pendingFriendRequests: requestCount,
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: _ProfileTabRail(
                       controller: _tabController,
-                      pendingRequests: requestCount,
+                      pendingFriendRequests: requestCount,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -176,12 +209,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         NotificationListener<Notification>(
                           onNotification: _onProfileTabScrollOrMetrics,
                           child: TabBarView(
+                            key: ValueKey<int>(_tabCount),
                             controller: _tabController,
                             physics: const BouncingScrollPhysics(),
                             children: [
-                              _StatsTab(uid: user.uid, user: user),
-                              _OutfitsTab(uid: user.uid),
                               _GalleryTab(uid: user.uid),
+                              _FriendsTab(user: user),
                               _AccountTab(
                                 user: user,
                                 onLogout: () async {
@@ -245,7 +278,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                               curve: Curves.easeInOutCubic,
                                             ),
                                         Text(
-                                          l10n.profileScrollMore,
+                                          'Fais défiler',
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
@@ -275,28 +308,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 }
 
-class _ProfileHero extends StatelessWidget {
+class _ProfileHero extends ConsumerWidget {
   final UserModel user;
-  final int pendingFriendRequests;
   /// Aligne le bloc avec les autres onglets (Sans bande retour + moins de marge haute).
   final bool embeddedInMainNav;
 
   const _ProfileHero({
     required this.user,
-    required this.pendingFriendRequests,
     this.embeddedInMainNav = false,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
+  Widget build(BuildContext context, WidgetRef ref) {
     final displayName =
         user.displayName.isNotEmpty ? user.displayName : user.username;
     final initials = user.username.isNotEmpty
         ? user.username[0].toUpperCase()
         : (displayName.isNotEmpty ? displayName[0].toUpperCase() : '?');
-    final friendCount = user.friends.length;
-
     return Material(
       color: Colors.transparent,
       elevation: 0,
@@ -470,7 +498,7 @@ class _ProfileHero extends StatelessWidget {
                                 Padding(
                                   padding: const EdgeInsets.only(left: 6, top: 2),
                                   child: Tooltip(
-                                    message: l10n.profilePremiumTooltip,
+                                    message: 'Compte UniSaps+',
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 8,
@@ -495,17 +523,17 @@ class _ProfileHero extends StatelessWidget {
                                           ),
                                         ],
                                       ),
-                                      child: Row(
+                                      child: const Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Icon(
+                                          Icon(
                                             Icons.workspace_premium_rounded,
                                             size: 14,
                                             color: Colors.white,
                                           ),
-                                          const SizedBox(width: 4),
+                                          SizedBox(width: 4),
                                           Text(
-                                            l10n.premiumDialogTitle,
+                                            'UniSaps+',
                                             style: TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.w800,
@@ -521,7 +549,7 @@ class _ProfileHero extends StatelessWidget {
                               if (user.isPrivate) ...[
                                 const SizedBox(width: 4),
                                 Tooltip(
-                                  message: l10n.profilePrivateTooltip,
+                                  message: 'Profil privé',
                                   child: Padding(
                                     padding: const EdgeInsets.only(top: 2),
                                     child: Icon(
@@ -548,85 +576,14 @@ class _ProfileHero extends StatelessWidget {
                               ),
                             ),
                           const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _HeroChip(
-                                icon: Icons.local_fire_department_rounded,
-                                label:
-                                    '${user.currentStreak} ${l10n.profileStreakShort}',
-                                iconColor: AppColors.warning,
-                              ),
-                              _HeroChip(
-                                icon: Icons.groups_rounded,
-                                label:
-                                    friendCount <= 1
-                                        ? '$friendCount ${l10n.profileFriendLabel}'
-                                        : '$friendCount ${l10n.profileFriendsLabel}',
-                                iconColor: AppColors.success,
-                              ),
-                            ],
-                          ),
+                          _ProfileStreakBadge(days: user.currentStreak),
                         ],
                       ),
                     ),
                   ],
                 ),
-                if (pendingFriendRequests > 0) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.person_add_alt_1_rounded,
-                          size: 20,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            pendingFriendRequests == 1
-                                ? l10n.profileOneFriendRequestPending
-                                : '$pendingFriendRequests ${l10n.profileFriendRequestsPending}',
-                            style: AppTextStyles.body.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                              color: AppColors.textSecondary,
-                              height: 1.25,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            '$pendingFriendRequests',
-                            style: const TextStyle(
-                              color: AppColors.surface,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                const SizedBox(height: 14),
+                _ProfileHeroStats(uid: user.uid, user: user),
               ],
             ),
           ),
@@ -636,369 +593,62 @@ class _ProfileHero extends StatelessWidget {
   }
 }
 
-class _HeroChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color iconColor;
+/// Série de jours : flamme + chiffre (pas de style bouton).
+class _ProfileStreakBadge extends StatelessWidget {
+  final int days;
 
-  const _HeroChip({
-    required this.icon,
-    required this.label,
-    required this.iconColor,
-  });
+  const _ProfileStreakBadge({required this.days});
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(999),
-        border:
-            Border.all(color: AppColors.accent.withValues(alpha: 0.18)),
-      ),
-      child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 17, color: iconColor),
-            const SizedBox(width: 7),
-            Text(
-              label,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                color: AppColors.textPrimary,
-              ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.local_fire_department_rounded,
+          size: 28,
+          color: const Color(0xFFFF6D00),
+          shadows: [
+            Shadow(
+              color: const Color(0xFFFF6D00).withValues(alpha: 0.45),
+              blurRadius: 8,
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// Onglets en pastilles horizontales, synchronisés avec [TabController].
-class _ProfileTabRail extends StatefulWidget {
-  final TabController controller;
-  final int pendingRequests;
-
-  static const entries = <IconData>[
-    Icons.insights_rounded,
-    Icons.checkroom_rounded,
-    Icons.photo_library_rounded,
-    Icons.manage_accounts_rounded,
-  ];
-
-  const _ProfileTabRail({
-    required this.controller,
-    required this.pendingRequests,
-  });
-
-  @override
-  State<_ProfileTabRail> createState() => _ProfileTabRailState();
-}
-
-class _ProfileTabRailState extends State<_ProfileTabRail> {
-  final ScrollController _hCtrl = ScrollController();
-  bool _showRightFade = true;
-  bool _showLeftFade = false;
-  bool _userScrolled = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _hCtrl.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _hCtrl.removeListener(_onScroll);
-    _hCtrl.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (!_hCtrl.hasClients) return;
-    final pos = _hCtrl.position;
-    final atEnd = pos.pixels >= pos.maxScrollExtent - 1;
-    final atStart = pos.pixels <= 0;
-    final showRight = !atEnd;
-    final showLeft = !atStart;
-    if (showRight != _showRightFade ||
-        showLeft != _showLeftFade ||
-        !_userScrolled) {
-      setState(() {
-        _showRightFade = showRight;
-        _showLeftFade = showLeft;
-        _userScrolled = true;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: widget.controller,
-      builder: (context, _) {
-        // Affiche le hint chevron tant que l’utilisateur n’a pas scrollé
-        // et qu’il reste manifestement du contenu à droite.
-        final showHintChevron = !_userScrolled && _showRightFade;
-        return SizedBox(
-          height: 48,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              NotificationListener<ScrollNotification>(
-                onNotification: (n) {
-                  // Couvre les cas où le listener du controller n’a pas
-                  // encore tagué le rail (premier mouvement).
-                  if (!_userScrolled) {
-                    setState(() => _userScrolled = true);
-                  }
-                  return false;
-                },
-                child: SingleChildScrollView(
-                  controller: _hCtrl,
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.zero,
-                  child: Row(
-                    children: List.generate(_ProfileTabRail.entries.length,
-                        (i) => _buildEntry(context, i)),
-                  ),
-                ),
-              ),
-              // Fade gauche
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                width: 22,
-                child: IgnorePointer(
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 220),
-                    opacity: _showLeftFade ? 1 : 0,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            AppColors.background,
-                            AppColors.background.withValues(alpha: 0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              // Fade droit + chevron hint
-              Positioned(
-                right: 0,
-                top: 0,
-                bottom: 0,
-                width: 36,
-                child: IgnorePointer(
-                  child: AnimatedOpacity(
-                    duration: const Duration(milliseconds: 220),
-                    opacity: _showRightFade ? 1 : 0,
-                    child: Stack(
-                      alignment: Alignment.centerRight,
-                      children: [
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                              colors: [
-                                AppColors.background.withValues(alpha: 0),
-                                AppColors.background,
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (showHintChevron)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 2),
-                            child: Icon(
-                              Icons.chevron_right_rounded,
-                              size: 22,
-                              color: AppColors.textSecondary
-                                  .withValues(alpha: 0.9),
-                            )
-                                .animate(
-                                  onPlay: (c) => c.repeat(reverse: true),
-                                )
-                                .moveX(
-                                  begin: -2,
-                                  end: 2,
-                                  duration: 700.ms,
-                                  curve: Curves.easeInOutCubic,
-                                ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  String _tabLabel(BuildContext context, int i) {
-    final l10n = context.l10n;
-    switch (i) {
-      case 0:
-        return l10n.profileTabStats;
-      case 1:
-        return l10n.profileTabOutfits;
-      case 2:
-        return l10n.profileTabMemories;
-      case 3:
-        return l10n.profileTabAccount;
-      default:
-        return '';
-    }
-  }
-
-  Widget _buildEntry(BuildContext context, int i) {
-    const entries = _ProfileTabRail.entries;
-    final controller = widget.controller;
-    final pendingRequests = widget.pendingRequests;
-    final icon = entries[i];
-    final selected = controller.index == i;
-    final showBadge = i == 3 && pendingRequests > 0;
-
-    return Padding(
-      padding: EdgeInsets.only(
-        left: i == 0 ? 0 : 6,
-        right: i == entries.length - 1 ? 0 : 6,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => controller.animateTo(i),
-          borderRadius: BorderRadius.circular(16),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 11,
-            ),
-            decoration: BoxDecoration(
-              color: selected
-                  ? AppColors.primary
-                  : AppColors.surface.withValues(alpha: 0.92),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: selected
-                    ? AppColors.primary
-                    : AppColors.divider.withValues(alpha: 0.9),
-                width: selected ? 1.5 : 1,
-              ),
-              boxShadow: selected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.28),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
-                  : [
-                      BoxShadow(
-                        color: AppColors.scrimLight,
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Icon(
-                      icon,
-                      size: 20,
-                      color: selected
-                          ? AppColors.surface
-                          : AppColors.textSecondary,
-                    ),
-                    if (showBadge)
-                      Positioned(
-                        top: -4,
-                        right: -12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 2,
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.notificationBadge,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: AppColors.surface,
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Text(
-                            pendingRequests > 99
-                                ? '99+'
-                                : '$pendingRequests',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: AppColors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              height: 1.05,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _tabLabel(context, i),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    letterSpacing: -0.2,
-                    color: selected
-                        ? AppColors.surface
-                        : AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
+        const SizedBox(width: 6),
+        Text(
+          '$days',
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            height: 1,
+            color: AppColors.textPrimary,
+            letterSpacing: -0.5,
           ),
         ),
-      ),
+        const SizedBox(width: 4),
+        Text(
+          days <= 1 ? 'jour' : 'jours',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary.withValues(alpha: 0.9),
+          ),
+        ),
+      ],
     );
   }
 }
 
-class _StatsTab extends ConsumerWidget {
+/// Stats compactes dans la carte profil (ex-onglet Stats).
+class _ProfileHeroStats extends ConsumerWidget {
   final String uid;
   final UserModel user;
 
-  const _StatsTab({required this.uid, required this.user});
+  const _ProfileHeroStats({required this.uid, required this.user});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
     return FutureBuilder<List<int>>(
       future: Future.wait([
         ref.read(firestoreServiceProvider).garmentCount(uid),
@@ -1007,62 +657,242 @@ class _StatsTab extends ConsumerWidget {
       ]),
       builder: (context, snapshot) {
         final counts = snapshot.data ?? [0, 0, 0];
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  return GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                    // On donne un peu plus de hauteur aux cartes pour
-                    // éviter les overflows verticaux sur les petits écrans.
-                    childAspectRatio: constraints.maxWidth > 400 ? 1.15 : 0.95,
-                    children: [
-                      StatCard(
-                          label: l10n.statGarments,
-                          value: '${counts[0]}',
-                          icon: Icons.checkroom),
-                      StatCard(
-                          label: l10n.profileTabOutfits,
-                          value: '${counts[1]}',
-                          icon: Icons.style,
-                          color: AppColors.secondary),
-                      StatCard(
-                          label: l10n.statWorn,
-                          value: '${counts[2]}',
-                          icon: Icons.done_all,
-                          color: AppColors.success),
-                      StatCard(
-                          label: l10n.statStreak,
-                          value: '${user.currentStreak}',
-                          icon: Icons.local_fire_department,
-                          color: AppColors.warning),
-                    ],
-                  );
-                },
+        final loading = snapshot.connectionState == ConnectionState.waiting;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.surface.withValues(alpha: 0.88),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: AppColors.divider.withValues(alpha: 0.75),
+                ),
               ),
-              if (user.bestStreak > 0) ...[
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    '${l10n.profileBestStreakLine}${user.bestStreak}${l10n.profileStreakDaysSuffix}',
-                    style: AppTextStyles.bodySecondary,
+              child: Row(
+                children: [
+                  StatCell(
+                    label: 'Vêtements',
+                    value: loading ? '—' : '${counts[0]}',
+                    icon: Icons.checkroom_outlined,
+                    color: AppColors.accent,
+                  ),
+                  statRowDivider(),
+                  StatCell(
+                    label: 'Outfits',
+                    value: loading ? '—' : '${counts[1]}',
+                    icon: Icons.style_outlined,
+                    color: AppColors.secondary,
+                  ),
+                  statRowDivider(),
+                  StatCell(
+                    label: 'Portés',
+                    value: loading ? '—' : '${counts[2]}',
+                    icon: Icons.done_all_rounded,
+                    color: AppColors.success,
+                  ),
+                  statRowDivider(),
+                  StatCell(
+                    label: 'Amis',
+                    value: '${user.friends.length}',
+                    icon: Icons.people_outline_rounded,
+                    color: AppColors.primary,
+                  ),
+                ],
+              ),
+            ),
+            if (user.bestStreak > 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Record : ${user.bestStreak} jours de suite',
+                style: AppTextStyles.caption.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Onglets en pastilles (3 onglets, pleine largeur — sans scroll ni chevron).
+class _ProfileTabRail extends StatelessWidget {
+  final TabController controller;
+  final int pendingFriendRequests;
+
+  static const entries = <
+      ({
+        IconData icon,
+        String short,
+      })>[
+    (
+      icon: Icons.photo_library_rounded,
+      short: 'Souvenirs',
+    ),
+    (
+      icon: Icons.people_alt_outlined,
+      short: 'Amis',
+    ),
+    (
+      icon: Icons.manage_accounts_rounded,
+      short: 'Compte',
+    ),
+  ];
+
+  const _ProfileTabRail({
+    required this.controller,
+    this.pendingFriendRequests = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        return SizedBox(
+          height: 44,
+          child: Row(
+            children: List.generate(entries.length, (i) {
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: i == 0 ? 0 : 4,
+                    right: i == entries.length - 1 ? 0 : 4,
+                  ),
+                  child: _ProfileTabPill(
+                    icon: entries[i].icon,
+                    label: entries[i].short,
+                    selected: controller.index == i,
+                    showBadge: i == 1 && pendingFriendRequests > 0,
+                    badgeCount: pendingFriendRequests,
+                    onTap: () => controller.animateTo(i),
                   ),
                 ),
-              ],
-              const SizedBox(height: 24),
-              _MostWornChart(uid: uid),
-            ],
+              );
+            }),
           ),
         );
       },
+    );
+  }
+}
+
+class _ProfileTabPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final bool showBadge;
+  final int badgeCount;
+  final VoidCallback onTap;
+
+  const _ProfileTabPill({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.showBadge,
+    required this.badgeCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primary : AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected
+                  ? AppColors.primary
+                  : AppColors.divider.withValues(alpha: 0.85),
+              width: selected ? 1.5 : 1,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.22),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: selected ? AppColors.surface : AppColors.textSecondary,
+                  ),
+                  if (showBadge)
+                    Positioned(
+                      top: -5,
+                      right: -9,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.notificationBadge,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.surface,
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Text(
+                          badgeCount > 99 ? '99+' : '$badgeCount',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? AppColors.surface : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1073,7 +903,6 @@ class _MostWornChart extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
     return FutureBuilder<List<GarmentModel>>(
       future: ref.read(firestoreServiceProvider).mostWornGarments(uid),
       builder: (context, snapshot) {
@@ -1086,7 +915,7 @@ class _MostWornChart extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(l10n.profileMostWornTitle, style: AppTextStyles.heading3),
+            const Text('Les plus portes', style: AppTextStyles.heading3),
             const SizedBox(height: 16),
             ...garments.where((g) => g.timesWorn > 0).map((g) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -1133,357 +962,15 @@ class _MostWornChart extends ConsumerWidget {
   }
 }
 
-Widget _outfitListThumbPlaceholder() {
-  return Container(
-    color: AppColors.surfaceVariant,
-    alignment: Alignment.center,
-    child: Icon(Icons.style_rounded,
-        size: 26, color: AppColors.textHint.withOpacity(0.45)),
-  );
-}
-
-class _OutfitsTab extends ConsumerWidget {
-  final String uid;
-  const _OutfitsTab({required this.uid});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final outfitsAsync = ref.watch(outfitsProvider(uid));
-    return outfitsAsync.when(
-      data: (outfits) {
-        final sorted = [...outfits]
-          ..sort((a, b) => b.timesWorn.compareTo(a.timesWorn));
-        if (sorted.isEmpty) {
-          return Center(
-              child: Text(l10n.profileNoOutfits, style: AppTextStyles.bodySecondary));
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.all(18),
-          itemCount: sorted.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 10),
-          itemBuilder: (_, i) {
-            final o = sorted[i];
-            final thumbUrl = o.referencePhotoUrl.isNotEmpty
-                ? o.referencePhotoUrl
-                : (o.photoUrls.isNotEmpty ? o.photoUrls.first : '');
-            return GestureDetector(
-              onTap: () => _showOutfitSummary(context, o),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.divider, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.graphite.withOpacity(0.02),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            o.name.isEmpty ? l10n.profileDefaultOutfitName : o.name,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 15),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (o.lastWorn.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text('${l10n.profileLastWornPrefix}${o.lastWorn}',
-                                style: AppTextStyles.caption),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: SizedBox(
-                            width: 56,
-                            height: 56,
-                            child: thumbUrl.isNotEmpty
-                                ? CachedNetworkImage(
-                                    imageUrl: thumbUrl,
-                                    fit: BoxFit.cover,
-                                    placeholder: (_, __) => Container(
-                                      color: AppColors.surfaceVariant,
-                                      child: const Center(
-                                        child: SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2),
-                                        ),
-                                      ),
-                                    ),
-                                    errorWidget: (_, __, ___) =>
-                                        _outfitListThumbPlaceholder(),
-                                  )
-                                : _outfitListThumbPlaceholder(),
-                          ),
-                        ),
-                        if (o.timesWorn > 0) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            '${l10n.profileWornPrefix}${o.timesWorn}${l10n.profileTimesSuffix}',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textHint.withOpacity(0.95),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => AsyncErrorState(
-            onRetry: () => ref.invalidate(outfitsProvider(uid)),
-          ),
-    );
-  }
-}
-
-void _showOutfitSummary(BuildContext context, OutfitModel outfit) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _OutfitSummarySheet(outfit: outfit),
-  );
-}
-
-class _ResolvedOutfitPiece {
-  final String categoryKey;
-  final GarmentModel? garment;
-
-  const _ResolvedOutfitPiece({
-    required this.categoryKey,
-    this.garment,
-  });
-}
-
-class _OutfitSummarySheet extends ConsumerStatefulWidget {
-  final OutfitModel outfit;
-
-  const _OutfitSummarySheet({required this.outfit});
-
-  @override
-  ConsumerState<_OutfitSummarySheet> createState() => _OutfitSummarySheetState();
-}
-
-class _OutfitSummarySheetState extends ConsumerState<_OutfitSummarySheet> {
-  late final Future<List<_ResolvedOutfitPiece>> _piecesFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    final uid = ref.read(authServiceProvider).uid;
-    final fs = ref.read(firestoreServiceProvider);
-    _piecesFuture = _loadOutfitPieces(fs, uid, widget.outfit);
-  }
-
-  Future<List<_ResolvedOutfitPiece>> _loadOutfitPieces(
-    FirestoreService fs,
-    String uid,
-    OutfitModel outfit,
-  ) async {
-    final entries =
-        outfit.garments.entries.where((e) => e.value.trim().isNotEmpty).toList();
-    if (entries.isEmpty) return [];
-    return Future.wait(
-      entries.map((e) async {
-        final g = await fs.getGarment(uid, e.value);
-        return _ResolvedOutfitPiece(categoryKey: e.key, garment: g);
-      }),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.textHint.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text(
-                widget.outfit.name.isEmpty
-                    ? l10n.profileDefaultOutfitName
-                    : widget.outfit.name,
-                style: AppTextStyles.heading3,
-              ),
-              const SizedBox(height: 4),
-              if (widget.outfit.lastWorn.isNotEmpty)
-                Text('${l10n.profileLastWornPrefix}${widget.outfit.lastWorn}',
-                    style: AppTextStyles.caption),
-              const SizedBox(height: 12),
-              if (widget.outfit.referencePhotoUrl.isNotEmpty)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: CachedNetworkImage(
-                    imageUrl: widget.outfit.referencePhotoUrl,
-                    fit: BoxFit.cover,
-                    height: 220,
-                    width: double.infinity,
-                    placeholder: (_, __) => Container(
-                      height: 220,
-                      color: AppColors.surfaceVariant,
-                      child: const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                    errorWidget: (_, __, ___) => Container(
-                      height: 220,
-                      color: AppColors.surfaceVariant,
-                      child: const Icon(Icons.broken_image_outlined,
-                          color: AppColors.textHint, size: 40),
-                    ),
-                  ),
-                ),
-              if (widget.outfit.referencePhotoUrl.isNotEmpty)
-                const SizedBox(height: 16),
-              FutureBuilder<List<_ResolvedOutfitPiece>>(
-                future: _piecesFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(
-                        child: SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                    );
-                  }
-                  final pieces = snapshot.data ?? [];
-                  if (pieces.isEmpty) {
-                    return Text(
-                      l10n.profileNoGarmentsLinked,
-                      style: AppTextStyles.bodySecondary,
-                    );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.creationStepPieces, style: AppTextStyles.heading3),
-                      const SizedBox(height: 10),
-                      ...pieces.map((p) {
-                        final g = p.garment;
-                        final title = g != null && g.name.trim().isNotEmpty
-                            ? g.name.trim()
-                            : l10n.profilePieceNotFound;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                margin: const EdgeInsets.only(top: 6, right: 10),
-                                decoration: const BoxDecoration(
-                                  color: AppColors.accent,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      title,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      categoryLabelL10n(l10n, p.categoryKey),
-                                      style: AppTextStyles.caption,
-                                    ),
-                                    if (g != null && g.brand.trim().isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          g.brand.trim(),
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _GalleryTab extends ConsumerWidget {
   final String uid;
   const _GalleryTab({required this.uid});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
     final outfitsAsync = ref.watch(outfitsProvider(uid));
+    final garments = ref.watch(garmentsProvider(uid)).valueOrNull ?? [];
+    final garmentCache = {for (final g in garments) g.id: g};
     return outfitsAsync.when(
       data: (outfits) {
         // Construire une liste de memories (photo + meta outfit)
@@ -1494,17 +981,10 @@ class _GalleryTab extends ConsumerWidget {
           }
         }
         if (memories.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.photo_library_outlined,
-                    size: 56, color: AppColors.textHint.withOpacity(0.4)),
-                const SizedBox(height: 12),
-                Text(l10n.profileNoMemoriesYet,
-                    style: AppTextStyles.bodySecondary),
-              ],
-            ),
+          return const AppEmptyState(
+            icon: Icons.photo_library_outlined,
+            title: 'Aucun souvenir pour l\'instant',
+            size: AppEmptyStateSize.compact,
           );
         }
         memories.sort(
@@ -1516,6 +996,7 @@ class _GalleryTab extends ConsumerWidget {
             crossAxisCount: 3,
             crossAxisSpacing: 6,
             mainAxisSpacing: 6,
+            childAspectRatio: 1,
           ),
           itemCount: memories.length,
           itemBuilder: (_, i) {
@@ -1527,51 +1008,73 @@ class _GalleryTab extends ConsumerWidget {
                 ? rawDate.substring(0, 10)
                 : rawDate;
             return GestureDetector(
-              onTap: () =>
-                  _showMemoryDetail(context, memory.url, memory.outfit, date),
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
-                      imageUrl: memory.url,
-                      fit: BoxFit.cover,
-                      placeholder: (_, __) => Container(
-                        color: AppColors.surfaceVariant,
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                      errorWidget: (_, __, ___) => Container(
-                        color: AppColors.surfaceVariant,
-                        child: const Icon(
-                          Icons.broken_image_outlined,
-                          color: AppColors.textHint,
-                        ),
-                      ),
-                    ),
+              onTap: () => OutfitDetailSheet.show(
+                context,
+                outfit: memory.outfit,
+                garmentCache: garmentCache,
+                mode: OutfitDetailMode.readOnly,
+                focusPhotoUrl: memory.url,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final w = constraints.maxWidth;
+                      final h = constraints.maxHeight;
+                      return Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          StorageAwareCachedImage(
+                            imageUrl: memory.url,
+                            fit: BoxFit.cover,
+                            width: w,
+                            height: h,
+                            preferHighQuality: true,
+                            loadingWidget: Container(
+                              color: AppColors.surfaceVariant,
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                            errorWidget: (_, __) => Container(
+                              color: AppColors.surfaceVariant,
+                              child: const Icon(
+                                Icons.broken_image_outlined,
+                                color: AppColors.textHint,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 4,
+                            bottom: 4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.graphite.withOpacity(0.55),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                date.isNotEmpty ? date : '-',
+                                style: const TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                  Positioned(
-                    left: 4,
-                    bottom: 4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.graphite.withOpacity(0.55),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        date.isNotEmpty ? date : '-',
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             );
           },
@@ -1581,115 +1084,6 @@ class _GalleryTab extends ConsumerWidget {
       error: (e, _) => AsyncErrorState(
             onRetry: () => ref.invalidate(outfitsProvider(uid)),
           ),
-    );
-  }
-}
-
-void _showMemoryDetail(
-  BuildContext context,
-  String url,
-  OutfitModel outfit,
-  String date,
-) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _MemoryDetailSheet(
-      url: url,
-      outfit: outfit,
-      date: date,
-    ),
-  );
-}
-
-class _MemoryDetailSheet extends StatelessWidget {
-  final String url;
-  final OutfitModel outfit;
-  final String date;
-
-  const _MemoryDetailSheet({
-    required this.url,
-    required this.outfit,
-    required this.date,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.textHint.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    date,
-                    style: AppTextStyles.bodySecondary,
-                  ),
-                  const Spacer(),
-                  if (outfit.name.isNotEmpty)
-                    Text(
-                      outfit.name,
-                      style: AppTextStyles.body
-                          .copyWith(fontWeight: FontWeight.w600),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: CachedNetworkImage(
-                  imageUrl: url,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  placeholder: (_, __) => Container(
-                    height: 320,
-                    color: AppColors.surfaceVariant,
-                    child: const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                  errorWidget: (_, __, ___) => Container(
-                    height: 320,
-                    color: AppColors.surfaceVariant,
-                    child: const Icon(
-                      Icons.broken_image_outlined,
-                      color: AppColors.textHint,
-                      size: 40,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.profileMemoryPhotoHint,
-                style: AppTextStyles.caption,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1702,84 +1096,25 @@ class _AccountTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-            child: Text(l10n.profileFriendsSection, style: AppTextStyles.heading3),
-          ),
-          _FriendsTab(user: user, embeddedInAccount: true),
-          const Divider(height: 32, indent: 20, endIndent: 20),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Text(l10n.profileSettingsSection, style: AppTextStyles.heading3),
-          ),
-          _InfosTab(
-            user: user,
-            onLogout: onLogout,
-            embeddedInAccount: true,
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+      child: _InfosTab(
+        user: user,
+        onLogout: onLogout,
       ),
     );
   }
 }
 
-class _FriendsTab extends ConsumerStatefulWidget {
+class _FriendsTab extends ConsumerWidget {
   final UserModel user;
-  final bool embeddedInAccount;
 
-  const _FriendsTab({required this.user, this.embeddedInAccount = false});
-
-  @override
-  ConsumerState<_FriendsTab> createState() => _FriendsTabState();
-}
-
-class _FriendsTabState extends ConsumerState<_FriendsTab> {
-  List<UserModel> _friendUsers = [];
-  bool _loadingFriends = true;
+  const _FriendsTab({required this.user});
 
   @override
-  void initState() {
-    super.initState();
-    _loadFriends();
-  }
-
-  @override
-  void didUpdateWidget(covariant _FriendsTab oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.user.friends.length != widget.user.friends.length) {
-      _loadFriends();
-    }
-  }
-
-  Future<void> _loadFriends() async {
-    if (widget.user.friends.isEmpty) {
-      setState(() {
-        _friendUsers = [];
-        _loadingFriends = false;
-      });
-      return;
-    }
-    final users = await ref
-        .read(firestoreServiceProvider)
-        .getUsersByIds(widget.user.friends);
-    if (mounted) {
-      setState(() {
-        _friendUsers = users;
-        _loadingFriends = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
+  Widget build(BuildContext context, WidgetRef ref) {
     final requestsAsync = ref.watch(receivedRequestsProvider);
+    final friendsAsync = ref.watch(friendUsersProvider);
 
     final body = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1792,30 +1127,42 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                 children: [
                   Row(
                     children: [
-                      Text(l10n.profileReceivedRequests,
-                          style: AppTextStyles.heading3),
-                      const SizedBox(width: 8),
+                      const Text(
+                        'Demandes',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.notificationBadge,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '${requests.length}',
                           style: const TextStyle(
-                              color: AppColors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700),
+                            color: AppColors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   ...requests.map((req) => Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(14),
@@ -1871,41 +1218,35 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                           ],
                         ),
                       )),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                 ],
               );
             },
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.divider),
             ),
             child: SwitchListTile.adaptive(
-              title: Text(
-                l10n.profilePrivateAccount,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              title: const Text(
+                'Compte privé',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
               subtitle: Text(
-                widget.user.isPrivate
-                    ? l10n.profilePrivateFriendsOnly
-                    : l10n.profilePrivateEveryone,
+                user.isPrivate
+                    ? 'Seuls tes amis voient ton contenu'
+                    : 'Tout le monde peut voir ton contenu',
                 style: AppTextStyles.caption,
               ),
-              secondary: Icon(
-                widget.user.isPrivate ? Icons.lock_outline : Icons.public,
-                color: widget.user.isPrivate
-                    ? AppColors.accent
-                    : AppColors.textHint,
-              ),
-              value: widget.user.isPrivate,
-              activeColor: AppColors.accent,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
+              value: user.isPrivate,
+              activeThumbColor: AppColors.accent,
               onChanged: (val) {
                 ref
                     .read(friendshipNotifierProvider.notifier)
@@ -1913,15 +1254,19 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
               },
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
           Row(
             children: [
               Text(
-                '${l10n.profileMyFriendsPrefix} (${widget.user.friends.length})',
-                style: AppTextStyles.heading3,
+                'Mes amis (${user.friends.length})',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const Spacer(),
-              TextButton.icon(
+              IconButton(
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -1930,69 +1275,41 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                   );
                 },
                 icon: const Icon(Icons.person_add_alt_1_outlined,
-                    size: 18, color: AppColors.accent),
-                label: Text(
-                  l10n.profileAddFriend,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.accent,
-                  ),
+                    size: 20, color: AppColors.accent),
+                tooltip: 'Ajouter un ami',
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.accent.withValues(alpha: 0.1),
+                  padding: const EdgeInsets.all(8),
+                  minimumSize: const Size(36, 36),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          if (_loadingFriends)
-            const Center(child: CircularProgressIndicator())
-          else if (_friendUsers.isEmpty)
-            Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  Icon(Icons.people_outline,
-                      size: 48, color: AppColors.textHint.withOpacity(0.3)),
-                  const SizedBox(height: 12),
-                  Text(l10n.profileNoFriendsYet,
-                      style: AppTextStyles.bodySecondary),
-                ],
-              ),
-            )
-          else
-            ...(_friendUsers.map((friend) => Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.divider),
-                  ),
-                  child: ListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    leading: CircleAvatar(
-                      radius: 22,
-                      backgroundColor: AppColors.surfaceVariant,
-                      backgroundImage: friend.profilePhotoUrl.isNotEmpty
-                          ? CachedNetworkImageProvider(friend.profilePhotoUrl)
-                          : null,
-                      child: friend.profilePhotoUrl.isEmpty
-                          ? Text(
-                              friend.username.isNotEmpty
-                                  ? friend.username[0].toUpperCase()
-                                  : '?',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textHint),
-                            )
-                          : null,
-                    ),
-                    title: Text(
-                      friend.username,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 14),
-                    ),
-                    subtitle: friend.displayName.isNotEmpty
-                        ? Text(friend.displayName, style: AppTextStyles.caption)
-                        : null,
+          const SizedBox(height: 8),
+          friendsAsync.when(
+            data: (friendUsers) {
+              if (friendUsers.isEmpty) {
+                return const AppEmptyState(
+                  icon: Icons.people_outline,
+                  title: 'Aucun ami pour le moment',
+                  size: AppEmptyStateSize.compact,
+                );
+              }
+              return Column(
+                children: friendUsers
+                    .map((friend) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: UserListTile(
+                    user: friend,
+                    dense: true,
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              UserProfileScreen(userId: friend.uid),
+                        ),
+                      );
+                    },
                     trailing: PopupMenuButton<String>(
                       icon: const Icon(Icons.more_vert,
                           color: AppColors.textHint),
@@ -2001,24 +1318,24 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                       onSelected: (value) {
                         if (value == 'view') {
                           Navigator.of(context).push(
-                            MaterialPageRoute(
+                            MaterialPageRoute<void>(
                               builder: (_) =>
                                   UserProfileScreen(userId: friend.uid),
                             ),
                           );
                         } else if (value == 'remove') {
-                          _confirmRemove(friend);
+                          _confirmRemoveFriend(context, ref, friend);
                         }
                       },
-                      itemBuilder: (_) => [
+                      itemBuilder: (_) => const [
                         PopupMenuItem(
                           value: 'view',
                           child: Row(
                             children: [
-                              const Icon(Icons.person_outline,
+                              Icon(Icons.person_outline,
                                   size: 18, color: AppColors.textSecondary),
-                              const SizedBox(width: 10),
-                              Text(l10n.profileViewProfile),
+                              SizedBox(width: 10),
+                              Text('Voir le profil'),
                             ],
                           ),
                         ),
@@ -2026,68 +1343,134 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
                           value: 'remove',
                           child: Row(
                             children: [
-                              const Icon(Icons.person_remove,
+                              Icon(Icons.person_remove,
                                   size: 18, color: AppColors.error),
-                              const SizedBox(width: 10),
-                              Text(l10n.profileRemoveFriendAction,
-                                  style: const TextStyle(color: AppColors.error)),
+                              SizedBox(width: 10),
+                              Text('Retirer',
+                                  style: TextStyle(color: AppColors.error)),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => UserProfileScreen(userId: friend.uid),
-                        ),
-                      );
-                    },
                   ),
-                ))),
+                ))
+                    .toList(),
+              );
+            },
+            loading: () => _FriendsListSkeleton(count: user.friends.length),
+            error: (_, __) => const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Impossible de charger tes amis.',
+                style: AppTextStyles.bodySecondary,
+              ),
+            ),
+          ),
         ],
       );
-    if (widget.embeddedInAccount) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: body,
-      );
-    }
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: body,
-    );
-  }
 
-  void _confirmRemove(UserModel friend) {
-    final l10n = context.l10n;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(l10n.profileRemoveFriendTitle),
-        content: Text(
-            '${l10n.profileRemoveFriendBodyPrefix}${friend.username}${l10n.profileRemoveFriendBodySuffix}'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.commonCancel),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ref
-                  .read(friendshipNotifierProvider.notifier)
-                  .removeFriend(friend.uid);
-              setState(() {
-                _friendUsers.removeWhere((u) => u.uid == friend.uid);
-              });
-            },
-            child: Text(l10n.profileRemoveFriendAction,
-                style: const TextStyle(color: AppColors.error)),
-          ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          body,
+          const SizedBox(height: 20),
+          _MostWornChart(uid: user.uid),
         ],
       ),
+    );
+  }
+}
+
+void _confirmRemoveFriend(
+  BuildContext context,
+  WidgetRef ref,
+  UserModel friend,
+) {
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text('Retirer cet ami ?'),
+      content: Text('Retirer @${friend.username} de ta liste d\'amis ?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Annuler'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            ref.read(friendshipNotifierProvider.notifier).removeFriend(friend.uid);
+            ref.invalidate(friendUsersProvider);
+          },
+          child: const Text('Retirer', style: TextStyle(color: AppColors.error)),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Placeholders pendant le chargement Firestore des amis.
+class _FriendsListSkeleton extends StatelessWidget {
+  final int count;
+
+  const _FriendsListSkeleton({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    final n = count.clamp(1, 5);
+    return Column(
+      children: List.generate(n, (i) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.divider.withValues(alpha: 0.65)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 12,
+                      width: 100 + (i * 12).toDouble(),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      height: 10,
+                      width: 72,
+                      decoration: BoxDecoration(
+                        color: AppColors.canvas,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
     );
   }
 }
@@ -2095,12 +1478,10 @@ class _FriendsTabState extends ConsumerState<_FriendsTab> {
 class _InfosTab extends ConsumerStatefulWidget {
   final UserModel user;
   final VoidCallback onLogout;
-  final bool embeddedInAccount;
 
   const _InfosTab({
     required this.user,
     required this.onLogout,
-    this.embeddedInAccount = false,
   });
 
   @override
@@ -2119,13 +1500,12 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
   }
 
   Future<void> _applyPremiumCode() async {
-    final l10n = context.l10n;
     final code = _premiumCodeController.text.trim();
     if (!isPremiumUnlockCodeValid(code)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(l10n.profileIncorrectCode),
+          content: const Text('Code incorrect.'),
           backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -2145,15 +1525,15 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
       _premiumCodeController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.workspace_premium_rounded,
+              Icon(Icons.workspace_premium_rounded,
                   color: AppColors.white, size: 22),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  l10n.profilePremiumActivatedSnack,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  'UniSaps+ activé ! Profite des fonctionnalités IA.',
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -2169,7 +1549,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${l10n.profileErrorPrefix}$e'),
+          content: Text('Erreur : $e'),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -2183,7 +1563,6 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
   }
 
   Future<void> _showDeleteAccountDialog() async {
-    final l10n = context.l10n;
     final passwordController = TextEditingController();
     bool obscure = true;
 
@@ -2194,26 +1573,26 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
         builder: (ctx, setStateDlg) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
+          title: const Row(
             children: [
-              const Icon(Icons.warning_amber_rounded,
+              Icon(Icons.warning_amber_rounded,
                   color: AppColors.error, size: 24),
-              const SizedBox(width: 10),
-              Text(l10n.deleteAccountTitle),
+              SizedBox(width: 10),
+              Text('Supprimer le compte'),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                l10n.deleteAccountWarning,
-                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              const Text(
+                'Cette action est irréversible. Toutes tes données seront supprimées définitivement.',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
-              Text(
-                l10n.deleteAccountConfirmPassword,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              const Text(
+                'Confirme avec ton mot de passe :',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -2221,7 +1600,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                 obscureText: obscure,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: l10n.authPassword,
+                  hintText: 'Mot de passe',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -2241,7 +1620,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.commonCancel),
+              child: const Text('Annuler'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -2251,7 +1630,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text(l10n.deleteAccountConfirmButton),
+              child: const Text('Supprimer définitivement'),
             ),
           ],
         ),
@@ -2273,10 +1652,10 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
       context.go('/login');
     } catch (e) {
       if (!mounted) return;
-      String msg = l10n.deleteAccountError;
+      String msg = 'Erreur lors de la suppression.';
       if (e.toString().contains('wrong-password') ||
           e.toString().contains('invalid-credential')) {
-        msg = l10n.profileIncorrectPassword;
+        msg = 'Mot de passe incorrect.';
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -2293,226 +1672,258 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
     }
   }
 
+  Future<void> _showPremiumCodeDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('Activer UniSaps+', style: AppTextStyles.heading3),
+        content: TextField(
+          controller: _premiumCodeController,
+          textCapitalization: TextCapitalization.characters,
+          autocorrect: false,
+          obscureText: true,
+          decoration: InputDecoration(
+            hintText: 'Code d’activation',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: _premiumApplying
+                ? null
+                : () async {
+                    Navigator.pop(ctx);
+                    await _applyPremiumCode();
+                  },
+            style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
+            child: const Text('Valider'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final themeMode = ref.watch(themeModeProvider);
-    final localeCode = ref.watch(localeProvider).locale.languageCode;
-    final body = Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.settingsLanguage,
-                  style: AppTextStyles.bodySecondary.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SegmentedButton<String>(
-                  segments: [
-                    ButtonSegment(
-                      value: 'fr',
-                      label: Text(l10n.settingsLanguageFrench),
-                    ),
-                    ButtonSegment(
-                      value: 'en',
-                      label: Text(l10n.settingsLanguageEnglish),
-                    ),
-                  ],
-                  selected: {localeCode},
-                  onSelectionChanged: (selected) {
-                    ref
-                        .read(localeProvider.notifier)
-                        .setLocale(Locale(selected.first));
-                  },
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 24),
-          SwitchListTile(
-            title: Text(l10n.settingsDarkMode),
-            subtitle: Text(l10n.profileDarkModeSubtitle),
-            value: themeMode == ThemeMode.dark,
-            onChanged: (on) {
-              ref.read(themeModeProvider.notifier).state =
-                  on ? ThemeMode.dark : ThemeMode.light;
-            },
-          ),
-          const Divider(height: 24),
-          _InfoRow(label: l10n.profileEmail, value: widget.user.email),
-          _InfoRow(label: l10n.profileUsername, value: widget.user.username),
-          _InfoRow(label: l10n.profileDisplayName, value: widget.user.displayName),
-          _InfoRow(
-              label: l10n.profileMemberSince,
-              value: widget.user.createdAt.isNotEmpty
-                  ? widget.user.createdAt.substring(0, 10)
-                  : '-'),
-          _InfoRow(
-              label: l10n.profileBestStreak,
-              value:
-                  '${widget.user.bestStreak}${l10n.profileStreakDaysSuffix}'),
-          _InfoRow(
-              label: l10n.profileFriendsLabel,
-              value: '${widget.user.friends.length}'),
-          _InfoRow(
-              label: l10n.profileTabAccount,
-              value: accountVisibilityL10n(l10n, widget.user.isPrivate)),
-          _InfoRow(
-            label: l10n.premiumDialogTitle,
-            value: premiumStatusL10n(l10n, widget.user.isPremium),
-          ),
-          if (!widget.user.isPremium) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.profileActivationCodeLabel,
-                style: AppTextStyles.bodySecondary.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+    final memberSince = widget.user.createdAt.isNotEmpty
+        ? widget.user.createdAt.substring(0, 10)
+        : '—';
+    final email = widget.user.email;
+    final emailShort =
+        email.length > 22 ? '${email.substring(0, 20)}…' : email;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _AccountInfoTile(
+                icon: Icons.alternate_email_rounded,
+                iconColor: AppColors.primary,
+                label: 'Pseudo',
+                value: '@${widget.user.username}',
               ),
             ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _premiumCodeController,
-              textCapitalization: TextCapitalization.characters,
-              autocorrect: false,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: l10n.profilePremiumCodeHint,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accent,
-                  foregroundColor: AppColors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                onPressed: _premiumApplying ? null : _applyPremiumCode,
-                child: _premiumApplying
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.white,
-                        ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.workspace_premium_outlined, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            l10n.profileActivateUniSaps,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _AccountInfoTile(
+                icon: Icons.mail_outline_rounded,
+                iconColor: AppColors.accent,
+                label: 'Email',
+                value: emailShort,
               ),
             ),
           ],
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.textSecondary,
-                foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _AccountInfoTile(
+                icon: Icons.calendar_today_outlined,
+                iconColor: AppColors.textSecondary,
+                label: 'Membre',
+                value: memberSince,
               ),
-              onPressed: widget.onLogout,
-              child: Text(l10n.profileLogOut,
-                  style: const TextStyle(fontWeight: FontWeight.w600)),
             ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.error,
-                side: const BorderSide(color: AppColors.error),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _AccountInfoTile(
+                icon: Icons.workspace_premium_outlined,
+                iconColor: widget.user.isPremium
+                    ? AppColors.accent
+                    : AppColors.textHint,
+                label: 'UniSaps+',
+                value: widget.user.isPremium ? 'Actif' : 'Gratuit',
+                valueColor:
+                    widget.user.isPremium ? AppColors.accent : null,
+                highlight: widget.user.isPremium,
               ),
-              onPressed: _deletingAccount ? null : _showDeleteAccountDialog,
-              child: _deletingAccount
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: AppColors.error),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.delete_forever_outlined, size: 18),
-                        const SizedBox(width: 8),
-                        Text(l10n.profileDeleteAccount,
-                            style: const TextStyle(fontWeight: FontWeight.w600)),
-                      ],
-                    ),
             ),
-          ),
+          ],
+        ),
+        if (!widget.user.isPremium) ...[
           const SizedBox(height: 8),
-          Text(
-            l10n.profileDeleteIrreversible,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.textHint,
+          Material(
+            color: AppColors.accent.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              onTap: _premiumApplying ? null : _showPremiumCodeDialog,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Row(
+                  children: [
+                    Icon(Icons.vpn_key_outlined,
+                        size: 18, color: AppColors.accent.withValues(alpha: 0.95)),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Activer UniSaps+ avec un code',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    if (_premiumApplying)
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      Icon(Icons.chevron_right_rounded,
+                          size: 20,
+                          color: AppColors.accent.withValues(alpha: 0.8)),
+                  ],
+                ),
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
         ],
-      );
-    if (widget.embeddedInAccount) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: body,
-      );
-    }
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: body,
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: OutlinedButton.icon(
+                onPressed: widget.onLogout,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.textPrimary,
+                  side: BorderSide(
+                      color: AppColors.divider.withValues(alpha: 0.9)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.logout_rounded, size: 17),
+                label: const Text(
+                  'Déconnexion',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: TextButton.icon(
+                onPressed:
+                    _deletingAccount ? null : _showDeleteAccountDialog,
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                icon: _deletingAccount
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.error,
+                        ),
+                      )
+                    : const Icon(Icons.delete_outline_rounded, size: 17),
+                label: const Text(
+                  'Supprimer',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
 
-class _InfoRow extends StatelessWidget {
+class _AccountInfoTile extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
   final String label;
   final String value;
+  final Color? valueColor;
+  final bool highlight;
 
-  const _InfoRow({required this.label, required this.value});
+  const _AccountInfoTile({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.value,
+    this.valueColor,
+    this.highlight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: highlight
+            ? AppColors.accent.withValues(alpha: 0.1)
+            : AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: highlight
+              ? AppColors.accent.withValues(alpha: 0.35)
+              : AppColors.divider.withValues(alpha: 0.75),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppTextStyles.bodySecondary),
-          const Spacer(),
-          Text(value.isEmpty ? '-' : value,
-              style: const TextStyle(fontWeight: FontWeight.w500)),
+          Icon(icon, size: 18, color: iconColor),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: valueColor ?? AppColors.textPrimary,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary.withValues(alpha: 0.9),
+            ),
+          ),
         ],
       ),
     );

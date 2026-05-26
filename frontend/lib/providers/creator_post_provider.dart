@@ -36,13 +36,21 @@ class CreatorPostNotifier extends StateNotifier<AsyncValue<void>> {
   }) async {
     state = const AsyncValue.loading();
     try {
+      final missingPhoto = garments.where((g) => g.imageUrl.isEmpty).toList();
+      if (missingPhoto.isNotEmpty) {
+        state = AsyncValue.error(
+          'Chaque pièce doit avoir une photo (${missingPhoto.first.name}).',
+          StackTrace.current,
+        );
+        return false;
+      }
       final previewUrl = await _storage.uploadPostImageBytes(
         previewBytes,
         brand.uid,
         previewFileName,
       );
       final refs = garments
-          .map((g) => GarmentRef(name: g.name, brand: g.brand))
+          .map((g) => GarmentRef(name: g.name, brand: g.brand, imageUrl: g.imageUrl))
           .toList();
       final post = PostModel(
         userId: brand.uid,

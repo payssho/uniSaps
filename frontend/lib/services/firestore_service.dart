@@ -235,6 +235,14 @@ class FirestoreService {
     await _postCol.doc(postId).update(data);
   }
 
+  /// Incrémente le compteur de vues (1× par appareil/session côté client).
+  Future<void> incrementPostView(String postId) async {
+    if (postId.isEmpty || isDevMockExplorePostId(postId)) return;
+    await _postCol.doc(postId).update({
+      'view_count': FieldValue.increment(1),
+    });
+  }
+
   Future<bool> toggleLike(String postId, String uid) async {
     // Posts factices Explorer (dev) : pas de document Firestore.
     if (isDevMockExplorePostId(postId)) {
@@ -475,19 +483,21 @@ class FirestoreService {
 
   Future<List<UserModel>> getUsersByIds(List<String> uids) async {
     if (uids.isEmpty) return [];
-    final results = <UserModel>[];
     final batches = <List<String>>[];
     for (var i = 0; i < uids.length; i += 30) {
       batches.add(uids.sublist(i, i + 30 > uids.length ? uids.length : i + 30));
     }
-    for (final batch in batches) {
-      final snap = await _db
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: batch)
-          .get();
-      results.addAll(snap.docs.map((d) => UserModel.fromMap(d.data())));
-    }
-    return results;
+    final snaps = await Future.wait(
+      batches.map(
+        (batch) => _db
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batch)
+            .get(),
+      ),
+    );
+    return snaps
+        .expand((snap) => snap.docs.map((d) => UserModel.fromMap(d.data())))
+        .toList();
   }
 
   // ── Statistics ─────────────────────────────────────────────────────

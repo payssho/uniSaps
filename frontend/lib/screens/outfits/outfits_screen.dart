@@ -6,6 +6,7 @@ import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/image_capture.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
 import '../../core/constants/weather_catalog.dart';
@@ -24,9 +25,8 @@ import '../../widgets/garment_category_glyph.dart';
 import '../creations/creation_screen.dart';
 import '../weather/weather_detail_sheet.dart';
 import '../../widgets/async_error_state.dart';
+import '../../widgets/outfit_detail_sheet.dart';
 import '../../widgets/outfits/outfits_mode_toggle.dart';
-import '../../l10n/l10n_context.dart';
-import '../../l10n/domain_l10n.dart';
 
 /// Suggestions biblio IA (persistées pendant la session pour l’état vide + la feuille).
 final biblioAiSuggestionsProvider =
@@ -107,7 +107,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                     return Column(
                       children: [
                         _Header(
-                          title: context.l10n.outfitsTodayTitle,
+                          title: 'Outfit du jour',
                           streak: streak,
                           onAdd: _openCreation,
                           showAdd: false,
@@ -221,14 +221,12 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                 children: [
                   Semantics(
                     label: isPremium
-                        ? context.l10n.outfitsAiSuggestionsShort
-                        : context.l10n.outfitsPremiumRequiredAi,
+                        ? 'Suggestions IA'
+                        : 'UniSaps+ requis pour les suggestions IA',
                     button: true,
                     child: FloatingActionButton.small(
                     heroTag: 'outfits_ai_sheet',
-                    tooltip: isPremium
-                        ? context.l10n.outfitsAiSuggestionsShort
-                        : context.l10n.outfitsPremiumRequiredAi,
+                    tooltip: isPremium ? 'Suggestions IA' : 'UniSaps+ requis',
                     backgroundColor: isPremium
                         ? AppColors.secondary
                         : AppColors.textHint.withValues(alpha: 0.38),
@@ -256,17 +254,17 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                   ),
                   const SizedBox(height: 12),
                   Semantics(
-                    label: context.l10n.outfitsAddFit,
+                    label: 'Ajouter un fit',
                     button: true,
                     child: FloatingActionButton.extended(
                     heroTag: 'outfits_fab',
-                    tooltip: context.l10n.outfitsCreateTooltip,
+                    tooltip: 'Créer une tenue',
                     backgroundColor: AppColors.accent,
                     elevation: 6,
                     onPressed: _openCreation,
                     icon: const Icon(Icons.add, color: AppColors.white, size: 24),
-                    label: Text(
-                      context.l10n.outfitsAddFit,
+                    label: const Text(
+                      'Ajouter un fit',
                       style: TextStyle(
                         color: AppColors.white,
                         fontWeight: FontWeight.w600,
@@ -284,7 +282,10 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
   Future<void> _takePhoto(String uid, OutfitModel outfit) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
-        source: ImageSource.camera, maxWidth: 600, imageQuality: 78);
+      source: ImageSource.camera,
+      maxWidth: ImageCaptureDefaults.outfitPhotoMaxWidth,
+      imageQuality: ImageCaptureDefaults.outfitPhotoQuality,
+    );
     if (picked == null) return;
     final bytes = await picked.readAsBytes();
     final url = await ref
@@ -319,7 +320,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
       String uid, Map<String, String> suggestion) async {
     final id = await ref.read(outfitNotifierProvider.notifier).createOutfit(
           userId: uid,
-          name: context.l10n.outfitsAiSuggestionName,
+          name: 'Suggestion IA',
           garments: suggestion,
         );
     if (id != null) {
@@ -332,13 +333,13 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
 // Header with title, streak, météo compacte & add button
 // ---------------------------------------------------------------------------
 class _Header extends StatelessWidget {
-  final String? title;
+  final String title;
   final int streak;
   final VoidCallback onAdd;
   final bool showAdd;
 
   const _Header({
-    this.title,
+    this.title = 'Mes Outfits',
     required this.streak,
     required this.onAdd,
     required this.showAdd,
@@ -346,7 +347,6 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final rightSafe = MediaQuery.paddingOf(context).right;
     final rightPad = 20.0 + rightSafe;
     return Padding(
@@ -361,7 +361,7 @@ class _Header extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    title ?? l10n.outfitsMyOutfitsTitle,
+                    title,
                     style: AppTextStyles.heading2,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -404,9 +404,9 @@ class _Header extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: onAdd,
                 icon: const Icon(Icons.add, size: 18),
-                label: Text(
-                  l10n.outfitsAddFit,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                label: const Text(
+                  'Ajouter un fit',
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -562,7 +562,7 @@ class _CompactWeatherPill extends StatelessWidget {
     final colors = _browseHeroGradient(tags, avgC);
 
     return Semantics(
-      label: '${context.l10n.outfitsWeatherTodayPrefix}$avg°',
+      label: 'Météo du jour, $avg°',
       button: true,
       child: Material(
         color: Colors.transparent,
@@ -692,8 +692,8 @@ class _SwipeModeState extends State<_SwipeMode> {
                       curve: Curves.easeOutBack)
                   .fadeIn(duration: 300.ms),
               const SizedBox(height: 24),
-              Text(
-                context.l10n.outfitsSwipeEmpty,
+              const Text(
+                'Oups… Plus aucun choix d\'outfits,\nOn recommence ?',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 17,
@@ -706,7 +706,7 @@ class _SwipeModeState extends State<_SwipeMode> {
                 onPressed: _reset,
                 icon: const Icon(Icons.refresh_rounded,
                     size: 20, color: AppColors.white),
-                label: Text(context.l10n.outfitsRestart),
+                label: const Text('Recommencer'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: AppColors.white,
@@ -776,7 +776,7 @@ class _SwipeModeState extends State<_SwipeMode> {
                       size: 20,
                       color: AppColors.textHint.withOpacity(0.4)),
                   const SizedBox(height: 2),
-                  Text(context.l10n.outfitsModeSwipe,
+                  Text('Swipe',
                       style: TextStyle(
                           fontSize: 10,
                           color: AppColors.textHint.withOpacity(0.4),
@@ -917,7 +917,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.l10n.outfitsGenerateError)),
+          const SnackBar(content: Text('Erreur lors de la génération')),
         );
       }
     } finally {
@@ -927,7 +927,6 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final loading = ref.watch(biblioAiLoadingProvider);
     final suggestions = ref.watch(biblioAiSuggestionsProvider);
 
@@ -982,9 +981,9 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                         color: AppColors.accent, size: 22),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
+                  const Expanded(
                     child: Text(
-                      context.l10n.outfitsAiSuggestionsShort,
+                      'Suggestions IA',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -1012,7 +1011,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                       children: stylePrompts.map((style) {
                         final sel = _selectedStyle == style;
                         return ChoiceChip(
-                          label: Text(stylePromptLabelL10n(l10n, style),
+                          label: Text(style,
                               style: TextStyle(
                                   fontSize: 12,
                                   color: sel
@@ -1032,9 +1031,9 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                       maxLines: 3,
                       minLines: 1,
                       textInputAction: TextInputAction.done,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText:
-                            context.l10n.outfitsPrecisionHint,
+                            'Précision (facultatif): ex. dîner chic, concert…',
                         prefixIcon: Icon(Icons.chat_bubble_outline,
                             size: 18),
                       ),
@@ -1054,9 +1053,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                             : const Icon(Icons.auto_awesome,
                                 size: 16, color: AppColors.white),
                         label: Text(
-                            loading
-                                ? context.l10n.outfitsGenerating
-                                : context.l10n.outfitsGenerateSuggestions),
+                            loading ? 'Génération…' : 'Générer des suggestions'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           textStyle: const TextStyle(
@@ -1112,7 +1109,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  '${context.l10n.outfitsLookLabel}${lookIndex + 1}',
+                                  'Look ${lookIndex + 1}',
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
@@ -1121,7 +1118,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                                 ),
                                 const Spacer(),
                                 Text(
-                                  '${pairs.length}${pairs.length > 1 ? context.l10n.outfitsPiecePlural : context.l10n.outfitsPieceSingular}',
+                                  '${pairs.length} pièce${pairs.length > 1 ? 's' : ''}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -1135,7 +1132,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                               Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 child: Text(
-                                  context.l10n.outfitsNoPiecesForSuggestion,
+                                  'Aucune pièce reconnue dans ton dressing pour cette suggestion.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 13,
@@ -1171,8 +1168,8 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                                   color: AppColors.accent.withValues(alpha: 0.65),
                                 ),
                               ),
-                              label: Text(
-                                context.l10n.outfitsChooseThisLook,
+                              label: const Text(
+                                'Choisir ce look',
                                 style: TextStyle(fontWeight: FontWeight.w700),
                               ),
                             ),
@@ -1203,7 +1200,6 @@ class _SuggestionPieceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final thumbUrl = garment.imageUrls.isNotEmpty
         ? garment.imageUrls.first
         : garment.imageUrl;
@@ -1274,7 +1270,7 @@ class _SuggestionPieceCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      categoryLabelL10n(l10n, slotKey),
+                      categoryLabel(slotKey),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -1395,9 +1391,7 @@ class _OutfitPhotoCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      outfit.name.isEmpty
-                          ? context.l10n.profileDefaultOutfitName
-                          : outfit.name,
+                      outfit.name.isEmpty ? 'Outfit' : outfit.name,
                       style: const TextStyle(
                         color: AppColors.white,
                         fontSize: 20,
@@ -1408,7 +1402,7 @@ class _OutfitPhotoCard extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: Text(
-                          '${context.l10n.profileWornPrefix}${outfit.timesWorn}x',
+                          'Porté ${outfit.timesWorn}x',
                           style: TextStyle(
                             color: AppColors.white.withOpacity(0.7),
                             fontSize: 13,
@@ -1431,13 +1425,13 @@ class _OutfitPhotoCard extends StatelessWidget {
                     color: AppColors.success.withOpacity(0.92),
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.auto_awesome, size: 13, color: AppColors.white),
-                      const SizedBox(width: 4),
+                      Icon(Icons.auto_awesome, size: 13, color: AppColors.white),
+                      SizedBox(width: 4),
                       Text(
-                        context.l10n.outfitsForToday,
+                        "Pour aujourd'hui",
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -1466,7 +1460,7 @@ class _OutfitPhotoCard extends StatelessWidget {
                     Icon(Icons.touch_app_rounded,
                         size: 14, color: AppColors.white.withOpacity(0.7)),
                     const SizedBox(width: 4),
-                    Text(context.l10n.inspoDetails,
+                    Text('Détails',
                         style: TextStyle(
                             color: AppColors.white.withOpacity(0.7),
                             fontSize: 11,
@@ -1570,7 +1564,7 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
                   ),
                   child: Text(
                     widget.outfit.name.isEmpty
-                        ? context.l10n.profileDefaultOutfitName
+                        ? 'Outfit'
                         : widget.outfit.name,
                     style: const TextStyle(
                       color: AppColors.white,
@@ -1594,14 +1588,14 @@ class _OutfitGridTileState extends State<_OutfitGridTile> {
                       color: AppColors.success.withOpacity(0.95),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.wb_sunny_outlined,
+                        Icon(Icons.wb_sunny_outlined,
                             size: 12, color: AppColors.white),
-                        const SizedBox(width: 3),
+                        SizedBox(width: 3),
                         Text(
-                          context.l10n.outfitsTodayBadge,
+                          "Aujourd'hui",
                           style: TextStyle(
                             color: AppColors.white,
                             fontSize: 10,
@@ -1802,8 +1796,8 @@ class _EmptyState extends StatelessWidget {
                     curve: Curves.easeOutBack)
                 .fadeIn(duration: 300.ms),
             const SizedBox(height: 24),
-            Text(
-              context.l10n.outfitsEmptyLibraryTitle,
+            const Text(
+              'Aucun outfit',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -1811,8 +1805,8 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              context.l10n.outfitsEmptyLibrarySubtitle,
+            const Text(
+              'Crée ton premier look en ajoutant\nune photo et tes vêtements',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -1862,8 +1856,8 @@ class _DailyOutfitView extends StatelessWidget {
             child: TextButton.icon(
               onPressed: onAddFit,
               icon: const Icon(Icons.add, size: 18),
-              label: Text(
-                context.l10n.outfitsAddToLibrary,
+              label: const Text(
+                'Ajouter un fit à la bibliothèque',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
@@ -1932,9 +1926,7 @@ class _DailyOutfitView extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            outfit.name.isEmpty
-                          ? context.l10n.profileDefaultOutfitName
-                          : outfit.name,
+                            outfit.name.isEmpty ? 'Outfit' : outfit.name,
                             style: const TextStyle(
                               color: AppColors.white,
                               fontSize: 20,
@@ -1943,7 +1935,7 @@ class _DailyOutfitView extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            context.l10n.outfitsTapForDetails,
+                            'Tap pour voir les détails',
                             style: TextStyle(
                               color: AppColors.white.withOpacity(0.6),
                               fontSize: 12,
@@ -1967,7 +1959,7 @@ class _DailyOutfitView extends StatelessWidget {
                   onPressed: onTakePhoto,
                   icon: const Icon(Icons.camera_alt_outlined,
                       size: 18, color: AppColors.white),
-                  label: Text(context.l10n.outfitsDayPhoto),
+                  label: const Text('Photo du jour'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
@@ -1980,7 +1972,7 @@ class _DailyOutfitView extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
-                  child: Text(context.l10n.outfitsChangePhoto),
+                  child: const Text('Changer'),
                 ),
               ),
             ],
@@ -2001,332 +1993,23 @@ void _showOutfitDetail(
   VoidCallback? onChoose,
   VoidCallback? onDelete,
 }) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) => _OutfitDetailSheet(
-      outfit: outfit,
-      garmentCache: garmentCache,
-      onChoose: onChoose,
-      onDelete: onDelete,
-    ),
+  OutfitDetailSheet.show(
+    context,
+    outfit: outfit,
+    garmentCache: garmentCache,
+    onChooseToday: onChoose,
+    onDelete: onDelete,
   );
-}
-
-class _OutfitDetailSheet extends StatelessWidget {
-  final OutfitModel outfit;
-  final Map<String, GarmentModel> garmentCache;
-  final VoidCallback? onChoose;
-  final VoidCallback? onDelete;
-
-  const _OutfitDetailSheet({
-    required this.outfit,
-    required this.garmentCache,
-    this.onChoose,
-    this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final items = <MapEntry<String, GarmentModel>>[];
-    for (final e in outfit.garments.entries) {
-      if (e.value.isEmpty) continue;
-      for (final id in OutfitModel.parseGarmentSlotValue(e.value)) {
-        final g = garmentCache[id];
-        if (g != null) items.add(MapEntry(e.key, g));
-      }
-    }
-
-    return Container(
-      constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 16),
-            decoration: BoxDecoration(
-              color: AppColors.textHint.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (outfit.referencePhotoUrl.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                          child: AspectRatio(
-                          aspectRatio: 3 / 4,
-                          child: StorageAwareCachedImage(
-                            imageUrl: outfit.referencePhotoUrl,
-                            fit: BoxFit.cover,
-                            loadingWidget: Container(
-                                color: AppColors.surfaceVariant,
-                                child: const Center(
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2))),
-                            errorWidget: (_, __) => Container(
-                              color: AppColors.surfaceVariant,
-                              child: Icon(Icons.broken_image_outlined,
-                                  color:
-                                      AppColors.textHint.withOpacity(0.55)),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            outfit.name.isEmpty
-                          ? context.l10n.profileDefaultOutfitName
-                          : outfit.name,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        if (outfit.timesWorn > 0)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.accent.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${context.l10n.profileWornPrefix}${outfit.timesWorn}x',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.accent),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (items.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(context.l10n.creationStepPieces,
-                              style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary)),
-                          const SizedBox(height: 10),
-                          ...items.asMap().entries.map((entry) {
-                            final i = entry.key;
-                            final e = entry.value;
-                            final g = e.value;
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceVariant,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: g.imageUrl.isNotEmpty
-                                        ? StorageAwareCachedImage(
-                                            imageUrl: g.imageUrl,
-                                            width: 40,
-                                            height: 40,
-                                            fit: BoxFit.cover,
-                                            loadingWidget: Container(
-                                              width: 40,
-                                              height: 40,
-                                              color: AppColors.surfaceVariant,
-                                              child: const Center(
-                                                child: SizedBox(
-                                                  width: 16,
-                                                  height: 16,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                          strokeWidth: 2),
-                                                ),
-                                              ),
-                                            ),
-                                            errorWidget: (_, __) =>
-                                                Container(
-                                              width: 40,
-                                              height: 40,
-                                              color: AppColors.divider,
-                                              child: const Icon(
-                                                  Icons.checkroom,
-                                                  size: 18,
-                                                  color: AppColors.textHint),
-                                            ),
-                                          )
-                                        : Container(
-                                            width: 40,
-                                            height: 40,
-                                            color: AppColors.divider,
-                                            child: const Icon(Icons.checkroom,
-                                                size: 18,
-                                                color: AppColors.textHint),
-                                          ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(g.name,
-                                            style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600)),
-                                        if (g.brand.isNotEmpty)
-                                          Text(g.brand,
-                                              style: const TextStyle(
-                                                  fontSize: 11,
-                                                  color: AppColors
-                                                      .textSecondary)),
-                                      ],
-                                    ),
-                                  ),
-                                  Text(
-                                    categoryLabelL10n(context.l10n, e.key),
-                                    style: const TextStyle(
-                                        fontSize: 10,
-                                        color: AppColors.textHint),
-                                  ),
-                                ],
-                              ),
-                            )
-                                .animate()
-                                .fadeIn(
-                                    duration: 250.ms, delay: (40 * i).ms)
-                                .slideX(
-                                    begin: 0.05,
-                                    end: 0,
-                                    duration: 250.ms,
-                                    delay: (40 * i).ms);
-                          }),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-            child: SafeArea(
-              top: false,
-              child: Row(
-                children: [
-                  // Bouton supprimer
-                  if (onDelete != null)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.error.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                            color: AppColors.error.withOpacity(0.25), width: 1),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.delete_outline,
-                            color: AppColors.error, size: 22),
-                        tooltip: context.l10n.outfitsDeleteTooltip,
-                        onPressed: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20)),
-                              title: Text(context.l10n.outfitsDeleteOutfitTitle),
-                              content: Text(
-                                  context.l10n.outfitsDeleteOutfitBody),
-                              actions: [
-                                TextButton(
-                                  onPressed: () =>
-                                      Navigator.pop(ctx, false),
-                                  child: Text(context.l10n.commonCancel),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  style: TextButton.styleFrom(
-                                      foregroundColor: AppColors.error),
-                                  child: Text(context.l10n.commonDelete),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirm == true && context.mounted) {
-                            Navigator.pop(context);
-                            onDelete!();
-                          }
-                        },
-                      ),
-                    ),
-                  if (onDelete != null && onChoose != null)
-                    const SizedBox(width: 12),
-                  // Bouton choisir pour aujourd'hui
-                  if (onChoose != null)
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          onChoose!();
-                        },
-                        icon: const Icon(Icons.check_circle_outline,
-                            size: 20, color: AppColors.white),
-                        label: Text(context.l10n.outfitsChooseToday),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          foregroundColor: AppColors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14)),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
 // Streak celebration
 // ---------------------------------------------------------------------------
 void _showStreakCelebration(BuildContext context, int newStreak) {
-  final barrierLabel = context.l10n.outfitsStreakDialogBarrier;
   showGeneralDialog(
     context: context,
     barrierDismissible: false,
-    barrierLabel: barrierLabel,
+    barrierLabel: 'streak',
     barrierColor: AppColors.graphite.withOpacity(0.5),
     transitionDuration: const Duration(milliseconds: 350),
     pageBuilder: (_, __, ___) =>
@@ -2437,7 +2120,7 @@ class _StreakCelebrationOverlayState
               ),
               const SizedBox(height: 18),
               Text(
-                '${context.l10n.outfitsStreakLine}${widget.streak}${context.l10n.outfitsStreakDaysSuffix}',
+                'Streak de ${widget.streak} jours',
                 style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -2450,8 +2133,8 @@ class _StreakCelebrationOverlayState
                       end: Offset.zero,
                       duration: 300.ms),
               const SizedBox(height: 6),
-              Text(
-                context.l10n.outfitsStreakEncourage,
+              const Text(
+                'Tu gardes la flamme, continue !',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 13,
