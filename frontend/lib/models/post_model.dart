@@ -1,17 +1,23 @@
 class GarmentRef {
   final String name;
   final String brand;
+  final String imageUrl;
 
-  const GarmentRef({this.name = '', this.brand = ''});
+  const GarmentRef({this.name = '', this.brand = '', this.imageUrl = ''});
 
   factory GarmentRef.fromMap(Map<String, dynamic> map) {
     return GarmentRef(
       name: map['name'] ?? '',
       brand: map['brand'] ?? '',
+      imageUrl: map['image_url'] ?? '',
     );
   }
 
-  Map<String, dynamic> toMap() => {'name': name, 'brand': brand};
+  Map<String, dynamic> toMap() => {
+        'name': name,
+        'brand': brand,
+        'image_url': imageUrl,
+      };
 }
 
 class PostModel {

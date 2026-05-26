@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_radii.dart';
 import '../core/constants/app_text_styles.dart';
@@ -7,9 +8,10 @@ import '../models/post_model.dart';
 import '../screens/inspiration/user_profile_screen.dart';
 import 'post_garment_refs.dart';
 import 'premium_avatar_ring.dart';
+import 'storage_aware_cached_image.dart';
 
 /// Sheet détail d'un post : auteur, photo, légende, pièces du look.
-class PostDetailSheet extends StatelessWidget {
+class PostDetailSheet extends ConsumerStatefulWidget {
   final PostModel post;
 
   const PostDetailSheet({super.key, required this.post});
@@ -24,7 +26,33 @@ class PostDetailSheet extends StatelessWidget {
   }
 
   @override
+  ConsumerState<PostDetailSheet> createState() => _PostDetailSheetState();
+}
+
+class _PostDetailSheetState extends ConsumerState<PostDetailSheet> {
+  final _scrollController = ScrollController();
+  final _garmentsSectionKey = GlobalKey();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _scrollToGarments() async {
+    final ctx = _garmentsSectionKey.currentContext;
+    if (ctx == null || !mounted) return;
+    await Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+      alignment: 0.02,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final post = widget.post;
     final maxH = MediaQuery.sizeOf(context).height * 0.92;
     final imageUrl = post.displayImageUrl;
 
@@ -55,6 +83,7 @@ class PostDetailSheet extends StatelessWidget {
               ),
               Flexible(
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,29 +112,56 @@ class PostDetailSheet extends StatelessWidget {
                               BorderRadius.circular(AppRadii.card + 2),
                           child: AspectRatio(
                             aspectRatio: 3 / 4,
-                            child: CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.topCenter,
-                              placeholder: (_, __) => Container(
-                                color: AppColors.surfaceVariant,
-                                child: const Center(
-                                  child: SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                StorageAwareCachedImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                  loadingWidget: Container(
+                                    color: AppColors.surfaceVariant,
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                            strokeWidth: 2),
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (_, __) => Container(
+                                    color: AppColors.surfaceVariant,
+                                    child: const Icon(
+                                      Icons.broken_image_outlined,
+                                      color: AppColors.textHint,
+                                      size: 40,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              errorWidget: (_, __, ___) => Container(
-                                color: AppColors.surfaceVariant,
-                                child: const Icon(
-                                  Icons.broken_image_outlined,
-                                  color: AppColors.textHint,
-                                  size: 40,
-                                ),
-                              ),
+                                if (post.garmentRefs.isNotEmpty)
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.transparent,
+                                            AppColors.graphite
+                                                .withValues(alpha: 0.35),
+                                          ],
+                                        ),
+                                      ),
+                                      child: PostGarmentScrollHint(
+                                        itemCount: post.garmentRefs.length,
+                                        onTap: _scrollToGarments,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
@@ -118,87 +174,66 @@ class PostDetailSheet extends StatelessWidget {
                         ),
                       ],
                       if (post.garmentRefs.isNotEmpty) ...[
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppColors.accent.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
+                        KeyedSubtree(
+                          key: _garmentsSectionKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 20),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.accent
+                                          .withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.checkroom_rounded,
+                                      size: 20,
+                                      color: AppColors.accent,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      'Pièces du look',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surfaceVariant,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      '${post.garmentRefs.length}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              child: const Icon(
-                                Icons.checkroom_rounded,
-                                size: 20,
-                                color: AppColors.accent,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            const Expanded(
-                              child: Text(
-                                'Pièces du look',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceVariant,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                '${post.garmentRefs.length}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        PostGarmentRefsDetailList(refs: post.garmentRefs),
-                      ],
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                ),
-              ),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                UserProfileScreen(userId: post.userId),
+                              const SizedBox(height: 12),
+                              PostGarmentRefsDetailForPost(post: post),
+                            ],
                           ),
-                        );
-                      },
-                      icon: const Icon(Icons.person_outline_rounded, size: 18),
-                      label: Text('Voir le profil de ${post.username}'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.accent,
-                        side: const BorderSide(color: AppColors.accent),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadii.button),
                         ),
-                      ),
-                    ),
+                      ],
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
               ),

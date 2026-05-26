@@ -149,7 +149,7 @@ class PostNotifier extends StateNotifier<AsyncValue<void>> {
       }
 
       final refs = garments
-          .map((g) => GarmentRef(name: g.name, brand: g.brand))
+          .map((g) => GarmentRef(name: g.name, brand: g.brand, imageUrl: g.imageUrl))
           .toList();
 
       final post = PostModel(
@@ -197,4 +197,60 @@ final postNotifierProvider = StateNotifierProvider<PostNotifier, AsyncValue<void
     ref.watch(firestoreServiceProvider),
     ref.watch(storageServiceProvider),
   );
+});
+
+/// Enrichit les refs du post avec les photos Firestore (posts anciens sans image_url).
+final enrichedGarmentRefsProvider =
+    FutureProvider.family<List<GarmentRef>, PostModel>((ref, post) async {
+  if (post.garmentRefs.isEmpty) return post.garmentRefs;
+  if (!post.garmentRefs.any((r) => r.imageUrl.isEmpty)) {
+    return post.garmentRefs;
+  }
+  if (post.outfitId.isEmpty || post.userId.isEmpty) {
+    return post.garmentRefs;
+  }
+
+  final db = ref.read(firestoreServiceProvider);
+  final outfit = await db.getOutfit(post.userId, post.outfitId);
+  if (outfit == null) return post.garmentRefs;
+
+  final garments = <GarmentModel>[];
+  for (final gid in outfit.garmentIds) {
+    final g = await db.getGarment(post.userId, gid);
+    if (g != null) garments.add(g);
+  }
+  if (garments.isEmpty) return post.garmentRefs;
+
+  if (garments.length == post.garmentRefs.length) {
+    return [
+      for (var i = 0; i < garments.length; i++)
+        GarmentRef(
+          name: post.garmentRefs[i].name.isNotEmpty
+              ? post.garmentRefs[i].name
+              : garments[i].name,
+          brand: post.garmentRefs[i].brand.isNotEmpty
+              ? post.garmentRefs[i].brand
+              : garments[i].brand,
+          imageUrl: garments[i].imageUrl,
+        ),
+    ];
+  }
+
+  return post.garmentRefs.map((refItem) {
+    GarmentModel? match;
+    for (final g in garments) {
+      if (g.name == refItem.name && g.brand == refItem.brand) {
+        match = g;
+        break;
+      }
+    }
+    if (match != null && match.imageUrl.isNotEmpty) {
+      return GarmentRef(
+        name: refItem.name,
+        brand: refItem.brand,
+        imageUrl: match.imageUrl,
+      );
+    }
+    return refItem;
+  }).toList();
 });

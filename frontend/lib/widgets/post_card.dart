@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'storage_aware_cached_image.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_radii.dart';
 import '../core/constants/app_text_styles.dart';
@@ -131,16 +132,15 @@ class PostCard extends StatelessWidget {
             AspectRatio(
               aspectRatio: 3 / 4,
               child: post.displayImageUrl.isNotEmpty
-                  ? CachedNetworkImage(
+                  ? StorageAwareCachedImage(
                       imageUrl: post.displayImageUrl,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      alignment: Alignment.topCenter,
-                      placeholder: (_, __) => Container(
+                      loadingWidget: Container(
                         color: AppColors.surfaceVariant,
                         child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
                       ),
-                      errorWidget: (_, __, ___) => Container(
+                      errorWidget: (_, __) => Container(
                         color: AppColors.surfaceVariant,
                         child: const Icon(Icons.broken_image_outlined, color: AppColors.textHint, size: 40),
                       ),
@@ -288,11 +288,10 @@ class PostCard extends StatelessWidget {
                 fit: StackFit.expand,
                 children: [
                   post.displayImageUrl.isNotEmpty
-                      ? CachedNetworkImage(
+                      ? StorageAwareCachedImage(
                           imageUrl: post.displayImageUrl,
                           fit: BoxFit.cover,
-                          alignment: Alignment.topCenter,
-                          placeholder: (_, __) => Container(
+                          loadingWidget: Container(
                             color: AppColors.surfaceVariant,
                             child: const Center(
                               child: SizedBox(
@@ -302,7 +301,7 @@ class PostCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          errorWidget: (_, __, ___) => Container(
+                          errorWidget: (_, __) => Container(
                             color: AppColors.surfaceVariant,
                             child: const Icon(Icons.broken_image_outlined, color: AppColors.textHint, size: 32),
                           ),
@@ -339,46 +338,49 @@ class PostCard extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: onLike,
-                        child: Icon(
-                          liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                          color: liked ? AppColors.accent : AppColors.textHint,
-                          size: 20,
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: onLike,
+                          child: Icon(
+                            liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: liked ? AppColors.accent : AppColors.textHint,
+                            size: 20,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${post.likes}',
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    if (post.caption.isNotEmpty) ...[
+                      const SizedBox(height: 4),
                       Text(
-                        '${post.likes}',
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                        post.caption,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.body.copyWith(fontSize: 12, height: 1.25),
                       ),
                     ],
-                  ),
-                  if (post.caption.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      post.caption,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.body.copyWith(fontSize: 12, height: 1.25),
-                    ),
+                    if (post.garmentRefs.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      PostGarmentRefsForPost(
+                        post: post,
+                        maxVisible: 4,
+                        compact: true,
+                      ),
+                    ],
                   ],
-                  if (post.garmentRefs.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    PostGarmentRefsStrip(
-                      refs: post.garmentRefs,
-                      maxVisible: 4,
-                      compact: true,
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
           ],

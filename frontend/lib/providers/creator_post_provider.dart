@@ -42,7 +42,7 @@ class CreatorPostNotifier extends StateNotifier<AsyncValue<void>> {
         previewFileName,
       );
       final refs = garments
-          .map((g) => GarmentRef(name: g.name, brand: g.brand))
+          .map((g) => GarmentRef(name: g.name, brand: g.brand, imageUrl: g.imageUrl))
           .toList();
       final post = PostModel(
         userId: brand.uid,

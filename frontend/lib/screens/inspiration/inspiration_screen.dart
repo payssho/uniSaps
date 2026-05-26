@@ -1663,12 +1663,11 @@ class _InspoPostCardState extends State<_InspoPostCard>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  widget.post.imageUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: widget.post.imageUrl,
+                  widget.post.displayImageUrl.isNotEmpty
+                      ? StorageAwareCachedImage(
+                          imageUrl: widget.post.displayImageUrl,
                           fit: BoxFit.cover,
-                          alignment: Alignment.topCenter,
-                          placeholder: (_, __) => Container(
+                          loadingWidget: Container(
                             color:
                                 AppColors.surfaceVariant.withValues(alpha: 0.72),
                             child: Center(
@@ -1683,7 +1682,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
                               ),
                             ),
                           ),
-                          errorWidget: (_, __, ___) => Container(
+                          errorWidget: (_, __) => Container(
                             color: AppColors.surfaceVariant
                                 .withValues(alpha: 0.75),
                             child: const Icon(
@@ -1813,8 +1812,8 @@ class _InspoPostCardState extends State<_InspoPostCard>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  PostGarmentRefsStrip(
-                    refs: widget.post.garmentRefs,
+                  PostGarmentRefsForPost(
+                    post: widget.post,
                     onViewAll: () =>
                         _showPostDetails(context, widget.post),
                   ),

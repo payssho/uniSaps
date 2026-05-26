@@ -171,7 +171,7 @@ class _CreatorPostCreateSheetState extends ConsumerState<CreatorPostCreateSheet>
       return;
     }
     final refs = _selectedGarments.values
-        .map((g) => GarmentRef(name: g.name, brand: g.brand))
+        .map((g) => GarmentRef(name: g.name, brand: g.brand, imageUrl: g.imageUrl))
         .toList();
     final post = buildPreviewPost(
       brand: user,
