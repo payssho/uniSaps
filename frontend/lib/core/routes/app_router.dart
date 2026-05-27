@@ -32,11 +32,12 @@ class _RouterNotifier extends ChangeNotifier {
 
     final isLoginOrSignup = loc == '/login' || loc == '/signup';
     final isCreatorLanding = loc == '/creator';
+    final isCreatorCheckout = loc == '/creator/checkout';
     /// Routes accessibles sans être connecté (pas /creator/home, etc.).
-    final isPublicWhenLoggedOut = isLoginOrSignup || isCreatorLanding;
+    final isPublicWhenLoggedOut =
+        isLoginOrSignup || isCreatorLanding || isCreatorCheckout;
     final isOnboarding = loc == '/onboarding';
     final isCreatorOnboarding = loc == '/creator/onboarding';
-    final isCreatorCheckout = loc == '/creator/checkout';
 
     if (authLoading) return null;
 

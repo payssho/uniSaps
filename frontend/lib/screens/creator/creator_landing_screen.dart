@@ -51,7 +51,7 @@ class CreatorLandingScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => context.push('/creator/checkout'),
-                  child: Text(l10n.languageContinue),
+                  child: Text(l10n.signupCreatorCreateAccount),
                 ),
               ),
               const SizedBox(height: 12),

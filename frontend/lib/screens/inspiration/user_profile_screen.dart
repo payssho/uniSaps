@@ -132,7 +132,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
           if (user.isCreator) {
             collections = await db.getCollections(user.uid);
           } else {
-            outfits = await db.getOutfits(user.uid);
+          outfits = await db.getOutfits(user.uid);
           }
         } catch (_) {
           // Contenu inaccessible - on affiche le profil vide
@@ -290,10 +290,10 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                         Tab(text: 'Collections'),
                       ]
                     : const [
-                        Tab(text: 'Posts'),
-                        Tab(text: 'Dressing'),
-                        Tab(text: 'Outfits'),
-                      ],
+                  Tab(text: 'Posts'),
+                  Tab(text: 'Dressing'),
+                  Tab(text: 'Outfits'),
+                ],
               ),
               Expanded(
                 child: TabBarView(
@@ -318,13 +318,13 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                             ownerGarments: _garments,
                             ownerOutfits: _outfits,
                           ),
-                          _DressingTab(garments: _garments),
+                    _DressingTab(garments: _garments),
                           _OutfitsTab(
                             outfits: _outfits,
                             ownerUid: user.uid,
                             garments: _garments,
                           ),
-                        ],
+                  ],
                 ),
               ),
             ] else if (canSeeContent || isMe) ...[
@@ -466,16 +466,16 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                     _StatBadge(value: '${_garments.length}', label: 'Pièces'),
                   ]
                 : [
-                    _StatBadge(
-                      value: '${user.friends.length}',
-                      label: 'Amis',
-                      onTap: () => _openProfileFriendsList(user, isMe),
-                    ),
-                    const SizedBox(width: 28),
-                    _StatBadge(value: '${user.currentStreak}', label: 'Streak'),
-                    const SizedBox(width: 28),
-                    _StatBadge(value: '${user.bestStreak}', label: 'Best'),
-                  ],
+              _StatBadge(
+                value: '${user.friends.length}',
+                label: 'Amis',
+                onTap: () => _openProfileFriendsList(user, isMe),
+              ),
+              const SizedBox(width: 28),
+              _StatBadge(value: '${user.currentStreak}', label: 'Streak'),
+              const SizedBox(width: 28),
+              _StatBadge(value: '${user.bestStreak}', label: 'Best'),
+            ],
           ),
         ],
       ),
@@ -1042,7 +1042,7 @@ class _CreatorPublicCollectionCard extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+        color: AppColors.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppColors.divider.withValues(alpha: 0.55)),
           boxShadow: [
@@ -1054,15 +1054,15 @@ class _CreatorPublicCollectionCard extends StatelessWidget {
           ],
         ),
         clipBehavior: Clip.antiAlias,
-        child: Column(
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
+        children: [
+          Container(
                   width: 4,
-                  decoration: BoxDecoration(
+            decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -1076,9 +1076,9 @@ class _CreatorPublicCollectionCard extends StatelessWidget {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                         Row(
                           children: [
                             Icon(
@@ -1167,9 +1167,9 @@ class _CreatorPublicCollectionCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: AppColors.accent,
                   ),
-                ),
-              ),
-          ],
+            ),
+          ),
+        ],
         ),
       ),
     );
@@ -1198,8 +1198,8 @@ class _CollectionMetaChip extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.22)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+          mainAxisSize: MainAxisSize.min,
+          children: [
           Icon(icon, size: 13, color: color.withValues(alpha: 0.95)),
           const SizedBox(width: 5),
           Text(
@@ -1210,9 +1210,9 @@ class _CollectionMetaChip extends StatelessWidget {
               color: AppColors.textSecondary.withValues(alpha: 0.95),
             ),
           ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
   }
 }
 
@@ -1294,7 +1294,7 @@ class _DressingTabState extends State<_DressingTab> {
         final g = items[i];
         return GarmentCard(
           garment: g,
-          onTap: () => _showReadOnlyGarment(context, g),
+            onTap: () => _showReadOnlyGarment(context, g),
         );
       },
     );
@@ -1302,9 +1302,9 @@ class _DressingTabState extends State<_DressingTab> {
 
   Widget _emptyState({required bool hasItemsInCat, required bool noFilters}) {
     return Center(
-      child: Column(
+              child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
+                children: [
           Icon(
             Icons.checkroom_outlined,
             size: 56,
@@ -1337,7 +1337,7 @@ class _DressingTabState extends State<_DressingTab> {
         (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
       );
       sections.add(
-        Padding(
+                  Padding(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
           child: Row(
             children: [
@@ -1580,7 +1580,7 @@ class _OutfitsTab extends StatelessWidget {
     final cache = {for (final g in garments) g.id: g};
     OutfitDetailSheet.show(
       context,
-      outfit: outfit,
+          outfit: outfit,
       garmentCache: cache,
       mode: OutfitDetailMode.readOnly,
     );
