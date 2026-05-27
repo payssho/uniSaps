@@ -308,8 +308,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               context.l10n.garmentAiDescribeFailed,
             ),
             behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.all(16),
-            duration: Duration(seconds: 5),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -325,8 +325,8 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
               context.l10n.garmentAiUnavailable,
             ),
             behavior: SnackBarBehavior.floating,
-            margin: EdgeInsets.all(16),
-            duration: Duration(seconds: 4),
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -424,7 +424,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
         icon: const Icon(Icons.image_not_supported_outlined, color: AppColors.error, size: 36),
         title: Text(
           context.l10n.garmentImageNotRecognizedTitle,
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
           textAlign: TextAlign.center,
         ),
         content: Text(
@@ -713,7 +713,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                     Expanded(
                       child: Text(
                         context.l10n.garmentChooseCollection,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
@@ -838,7 +838,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
             Expanded(
               child: Text(
                 context.l10n.garmentCreateCollectionFirst,
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
+                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.35),
               ),
             ),
           ],
@@ -973,7 +973,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                 scrollPadding: EdgeInsets.zero,
                 decoration: InputDecoration(
                   hintText: context.l10n.garmentCollectionNameHint,
-                  border: OutlineInputBorder(
+                  border: const OutlineInputBorder(
                     borderRadius: BorderRadius.all(Radius.circular(12)),
                   ),
                 ),
@@ -987,7 +987,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                       scrollPadding: EdgeInsets.zero,
                       decoration: InputDecoration(
                         labelText: context.l10n.garmentDateStartHint,
-                        border: OutlineInputBorder(
+                        border: const OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(12)),
                         ),
                       ),
@@ -1000,7 +1000,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                       scrollPadding: EdgeInsets.zero,
                       decoration: InputDecoration(
                         labelText: context.l10n.garmentDateEndHint,
-                        border: OutlineInputBorder(
+                        border: const OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(12)),
                         ),
                       ),
@@ -1097,7 +1097,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                   const SizedBox(height: 14),
                   Text(
                     context.l10n.garmentAiAnalyzingImages,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -1295,7 +1295,7 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
                         scrollPadding: EdgeInsets.zero,
                         decoration: InputDecoration(
                           hintText: l10n.garmentNameDescHint,
-                          border: OutlineInputBorder(
+                          border: const OutlineInputBorder(
                             borderRadius: BorderRadius.all(Radius.circular(12)),
                           ),
                         ),

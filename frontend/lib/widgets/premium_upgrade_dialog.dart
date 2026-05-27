@@ -9,7 +9,7 @@ Future<void> showPremiumUpgradeDialog(
   BuildContext context, {
   WidgetRef? ref,
 }) {
-  final l10n = AppLocalizations.of(context)!;
+  final l10n = AppLocalizations.of(context);
   return showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(

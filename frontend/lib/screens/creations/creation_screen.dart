@@ -6,6 +6,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/image_capture.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
+import '../../l10n/l10n_context.dart';
 import '../../core/constants/weather_catalog.dart';
 import '../../models/garment_model.dart';
 import '../../models/outfit_model.dart';
@@ -214,7 +215,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
+      builder: (ctx) => Container(
         constraints: BoxConstraints(
             maxHeight: MediaQuery.of(context).size.height * 0.6),
         decoration: const BoxDecoration(
@@ -234,8 +235,10 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(categoryLabel(categoryKey),
-                  style: AppTextStyles.heading3),
+              child: Text(
+                categoryLabel(categoryKey, ctx.l10n),
+                style: AppTextStyles.heading3,
+              ),
             ),
             const SizedBox(height: 4),
             Padding(

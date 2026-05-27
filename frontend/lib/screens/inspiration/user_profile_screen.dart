@@ -625,11 +625,11 @@ class _ProfileAvatar extends StatelessWidget {
                     width: size,
                     height: size,
                     preferHighQuality: true,
-                    loadingWidget: Center(
+                    loadingWidget: const Center(
                       child: SizedBox(
                         width: size * 0.35,
                         height: size * 0.35,
-                        child: const CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     ),
                     errorWidget: (_, __) => Center(child: fallback()),
@@ -1129,8 +1129,8 @@ class _CreatorPublicCollectionCard extends StatelessWidget {
               ],
             ),
             if (garments.isEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(14, 0, 14, 16),
                 child: Text(
                   'Aucune pièce dans cette collection pour le moment.',
                   style: AppTextStyles.caption,

@@ -635,12 +635,16 @@ class _SwipeDeckVisual extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.favorite_border_rounded, size: 17, color: AppColors.accent),
+                    const Icon(
+                      Icons.favorite_border_rounded,
+                      size: 17,
+                      color: AppColors.accent,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       context.l10n.signupCreatorSwipeRightBadge,

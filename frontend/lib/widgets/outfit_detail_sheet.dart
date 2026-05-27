@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
+import '../l10n/l10n_context.dart';
 import '../models/garment_model.dart';
 import '../models/outfit_model.dart';
 import 'confirm_delete_dialog.dart';
@@ -319,7 +320,7 @@ class OutfitDetailSheet extends StatelessWidget {
                                           if (slot != null &&
                                               mode == OutfitDetailMode.owner)
                                             Text(
-                                              categoryLabel(slot),
+                                              categoryLabel(slot, context.l10n),
                                               style: AppTextStyles.caption
                                                   .copyWith(fontSize: 11),
                                             ),

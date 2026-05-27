@@ -20,6 +20,7 @@ import '../../widgets/storage_aware_cached_image.dart';
 import '../../widgets/async_error_state.dart';
 import '../../widgets/stat_row.dart';
 import '../../widgets/user_list_tile.dart';
+import '../../widgets/language_locale_button.dart';
 import '../../providers/ui_navigation_provider.dart';
 import '../inspiration/user_profile_screen.dart';
 import '../inspiration/search_users_screen.dart';
@@ -1437,7 +1438,7 @@ class _FriendsListSkeleton extends StatelessWidget {
               Container(
                 width: 36,
                 height: 36,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.surfaceVariant,
                   shape: BoxShape.circle,
                 ),
@@ -1769,6 +1770,8 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
             ),
           ],
         ),
+        const SizedBox(height: 8),
+        const LanguageLocaleAccountTile(),
         if (!widget.user.isPremium) ...[
           const SizedBox(height: 8),
           Material(

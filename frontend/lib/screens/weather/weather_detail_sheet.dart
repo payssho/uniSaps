@@ -574,7 +574,7 @@ class _HourlyTimelineCardState extends State<_HourlyTimelineCard> {
   Widget build(BuildContext context) {
     final hours = _todayHours(widget.weather);
     if (hours.isEmpty) {
-      return const _SectionCard(
+      return _SectionCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1000,9 +1000,9 @@ class _WeatherLoading extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       controller: scrollController,
-      children: const [
-        SizedBox(height: 80),
-        Center(
+      children: [
+        const SizedBox(height: 80),
+        const Center(
           child: SizedBox(
             width: 36,
             height: 36,

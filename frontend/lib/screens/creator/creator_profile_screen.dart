@@ -15,6 +15,7 @@ import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../widgets/post_detail_sheet.dart';
 import '../../widgets/stat_row.dart';
+import '../../widgets/language_locale_button.dart';
 import '../inspiration/user_profile_screen.dart';
 
 class CreatorProfileScreen extends ConsumerWidget {
@@ -97,6 +98,8 @@ class CreatorProfileScreen extends ConsumerWidget {
                     },
                   ),
                 ],
+                const SizedBox(height: 8),
+                const LanguageLocaleAccountTile(),
                 const SizedBox(height: 16),
                 OutlinedButton.icon(
                   onPressed: () async {
@@ -289,7 +292,7 @@ class _CreatorProfileHero extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.checkroom_outlined,
+                    const Icon(Icons.checkroom_outlined,
                         size: 16, color: AppColors.textSecondary),
                     const SizedBox(width: 6),
                     Text(
@@ -350,7 +353,7 @@ class _TopPostRow extends StatelessWidget {
                             imageUrl: url,
                             fit: BoxFit.cover,
                           )
-                        : ColoredBox(color: AppColors.surfaceVariant),
+                        : const ColoredBox(color: AppColors.surfaceVariant),
                   ),
                 ),
                 const SizedBox(width: 12),

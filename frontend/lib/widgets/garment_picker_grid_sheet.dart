@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
+import '../l10n/l10n_context.dart';
 import '../models/garment_model.dart';
 import 'garment_thumbnail.dart';
 
@@ -39,7 +40,7 @@ Future<GarmentModel?> showGarmentPickerGridSheet(
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              categoryLabel(categoryKey),
+              categoryLabel(categoryKey, ctx.l10n),
               style: AppTextStyles.heading3,
             ),
           ),

@@ -133,7 +133,7 @@ class _CreatorCheckoutScreenState extends ConsumerState<CreatorCheckoutScreen> {
                 controller: _codeController,
                 decoration: InputDecoration(
                   hintText: l10n.creatorActivationCode,
-                  prefixIcon: Icon(Icons.vpn_key_outlined, size: 20),
+                  prefixIcon: const Icon(Icons.vpn_key_outlined, size: 20),
                 ),
               ),
               if (_error != null) ...[

@@ -9,6 +9,7 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/image_capture.dart';
 import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
+import '../../l10n/l10n_context.dart';
 import '../../core/constants/weather_catalog.dart';
 import '../../models/daily_weather_summary.dart';
 import '../../models/garment_model.dart';
@@ -1270,7 +1271,7 @@ class _SuggestionPieceCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      categoryLabel(slotKey),
+                      categoryLabel(slotKey, context.l10n),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

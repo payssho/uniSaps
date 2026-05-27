@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_colors.dart';
 import '../core/constants/app_text_styles.dart';
 import '../core/constants/categories.dart';
+import '../l10n/l10n_context.dart';
 import '../models/garment_model.dart';
 import '../providers/auth_provider.dart';
 import 'garment_colors_wrap.dart';
@@ -87,7 +88,7 @@ class GarmentDetailSheet extends ConsumerWidget {
         children: [
           Flexible(
             child: SingleChildScrollView(
-              child: _buildBody(current),
+              child: _buildBody(context, current),
             ),
           ),
           if (mode == GarmentDetailMode.owner &&
@@ -163,7 +164,7 @@ class GarmentDetailSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildBody(GarmentModel g) {
+  Widget _buildBody(BuildContext context, GarmentModel g) {
     final imageUrls = g.imageUrls.isNotEmpty
         ? g.imageUrls
         : (g.imageUrl.isNotEmpty ? [g.imageUrl] : <String>[]);
@@ -209,7 +210,7 @@ class GarmentDetailSheet extends ConsumerWidget {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          categoryLabel(g.category),
+                          categoryLabel(g.category, context.l10n),
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
