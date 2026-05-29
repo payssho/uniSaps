@@ -1,6 +1,6 @@
 # uniSaps - Documentation technique
 
-**Auteur :** [Prénom Nom] - Master 1 CNAM, parcours TRIED  
+**Auteur :** Marius Durand - Master 1 CNAM, parcours TRIED  
 **Version application :** 1.0.1+4  
 **Version API :** 1.0.0  
 **Projet Firebase :** `unisaps-3ad84`
@@ -11,7 +11,23 @@
 
 ### 1.1 Contexte
 
-Dans le cadre du module de programmation orientée objet, je devais livrer un projet personnel **fonctionnel de bout en bout**, structuré en modules, testé et documenté, avec déclaration explicite de l'usage de l'IA. **uniSaps** répond à ce cadre tout en me permettant d'appliquer des compétences TRIED : données structurées (Firestore), traitement d'images (vision), scoring et recommandation, visualisation (stats, streaks).
+Ce projet m’a particulièrement motivé car il rassemble deux domaines que j’apprécie énormément : le développement informatique et la mode.
+
+Je suis personnellement passionné par les vêtements, les tenues et l’univers du style en général. J’aime aussi partager cette passion, regarder des inspirations, créer des outfits et réfléchir à l’image que peut transmettre une tenue. Le fait de pouvoir combiner cette passion avec mes études m’a donné beaucoup plus de motivation qu’un projet “classique” uniquement scolaire.
+
+C’est donc dans cette logique que j’ai créé **uniSaps**, une application de dressing interactif mêlant gestion de garde-robe, création de tenues, recommandations, réseau social et même une réflexion autour de la monétisation et des comptes créateurs. Mon objectif était de construire un vrai projet cohérent et évolutif, et pas seulement une démonstration technique réalisée pour les cours.
+
+J’ai essayé de penser le projet comme une application pouvant réellement être utilisée sur le long terme, avec une architecture propre, des fonctionnalités complètes et un modèle qui pourrait être déployé en production.
+
+Avant le développement, j’ai aussi pris le temps de réfléchir aux problèmes que beaucoup de personnes rencontrent autour de la mode et de l’organisation de leur dressing :
+
+- “Comment je m’habille ce matin ?”
+- manque d’inspiration ou difficulté à créer des tenues,
+- vêtements oubliés dans le dressing,
+- absence de vue d’ensemble sur ses habits,
+- envie de partager son style avec d’autres personnes.
+
+Toutes les fonctionnalités de uniSaps ont ensuite été pensées pour répondre à ces problématiques : gestion numérique des vêtements, suggestions de tenues, système de swipe, historique des outfits, réseau social Inspiration, statistiques d’utilisation et fonctionnalités IA.
 
 ### 1.2 Besoin utilisateur
 
@@ -22,15 +38,103 @@ Je pars du constat que les utilisateurs veulent :
 3. **Motiver** l'usage régulier (streak, stats).
 4. **Partager** leurs looks dans un cercle social contrôlé (amis) ou ouvert (explorer).
 
-### 1.3 Objectifs mesurables
+Le projet uniSaps a été pensé autour de plusieurs profils d’utilisateurs ayant des usages différents de la mode et des réseaux sociaux vestimentaires.
 
-- Temps de choix du matin réduit (sélection en < 30 s via swipe ou IA).
-- Taux de pièces « oubliées » diminué grâce au scoring anti-répétition (7 jours).
-- Engagement : streak et 1 post/jour maximum pour éviter le spam.
+#### Persona 1 — Passionné de mode
+
+Le premier profil correspond à un utilisateur passionné par la mode, qui possède déjà un style affirmé et souhaite partager ses tenues avec une communauté.  
+Pour ce type d’utilisateur, l’application sert à la fois de dressing numérique et de réseau social spécialisé.
+
+Les fonctionnalités importantes pour ce persona sont :
+
+- l’ajout rapide de vêtements avec photos et métadonnées,
+- la création de tenues complètes,
+- le partage de posts dans l’onglet Inspiration,
+- les statistiques d’utilisation et le streak,
+- la personnalisation du profil et la gestion des amis.
+
+L’objectif est de permettre à cet utilisateur de valoriser son style, retrouver facilement ses pièces et publier régulièrement ses outfits dans un environnement centré sur la mode.
+
+#### Persona 2 — Débutant en mode
+
+Le deuxième profil représente un utilisateur moins expérimenté dans le domaine de la mode, qui cherche principalement de l’inspiration et de l’aide pour composer des tenues.
+
+Ce persona utilise davantage :
+
+- le feed Explorer pour découvrir des styles,
+- les suggestions de tenues,
+- le système de swipe,
+- les recommandations liées à la météo et aux saisons,
+- les fonctionnalités IA pour analyser automatiquement les vêtements.
+
+L’objectif est de réduire le temps nécessaire pour choisir une tenue et de rendre l’expérience plus accessible même pour des utilisateurs n’ayant pas de connaissances particulières en mode.
+
+#### Persona 3 — Marque de vêtements indépendante
+
+Le troisième profil correspond à une petite marque ou un créateur indépendant souhaitant présenter ses collections à une audience ciblée.
+
+Pour ce besoin, uniSaps intègre un système de comptes Créateur permettant :
+
+- la publication de posts sponsorisés,
+- la mise en avant de collections dans le feed Explorer,
+- la gestion d’un profil de marque,
+- le lien entre compte personnel et compte créateur.
+
+Cette fonctionnalité apporte une dimension plus professionnelle au projet et permet d’imaginer un modèle économique basé sur la visibilité des marques émergentes au sein de la plateforme.
+
+### 1.3 Analyse de l’existant
+
+Avant de concevoir uniSaps, j’ai analysé plusieurs types d’applications déjà présentes sur le marché afin d’identifier leurs points forts mais aussi leurs limites.
+
+#### Applications centrées sur l’inspiration (Pinterest, Instagram)
+
+Des plateformes comme Pinterest ou Instagram permettent de découvrir énormément d’inspirations vestimentaires et de suivre des créateurs de contenu mode.
+
+Cependant, ces applications restent principalement centrées sur le partage de contenu :
+
+- aucune vraie gestion de garde-robe personnelle,
+- pas d’organisation des vêtements,
+- difficulté à retrouver précisément les pièces utilisées dans une tenue,
+- absence de recommandations adaptées au dressing réel de l’utilisateur.
+
+L’utilisateur peut trouver de l’inspiration, mais il ne dispose pas d’outil concret pour gérer ses propres vêtements ou construire facilement ses outfits.
+
+#### Applications de gestion de dressing
+
+J’ai également regardé des applications spécialisées dans la gestion de garde-robe numérique.
+
+Ces solutions proposent généralement :
+
+- l’ajout de vêtements,
+- des catégories simples,
+- parfois la création de tenues.
+
+Mais elles restent souvent limitées à un usage “catalogue” :
+
+- peu ou pas de dimension sociale,
+- expérience utilisateur parfois vieillissante,
+- absence de recommandations intelligentes,
+- peu d’interactions ou de motivation à revenir régulièrement sur l’application.
+
+La plupart ne proposent pas non plus d’intégration IA ou de logique avancée autour du style, de la météo ou de l’historique des vêtements portés.
+
+#### Positionnement de uniSaps
+
+Avec uniSaps, l’objectif était de proposer une expérience plus complète et plus moderne en regroupant plusieurs usages dans une seule application.
+
+Le projet combine :
+
+- une gestion complète du dressing,
+- un système de création de tenues,
+- un réseau social mode,
+- des suggestions intelligentes basées sur l’IA et des règles de scoring,
+- des statistiques et systèmes d’engagement (streak, historique, usage des vêtements).
+
+L’idée principale est donc de proposer une application “tout-en-un” qui ne sert pas uniquement à regarder des inspirations, mais aussi à organiser son dressing, créer ses tenues et partager son style avec une communauté.
 
 ---
 
-## 2. Fonctionnalités détaillées
+## 2. Fonctionnalités (plus détaillé dans ./[README.md](http://README.md))
 
 ### 2.1 Authentification et onboarding
 
@@ -71,7 +175,7 @@ Je pars du constat que les utilisateurs veulent :
 **Niveau 1 (aucun outfit du jour) :** bannière d'état + tabs Bibliothèque / Swipe / IA (sheet premium).  
 **Niveau 2 (outfit choisi) :** affichage principal, photo optionnelle, streak visible.
 
-### 2.3bis Navigation principale (shell)
+### 2.3bis Navigation principale
 
 - **4 onglets** dans `HomeScreen` : Dressing (0) · Outfits (1) · Inspiration (2) · Profil (3).
 - **Création de tenue** : FAB « Ajouter un fit » sur Outfits (mode Bibliothèque) → `creation_screen.dart` (pas d’onglet « Créer »).
@@ -274,6 +378,8 @@ final list = await api.suggestOutfits(
 **Estimation ordre de grandeur (100 users actifs, 5 vêtements analysés/mois) :**  
 ≈ 500 appels Gemini/mois → reste dans le gratuit ou quelques euros. Un LLM par suggestion multiplierait par 30× les appels.
 
+J'ai donc du faire des choix par rapport à ces coups au seins de l'app pour correspondre et à mon budget de casi 0 euro et la garantie d'avoir des fonctionnalités optimal pour l'utilisateur.
+
 ### 4.5 Workflow agents Cursor (développement)
 
 Développement assisté par **trois agents spécialisés** invocables dans le chat Cursor via `@` :
@@ -293,7 +399,7 @@ Index, matrice de périmètres et exemples : `[.cursor/AGENTS.md](../.cursor/AGE
 #### Comment choisir son agent
 
 - Endpoint REST, règles Firestore, Storage, déploiement Vercel → `**@unisaps-backend`**
-- Analyse photo, `_score()`, suggestions, Gemini, dialog premium → `**@unisaps-ia**`
+- Analyse photo, `_score()`, suggestions, Gemini, dialog premium → `**@unisaps-ia`**
 - Écran, widget, navigation, design, feed, streak, swipe → `**@unisaps-frontend**`
 - Tâche mixte : commencer par l’agent dominant, puis enchaîner un second `@` si nécessaire
 
@@ -325,6 +431,8 @@ Découper ensuite par agent : frontend pour la navigation et les écrans, IA pou
 En complément des agents spécialisés, j’ai utilisé la fonctionnalité **“Plan” de Cursor** avant certaines implémentations importantes. Cette fonctionnalité permet de demander à l’IA non pas directement du code, mais une **structuration du besoin**, une analyse des contraintes et un découpage du travail en étapes cohérentes.
 
 L’objectif était d’éviter un développement “au fil de l’eau” où l’IA génère rapidement du code sans vision globale de l’architecture.
+
+Un exemple de ce que le mode plan pourrait renvoyé est présent dans le dossier **.cursor/plan/...**
 
 #### Structuration du besoin
 
@@ -359,7 +467,7 @@ Avant certaines implémentations, je confrontais plusieurs approches possibles :
 Le mode “Plan” servait alors de support de réflexion.  
 L’intérêt principal n’était pas uniquement la réponse finale, mais le raisonnement proposé par l’IA : avantages, limites, impacts sur les coûts, la maintenabilité ou les performances.
 
-Par exemple, pour les suggestions d’outfits, cette phase de réflexion m’a conduit à abandonner une approche 100 % LLM au profit d’un moteur rule-based beaucoup plus économique et explicable devant un jury.
+Par exemple, pour les suggestions d’outfits, cette phase de réflexion m’a conduit à abandonner une approche 100 % LLM au profit d’un moteur rule-based beaucoup plus économique et beaucoup plus rapide en interface surtout.
 
 #### Questions de l’agent
 
@@ -369,31 +477,17 @@ Lorsque le besoin était ambigu ou incomplet, l’agent demandait par exemple :
 
 - quelles collections Firestore utiliser,
 - si la logique devait être temps réel,
-- quelles contraintes responsive appliquer,
-- quelles permissions de sécurité prévoir,
-- si la fonctionnalité concernait les comptes premium.
+- quelles contraintes responsive appliquer
 
 Cela m’a obligé à préciser plusieurs décisions techniques en amont, exactement comme dans un échange avec un chef de projet ou un lead développeur.
 
 Cette étape a réduit les générations incohérentes et amélioré la qualité globale du code produit.
 
-#### Apport dans le projet
-
-Cette approche m’a apporté plusieurs bénéfices :
-
-- meilleure anticipation des impacts techniques,
-- réduction des refactors tardifs,
-- vision plus globale de l’architecture,
-- gain de temps sur la phase de conception,
-- amélioration de ma capacité à formaliser un besoin technique.
-
-Dans le cadre d’un projet de Master 1, cela m’a aussi permis d’utiliser l’IA non seulement comme générateur de code, mais comme véritable outil d’assistance à la conception logicielle.
-
 ### 4.7 Gestion multi-agents et développement simultané avec Cursor
 
 En plus des agents spécialisés, j’ai utilisé les fonctionnalités avancées de gestion d’agents de Cursor pour travailler sur plusieurs sujets en parallèle.
 
-L’objectif était de se rapprocher d’une organisation “multi-équipe” où plusieurs agents IA interviennent chacun sur un périmètre précis, parfois simultanément sur différentes branches Git.
+L’objectif était de se rapprocher d’une organisation “multi-équipe” où plusieurs agents IA interviennent chacun sur un périmètre précis, parfois simultanément sur différentes branches Git et avec des expertises différentes selon le besoin et l'agent choisi.
 
 #### Agents simultanés
 
@@ -415,7 +509,7 @@ Cette séparation se rapproche d’une organisation réelle en équipe de dével
 J’ai également utilisé des branches Git séparées selon les sujets :
 
 - `feature/frontend-`*
-- `feature/backend-*`
+- `feature/backend-`*
 - `feature/ai-*`
 
 Les agents Cursor intervenaient alors sur des branches différentes selon leur rôle.
@@ -443,26 +537,7 @@ Concrètement, je devais :
 
 L’IA ne remplace donc pas la prise de décision technique : elle accélère l’exécution, mais nécessite un pilotage humain constant.
 
-J’ai remarqué que la qualité des résultats dépendait énormément :
-
-- de la précision des prompts,
-- du contexte fourni,
-- de la qualité de la structure du projet,
-- et de la capacité à découper correctement les tâches.
-
-#### Apport personnel
-
-Cette organisation m’a apporté une expérience proche d’un rôle de coordination technique :
-
-- gestion de plusieurs flux de développement,
-- supervision de composants frontend/backend/IA,
-- validation d’architecture,
-- gestion des merges Git,
-- priorisation des tâches.
-
-Cela m’a aussi montré que l’IA est particulièrement efficace lorsqu’elle est utilisée comme un ensemble d’outils spécialisés coordonnés, et non comme un agent unique “généraliste”.
-
-Dans le cadre de ce projet de Master 1, cette approche m’a permis d’augmenter fortement la vitesse de développement tout en gardant une architecture cohérente et maintenable.
+J’ai remarqué que la qualité des résultats dépendait énormément de la précision des prompts en général et du model choisi pour éxécuter la tâche. En effet, n'ayant pas un compte cursor très haut gradé je n'ai pas des tockens infini. Il fallait donc optimiser l'utilisation des tocken et donc choisir des modèles moins puissant pour des tâche classique, plus puissant pour des grosses fonctionnalitées etc... Chaque modèle à ses propres forces et faiblesses aussi. Pour la gestion des fonctionnalitées IA j'utilise des appels API vers Google AI donc j'utilisais des modèles gemini car plus calé sur le sujet. Pour des tâches de code pur je favorisait claude qui est bien supérieur aux autres modèles sur ce domaine. Pour les tâches de rédaction ou encore d'éxécution de commande terminal ChatGPT excel particulièrement dans le domaine (d'après mon expérience et les benchmark), finalement pour les tâches simple j'utilisais composer 2 modèle de cursor qui est à moindre coût et assez bon dans tous les domaines.
 
 ---
 
@@ -535,31 +610,14 @@ Détaillée dans `presentation/README.md` et `backend/LANCE_BACKEND.md`.
 
 ---
 
-## 7. Sécurité
-
-- Toutes les routes API (sauf `/health`) exigent `Authorization: Bearer <Firebase ID token>`.
-- Firestore : écriture `garments`/`outfits` réservée au propriétaire ; lecture posts pour tout utilisateur connecté ; likes sans modifier le reste du document.
-- Storage : règles à configurer côté console (non versionnées dans le dépôt - à documenter en soutenance).
-
 ---
 
-## 8. Limites et évolutions
+## 7. Limites et évolutions
 
-- Finaliser **Google Play Billing** pour les offres 1 € et 5 €.
-- Implémenter les **comptes Créateur** et le mixage feed sponsorisé (1/5–1/10).
+- Finaliser **Google Play Billing** pour les offres 1 € et 5 € et pour le compte créator.
+- Finaliser le compte créateur puis démarcher des marques.
 - iOS release, Cloud Functions reset minuit, purge compte, tests E2E.
-- Affiner `_score()` à partir des swipes (feedback implicite).
-
----
-
-## 9. Références
-
-- [Flutter Documentation](https://docs.flutter.dev/)
-- [FastAPI](https://fastapi.tiangolo.com/)
-- [Firebase](https://firebase.google.com/docs)
-- [Google AI Gemini API](https://ai.google.dev/)
-- [Open-Meteo](https://open-meteo.com/)
-- [Riverpod](https://riverpod.dev/)
+- Affiner la partie de création de outfits via IA pour offir vraiment un plus à l'app.
 
 ---
 

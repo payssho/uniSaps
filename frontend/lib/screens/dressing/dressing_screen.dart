@@ -80,6 +80,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
   Widget build(BuildContext context) {
     final uid = ref.watch(authServiceProvider).uid;
     final garmentsAsync = ref.watch(garmentsProvider(uid));
+    final hasAnyGarment = garmentsAsync.valueOrNull?.isNotEmpty ?? false;
 
     garmentsAsync.whenData(_prefetchGarmentImages);
 
@@ -115,6 +116,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
               Expanded(
                 child: garmentsAsync.when(
                   data: (garments) {
+                    final wardrobeEmpty = garments.isEmpty;
                     final byCat = _selectedCategory.isEmpty
                         ? garments
                         : garments
@@ -134,11 +136,9 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                         subtitle: hasItemsInCat && !noFilters
                             ? 'Essaie un autre nom, marque ou couleur.'
                             : 'Ajoute ton premier vêtement !',
-                        action: !hasItemsInCat && noFilters
-                            ? FilledButton.icon(
+                        action: wardrobeEmpty && noFilters
+                            ? _AnimatedAddGarmentButton(
                                 onPressed: _showAddGarmentSheet,
-                                icon: const Icon(Icons.add, size: 20),
-                                label: const Text('Ajouter un vêtement'),
                               )
                             : null,
                       );
@@ -185,22 +185,30 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
           ),
         ),
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 16, right: 16),
-        child: Semantics(
-          label: 'Ajouter un vêtement',
-          button: true,
-          child: FloatingActionButton.extended(
-          heroTag: 'dressing_fab',
-          tooltip: 'Ajouter un vêtement',
-          backgroundColor: AppColors.accent,
-          elevation: 6,
-          onPressed: () => _showAddGarmentSheet(),
-          icon: const Icon(Icons.add, color: AppColors.white, size: 24),
-          label: const Text('Ajouter', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600)),
-        ),
-        ),
-      ),
+      floatingActionButton: hasAnyGarment
+          ? Padding(
+              padding: const EdgeInsets.only(bottom: 16, right: 16),
+              child: Semantics(
+                label: 'Ajouter un vêtement',
+                button: true,
+                child: FloatingActionButton.extended(
+                  heroTag: 'dressing_fab',
+                  tooltip: 'Ajouter un vêtement',
+                  backgroundColor: AppColors.accent,
+                  elevation: 6,
+                  onPressed: _showAddGarmentSheet,
+                  icon: const Icon(Icons.add, color: AppColors.white, size: 24),
+                  label: const Text(
+                    'Ajouter',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : null,
     );
   }
 
@@ -254,5 +262,41 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
       title: 'Supprimer ce vêtement ?',
       subtitle: '"${garment.name}"',
     );
+  }
+}
+
+class _AnimatedAddGarmentButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _AnimatedAddGarmentButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.accent,
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+        elevation: 4,
+        shadowColor: AppColors.accent.withValues(alpha: 0.45),
+      ),
+      icon: const Icon(Icons.add_rounded, size: 22),
+      label: const Text(
+        'Ajouter un vêtement',
+        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+      ),
+    )
+        .animate(onPlay: (c) => c.repeat(reverse: true))
+        .scale(
+          begin: const Offset(1, 1),
+          end: const Offset(1.05, 1.05),
+          duration: 850.ms,
+          curve: Curves.easeInOut,
+        )
+        .shimmer(
+          delay: 400.ms,
+          duration: 1400.ms,
+          color: AppColors.white.withValues(alpha: 0.35),
+        );
   }
 }

@@ -74,35 +74,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     required bool hasGarments,
     required bool hasOutfits,
   }) {
-    SnackBarAction? action;
-    if (lockedIndex == 1) {
-      action = SnackBarAction(
-        label: 'Dressing',
-        textColor: AppColors.white,
-        onPressed: () => _goToTab(0),
-      );
-    } else if (lockedIndex == 2) {
-      action = SnackBarAction(
-        label: 'Outfits',
-        textColor: AppColors.white,
-        onPressed: () => _goToTab(1),
-      );
-    }
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
         SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.lock_outline, color: AppColors.white, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _lockMessage(lockedIndex, hasGarments, hasOutfits),
-                  style: const TextStyle(fontSize: 13),
-                ),
-              ),
-            ],
+          content: Text(
+            _lockMessage(lockedIndex, hasGarments, hasOutfits),
+            style: const TextStyle(fontSize: 13),
           ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.primary.withValues(alpha: 0.92),
@@ -110,8 +88,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             borderRadius: BorderRadius.circular(14),
           ),
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          duration: const Duration(seconds: 3),
-          action: action,
+          duration: const Duration(seconds: 2),
         ),
       );
   }
@@ -153,7 +130,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (next.outfitsSwipeMode) {
         ref.read(outfitsIsSwipeModeProvider.notifier).state = true;
       }
-      final unlocked = [true, hasGarments, hasOutfits, true];
+      final unlocked = tutorialStep != null
+          ? const [true, true, true, true]
+          : [true, hasGarments, hasOutfits, true];
       if (unlocked[next.tab]) {
         ref.read(selectedTabProvider.notifier).state = next.tab;
       }
@@ -166,7 +145,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Listen to selectedTabProvider for programmatic tab changes (e.g. from InspirationScreen)
     ref.listen(selectedTabProvider, (prev, next) {
       if (next == _currentTab || next < 0 || next >= 4) return;
-      final unlocked = [true, hasGarments, hasOutfits, true];
+      final unlocked = tutorialStep != null
+          ? const [true, true, true, true]
+          : [true, hasGarments, hasOutfits, true];
       if (unlocked[next]) {
         _goToTab(next);
       }
@@ -175,8 +156,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Listen to tutorial changes
     ref.listen(tutorialStepProvider, (prev, next) {
       if (next != null) {
-        final step = next.clamp(0, 3);
-        _goToTab(step <= 2 ? step : 2);
+        _goToTab(next.clamp(0, 3));
       }
     });
 
@@ -195,7 +175,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final requestCount = ref.watch(receivedRequestsCountProvider);
 
     // Tabs: 0=Dressing, 1=Outfits, 2=Inspo, 3=Profil (toujours déverrouillé)
-    final tabUnlocked = [true, hasGarments, hasOutfits, true];
+    final tutorialActive = tutorialStep != null;
+    final tabUnlocked = tutorialActive
+        ? const [true, true, true, true]
+        : [true, hasGarments, hasOutfits, true];
 
     void onTabTap(int index) {
       if (tabUnlocked[index]) {
@@ -279,6 +262,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ],
                   ),
                 ),
+              if (tutorialStep != null && user != null)
+                _TutorialOverlay(
+                  step: tutorialStep,
+                  user: user,
+                  onNext: () => _handleNextTutorialStep(user),
+                  onSkip: () => _finishTutorial(user),
+                ),
             ],
           ),
           bottomNavigationBar: _BottomNavBar(
@@ -287,16 +277,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             profileBadgeCount: requestCount,
             profilePhotoUrl: user?.profilePhotoUrl ?? '',
             profileUsername: user?.username ?? '',
+            profileSpotlight: tutorialStep == 3,
             onTap: onTabTap,
           ),
         ),
-        if (tutorialStep != null && user != null)
-          _TutorialOverlay(
-            step: tutorialStep,
-            user: user,
-            onNext: () => _handleNextTutorialStep(user),
-            onSkip: () => _finishTutorial(user),
-          ),
       ],
     );
   }
@@ -314,17 +298,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Future<void> _finishTutorial(UserModel user) async {
     ref.read(tutorialStepProvider.notifier).state = null;
     final uid = user.uid;
-    if (uid.isEmpty) return;
-    await ref.read(firestoreServiceProvider).updateUser(uid, {
-      'tutorial_seen': {
-        'dressing': true,
-        'creations': true,
-        'outfits': true,
-        'profile': true,
-        'inspiration': true,
-      },
-      'is_new_user': false,
-    });
+    if (uid.isNotEmpty) {
+      await ref.read(firestoreServiceProvider).updateUser(uid, {
+        'tutorial_seen': {
+          'dressing': true,
+          'creations': true,
+          'outfits': true,
+          'profile': true,
+          'inspiration': true,
+        },
+        'is_new_user': false,
+      });
+    }
+    _goToTab(0);
   }
 }
 
@@ -452,6 +438,7 @@ class _BottomNavBar extends StatelessWidget {
   /// Photo de profil pour la bulle du 4ᵉ onglet.
   final String profilePhotoUrl;
   final String profileUsername;
+  final bool profileSpotlight;
   final ValueChanged<int> onTap;
 
   const _BottomNavBar({
@@ -460,6 +447,7 @@ class _BottomNavBar extends StatelessWidget {
     required this.profileBadgeCount,
     required this.profilePhotoUrl,
     required this.profileUsername,
+    this.profileSpotlight = false,
     required this.onTap,
   });
 
@@ -508,6 +496,7 @@ class _BottomNavBar extends StatelessWidget {
                   badgeCount: unlocked[3] ? profileBadgeCount : 0,
                   photoUrl: profilePhotoUrl,
                   username: profileUsername,
+                  tutorialSpotlight: profileSpotlight,
                   onTap: () => onTap(3),
                 ),
               ),
@@ -646,7 +635,7 @@ class _NavItem extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Tutorial overlay (4 steps: Dressing → Outfits → Inspo → Publier)
+// Tutorial overlay (4 steps: Dressing → Outfits → Inspo → Profil)
 // ---------------------------------------------------------------------------
 class _TutorialOverlay extends StatelessWidget {
   final int step;
@@ -664,6 +653,10 @@ class _TutorialOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    const navBarHeight = kBottomNavigationBarHeight;
+    final maxCardHeight =
+        (size.height - bottomInset - navBarHeight - 48).clamp(220.0, 420.0);
 
     final IconData icon;
     final String title;
@@ -682,15 +675,16 @@ class _TutorialOverlay extends StatelessWidget {
         break;
       case 2:
         icon = Icons.explore;
-        title = 'Inspire-toi et publie';
-        description = 'Découvre les looks des autres et partage le tien.';
+        title = 'Inspire-toi';
+        description =
+            'Découvre les looks de la communauté et like ceux qui t\'inspirent.';
         break;
       case 3:
       default:
-        icon = Icons.camera_alt_outlined;
-        title = 'Publie ton look du jour';
+        icon = Icons.person_outline_rounded;
+        title = 'Ton profil';
         description =
-            'Depuis Inspiration, partage la photo de ton outfit du jour (1 par jour).';
+            'Retrouve tes stats, ta galerie, tes amis et les paramètres de ton compte.';
         break;
     }
 
@@ -699,97 +693,114 @@ class _TutorialOverlay extends StatelessWidget {
         type: MaterialType.transparency,
         child: Container(
           color: AppColors.graphite.withValues(alpha: 0.55),
-          child: Center(
-            child: Container(
-              width: size.width * 0.82,
-              constraints: BoxConstraints(maxHeight: size.height * 0.35),
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.graphite.withOpacity(0.25),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 68,
-                    height: 68,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          AppColors.accent.withOpacity(0.15),
-                          AppColors.accentLight.withOpacity(0.1),
-                        ],
-                      ),
-                      shape: BoxShape.circle,
+          child: Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, navBarHeight + bottomInset + 12),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: size.width * 0.88,
+                  maxHeight: maxCardHeight,
+                ),
+                child: Material(
+                  color: AppColors.surface,
+                  elevation: 8,
+                  shadowColor: AppColors.graphite.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(24),
+                  clipBehavior: Clip.antiAlias,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.accent.withValues(alpha: 0.15),
+                                AppColors.accentLight.withValues(alpha: 0.1),
+                              ],
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(icon, color: AppColors.accent, size: 30),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          title,
+                          style: AppTextStyles.heading2.copyWith(fontSize: 18),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          description,
+                          style: AppTextStyles.bodySecondary.copyWith(
+                            fontSize: 14,
+                            height: 1.35,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(4, (i) {
+                            return Container(
+                              width: i == step ? 18 : 8,
+                              height: 6,
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              decoration: BoxDecoration(
+                                color: i == step
+                                    ? AppColors.accent
+                                    : AppColors.textHint.withValues(alpha: 0.25),
+                                borderRadius: BorderRadius.circular(3),
+                              ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextButton(
+                                onPressed: onSkip,
+                                child: const Text(
+                                  'Passer',
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: onNext,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.accent,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Text(
+                                  step >= 3 ? 'Compris !' : 'Suivant',
+                                  style: const TextStyle(
+                                    color: AppColors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    child: Icon(icon, color: AppColors.accent, size: 32),
                   ),
-                  const SizedBox(height: 18),
-                  Text(title,
-                      style: AppTextStyles.heading2.copyWith(fontSize: 19),
-                      textAlign: TextAlign.center),
-                  const SizedBox(height: 6),
-                  Text(description,
-                      style: AppTextStyles.bodySecondary,
-                      textAlign: TextAlign.center),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(3, (i) {
-                      return Container(
-                        width: i == step ? 18 : 8,
-                        height: 6,
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        decoration: BoxDecoration(
-                          color: i == step
-                              ? AppColors.accent
-                              : AppColors.textHint.withOpacity(0.25),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          onPressed: onSkip,
-                          child: const Text('Passer',
-                              style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w500)),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: onNext,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.accent,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: Text(
-                            step == 2 ? 'C\'est parti !' : 'Suivant',
-                            style: const TextStyle(
-                                color: AppColors.white,
-                                fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           ),

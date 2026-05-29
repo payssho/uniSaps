@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../core/constants/app_colors.dart';
 
 /// Bulle photo pour l’onglet Profil (nav utilisateur et créateur).
@@ -11,6 +12,7 @@ class NavProfileBubble extends StatelessWidget {
   final String username;
   final VoidCallback onTap;
   final IconData? fallbackIcon;
+  final bool tutorialSpotlight;
 
   const NavProfileBubble({
     super.key,
@@ -21,6 +23,7 @@ class NavProfileBubble extends StatelessWidget {
     required this.username,
     required this.onTap,
     this.fallbackIcon,
+    this.tutorialSpotlight = false,
   });
 
   static const double _radius = 15;
@@ -29,17 +32,18 @@ class NavProfileBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final borderColor = locked
         ? AppColors.textHint.withValues(alpha: 0.35)
-        : selected
+        : tutorialSpotlight || selected
             ? AppColors.accent
             : AppColors.divider.withValues(alpha: 0.9);
-    final borderWidth = selected ? 2.5 : 1.5;
+    final borderWidth =
+        tutorialSpotlight ? 3.0 : (selected ? 2.5 : 1.5);
     final labelColor = locked
         ? AppColors.textHint.withValues(alpha: 0.35)
-        : selected
+        : tutorialSpotlight || selected
             ? AppColors.accent
             : AppColors.textHint;
 
-    return Semantics(
+    Widget bubble = Semantics(
       label: 'Profil',
       button: true,
       selected: selected,
@@ -72,11 +76,13 @@ class NavProfileBubble extends StatelessWidget {
                           color: borderColor,
                           width: borderWidth,
                         ),
-                        boxShadow: selected
+                        boxShadow: tutorialSpotlight || selected
                             ? [
                                 BoxShadow(
-                                  color: AppColors.accent.withValues(alpha: 0.22),
-                                  blurRadius: 8,
+                                  color: AppColors.accent.withValues(
+                                    alpha: tutorialSpotlight ? 0.45 : 0.22,
+                                  ),
+                                  blurRadius: tutorialSpotlight ? 14 : 8,
                                   offset: const Offset(0, 2),
                                 ),
                               ]
@@ -172,7 +178,9 @@ class NavProfileBubble extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 10,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: tutorialSpotlight || selected
+                      ? FontWeight.w700
+                      : FontWeight.w500,
                   color: labelColor,
                 ),
               ),
@@ -181,5 +189,18 @@ class NavProfileBubble extends StatelessWidget {
         ),
       ),
     );
+
+    if (tutorialSpotlight) {
+      bubble = bubble
+          .animate(onPlay: (c) => c.repeat(reverse: true))
+          .scale(
+            begin: const Offset(1, 1),
+            end: const Offset(1.06, 1.06),
+            duration: 900.ms,
+            curve: Curves.easeInOut,
+          );
+    }
+
+    return bubble;
   }
 }

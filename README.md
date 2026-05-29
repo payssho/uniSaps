@@ -30,29 +30,33 @@ Voir aussi [frontend/README.md](frontend/README.md) pour le détail du client Fl
 
 ## Stack technique
 
-| Composant | Technologie |
-|-----------|-------------|
-| Frontend mobile | Flutter 3.24+ / Dart 3.5+ |
-| State management | Riverpod |
-| Routing | go_router |
-| Backend API | FastAPI (Python 3.11+), hébergement Vercel |
-| Auth | Firebase Authentication (email / mot de passe) |
-| Base de données | Cloud Firestore |
-| Stockage images | Firebase Storage |
-| Météo | Open-Meteo + géolocalisation (`geolocator`) côté client |
-| IA | Suggestions d’outfits et analyse de vêtements (backend) |
-| Suppression background | rembg (upload API, surtout en local) |
+
+| Composant              | Technologie                                             |
+| ---------------------- | ------------------------------------------------------- |
+| Frontend mobile        | Flutter 3.24+ / Dart 3.5+                               |
+| State management       | Riverpod                                                |
+| Routing                | go_router                                               |
+| Backend API            | FastAPI (Python 3.11+), hébergement Vercel              |
+| Auth                   | Firebase Authentication (email / mot de passe)          |
+| Base de données        | Cloud Firestore                                         |
+| Stockage images        | Firebase Storage                                        |
+| Météo                  | Open-Meteo + géolocalisation (`geolocator`) côté client |
+| IA                     | Suggestions d’outfits et analyse de vêtements (backend) |
+| Suppression background | rembg (upload API, surtout en local)                    |
+
 
 ## Fonctionnalités
 
 L’app est organisée en **4 onglets** (avec déverrouillage progressif) :
 
-| Onglet | Description |
-|--------|-------------|
-| **Dressing** | Catalogue de vêtements par catégorie, photos multiples, fiche détail, ajout avec analyse IA optionnelle |
-| **Outfits** | Outfit du jour : mode bibliothèque ou swipe ; tri selon saison et météo ; photo du jour ; streak |
-| **Inspiration** | Feed **Amis** / **Explorer**, likes, publication (1 post / jour), profils et demandes d’amis |
-| **Profil** | Stats, galerie, streak, amis, paramètres, compte **UniSaps+** (premium) |
+
+| Onglet          | Description                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------------- |
+| **Dressing**    | Catalogue de vêtements par catégorie, photos multiples, fiche détail, ajout avec analyse IA optionnelle |
+| **Outfits**     | Outfit du jour : mode bibliothèque ou swipe ; tri selon saison et météo ; photo du jour ; streak        |
+| **Inspiration** | Feed **Amis** / **Explorer**, likes, publication (1 post / jour), profils et demandes d’amis            |
+| **Profil**      | Stats, galerie, streak, amis, paramètres, compte **UniSaps+** (premium)                                 |
+
 
 ### Dressing
 
@@ -64,7 +68,7 @@ L’app est organisée en **4 onglets** (avec déverrouillage progressif) :
 
 - Composition par zones corporelles (tête, haut, veste, bas, chaussures, accessoire)
 - Tags **saison** et **météo** sur chaque outfit pour le tri du jour
-- **Météo du jour** : prévisions Open-Meteo, fiche détail horaire ([`weather_detail_sheet`](frontend/lib/screens/weather/weather_detail_sheet.dart))
+- **Météo du jour** : prévisions Open-Meteo, fiche détail horaire (`[weather_detail_sheet](frontend/lib/screens/weather/weather_detail_sheet.dart)`)
 - **UniSaps+** : suggestions IA d’outfits dans la bibliothèque (`POST /api/v1/ai/suggest`)
 
 ### Inspiration
@@ -82,7 +86,7 @@ L’app est organisée en **4 onglets** (avec déverrouillage progressif) :
 - `account_type: creator` — shell dédié **Vêtements · Posts · Profil** (`/creator/home`)
 - Collections sous `users/{uid}/collections` ; chaque vêtement créateur a un `collection_id`
 - Posts publicitaires dans la collection globale `posts` (`post_kind: sponsored`, `is_active`)
-- Feed **Explorer** : mixage client (1 sponsorisé / 7 organiques par défaut, [`feed_mix_config.dart`](frontend/lib/core/constants/feed_mix_config.dart))
+- Feed **Explorer** : mixage client (1 sponsorisé / 7 organiques par défaut, `[feed_mix_config.dart](frontend/lib/core/constants/feed_mix_config.dart)`)
 - Paiement MVP : code test `CREATOR2026` ou activation stub ; API `POST /api/v1/creator/activate-subscription`
 - Index Firestore composite optionnel sur `posts` (`is_sponsored`, `is_active`, `created_at`) si requêtes serveur filtrées
 
@@ -93,10 +97,10 @@ L’app est organisée en **4 onglets** (avec déverrouillage progressif) :
 
 ## Météo
 
-- Service client : [`frontend/lib/services/weather_service.dart`](frontend/lib/services/weather_service.dart)
+- Service client : `[frontend/lib/services/weather_service.dart](frontend/lib/services/weather_service.dart)`
 - Source : [Open-Meteo](https://open-meteo.com/) (sans clé API)
 - Permission de localisation ; si refusée, fallback **Paris**
-- Contexte de tri des outfits : [`today_outfit_context.dart`](frontend/lib/models/today_outfit_context.dart) + [`weather_catalog.dart`](frontend/lib/core/constants/weather_catalog.dart)
+- Contexte de tri des outfits : `[today_outfit_context.dart](frontend/lib/models/today_outfit_context.dart)` + `[weather_catalog.dart](frontend/lib/core/constants/weather_catalog.dart)`
 
 ## Installation
 
@@ -166,7 +170,7 @@ flutter build apk --debug
 
 ## Tests et qualité
 
-Les tests unitaires tournent dans CI sur chaque push / PR ([`.github/workflows/flutter_tests.yml`](.github/workflows/flutter_tests.yml)).
+Les tests unitaires tournent dans CI sur chaque push / PR (`[.github/workflows/flutter_tests.yml](.github/workflows/flutter_tests.yml)`).
 
 ```bash
 cd frontend
@@ -236,35 +240,34 @@ posts/{user_id}/{filename}
 
 Tous les endpoints (sauf `/health`) exigent `Authorization: Bearer <Firebase ID token>`.
 
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| POST | `/api/v1/users` | Créer un utilisateur |
-| GET | `/api/v1/users/me` | Profil utilisateur |
-| PATCH | `/api/v1/users/me` | Modifier le profil |
-| POST | `/api/v1/users/me/daily-check` | Reset quotidien / streak |
-| GET | `/api/v1/garments` | Lister les vêtements |
-| POST | `/api/v1/garments` | Ajouter un vêtement |
-| GET/PATCH/DELETE | `/api/v1/garments/{id}` | CRUD vêtement |
-| GET | `/api/v1/outfits` | Lister les outfits |
-| POST | `/api/v1/outfits` | Créer un outfit |
-| GET/PATCH/DELETE | `/api/v1/outfits/{id}` | CRUD outfit |
-| GET | `/api/v1/posts` | Feed des posts |
-| GET | `/api/v1/posts/mine` | Posts de l’utilisateur courant |
-| POST | `/api/v1/posts` | Publier un post |
-| POST | `/api/v1/posts/{id}/toggle-like` | Like / unlike |
-| DELETE | `/api/v1/posts/{id}` | Supprimer un post |
-| POST | `/api/v1/friends/request` | Envoyer une demande d’ami |
-| POST | `/api/v1/friends/request/{id}/accept` | Accepter |
-| POST | `/api/v1/friends/request/{id}/reject` | Refuser |
-| GET | `/api/v1/friends/requests/received` | Demandes reçues |
-| GET | `/api/v1/friends/requests/sent` | Demandes envoyées |
-| GET | `/api/v1/friends/search` | Recherche d’utilisateurs |
-| DELETE | `/api/v1/friends/{friend_uid}` | Retirer un ami |
-| POST | `/api/v1/ai/suggest` | Suggestions d’outfits (IA) |
-| POST | `/api/v1/ai/analyze-garment` | Analyse d’image vêtement (IA) |
-| POST | `/api/v1/upload/image` | Upload image (+ option `remove_bg`) |
-| GET | `/api/v1/ai/health` | Santé du service IA |
 
-## Branches en cours
+| Méthode          | Endpoint                              | Description                         |
+| ---------------- | ------------------------------------- | ----------------------------------- |
+| POST             | `/api/v1/users`                       | Créer un utilisateur                |
+| GET              | `/api/v1/users/me`                    | Profil utilisateur                  |
+| PATCH            | `/api/v1/users/me`                    | Modifier le profil                  |
+| POST             | `/api/v1/users/me/daily-check`        | Reset quotidien / streak            |
+| GET              | `/api/v1/garments`                    | Lister les vêtements                |
+| POST             | `/api/v1/garments`                    | Ajouter un vêtement                 |
+| GET/PATCH/DELETE | `/api/v1/garments/{id}`               | CRUD vêtement                       |
+| GET              | `/api/v1/outfits`                     | Lister les outfits                  |
+| POST             | `/api/v1/outfits`                     | Créer un outfit                     |
+| GET/PATCH/DELETE | `/api/v1/outfits/{id}`                | CRUD outfit                         |
+| GET              | `/api/v1/posts`                       | Feed des posts                      |
+| GET              | `/api/v1/posts/mine`                  | Posts de l’utilisateur courant      |
+| POST             | `/api/v1/posts`                       | Publier un post                     |
+| POST             | `/api/v1/posts/{id}/toggle-like`      | Like / unlike                       |
+| DELETE           | `/api/v1/posts/{id}`                  | Supprimer un post                   |
+| POST             | `/api/v1/friends/request`             | Envoyer une demande d’ami           |
+| POST             | `/api/v1/friends/request/{id}/accept` | Accepter                            |
+| POST             | `/api/v1/friends/request/{id}/reject` | Refuser                             |
+| GET              | `/api/v1/friends/requests/received`   | Demandes reçues                     |
+| GET              | `/api/v1/friends/requests/sent`       | Demandes envoyées                   |
+| GET              | `/api/v1/friends/search`              | Recherche d’utilisateurs            |
+| DELETE           | `/api/v1/friends/{friend_uid}`        | Retirer un ami                      |
+| POST             | `/api/v1/ai/suggest`                  | Suggestions d’outfits (IA)          |
+| POST             | `/api/v1/ai/analyze-garment`          | Analyse d’image vêtement (IA)       |
+| POST             | `/api/v1/upload/image`                | Upload image (+ option `remove_bg`) |
+| GET              | `/api/v1/ai/health`                   | Santé du service IA                 |
 
-- **`feat--android-home-widgets`** : widgets d’écran d’accueil Android (outfit du jour, choix rapide, inspi) - non mergé sur `main` à ce jour.
+
