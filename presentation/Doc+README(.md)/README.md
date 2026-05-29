@@ -3,8 +3,7 @@
 **Auteur :** Marius Durand - Master 1 CNAM, parcours TRIED (Traitement de l'information et exploitation des données)  
 **Module :** Programmation orientée objet - Projet personnel (coefficient 3)  
 **Enseignant :** Adrien ESCOURROU  
-**Date limite de rendu :** 13/05/2026 à 23h59  
-**Dépôt :** [URL Git complète à compléter avant envoi du mail]
+**Dépôt :** https://github.com/payssho/uniSaps
 
 ---
 
@@ -226,52 +225,55 @@ Si Firebase est configuré (`google-services.json` + `flutterfire configure`), l
 
 ## Exemples d'utilisation
 
-Scénarios pensés pour guider mes captures vidéo. Je peux filmer une vidéo longue ou **8 courtes** (une par scénario).
+Scénarios pensés pour guider mes captures vidéo. Une vidéo courte par scénario (fichiers locaux dans [`Scénarios/`](Scénarios/)).
 
 ### Scénario 1 — Première ouverture
 
 **Objectif :** montrer le parcours d'un nouvel utilisateur de A à Z jusqu'au dressing vide.  
-**Parcours :** lancer l'app → inscription (email / mot de passe) → onboarding (photo + pseudo) → arrivée sur le dressing vide avec le tutoriel.
+**Parcours :** lancer l'app → inscription (email / mot de passe) → onboarding (photo + pseudo) → arrivée sur le dressing vide avec le tutoriel.  
+**Vidéo :** [Scénario1.mp4](Scénarios/Scénario1.mp4)
 
-### Scénario 2 — Remplir le dressing
+### Scénario 2 — Remplir le dressing (avec UniSaps+ (IA))
 
 **Objectif :** montrer l'ajout de vêtements manuellement et la navigation dans le catalogue.  
-**Parcours :** FAB Ajouter → photos (caméra ou galerie) → nom, marque, couleurs, catégorie → validation → grille remplie → filtres par catégorie / marque / couleur.
+**Parcours :** FAB Ajouter → photos (caméra ou galerie) → nom, marque, couleurs, catégorie → validation → grille remplie → filtres par catégorie / marque / couleur.  
+**Vidéo :** [Scénario2.mp4](Scénarios/Scénario2.mp4)
 
-### Scénario 3 — Dressing avec UniSaps+ (IA)
+### Scénario 3 — Création d’un outfit du jour adapté à la météo
 
-**Objectif :** montrer la valeur premium à l'ajout d'un vêtement.  
-**Parcours :** activer UniSaps+ (code depuis Compte) → ajouter un vêtement → activer analyse IA → champs préremplis → activer suppression de fond → pièce propre dans la grille.
+**Objectif :** montrer la création d’une tenue, le système de sélection en mode Swipe et l’adaptation aux conditions météo.
 
-### Scénario 4 — Créer et valider un outfit du jour
+**Parcours :** onglet Outfits (déverrouillé) → FAB « Ajouter un fit » → assistant de création par zones (`top`, `bottom`, `shoes`…) → enregistrement de la tenue → consultation des informations météo (température, pluie, vent, timeline 24 h) → retour sur Outfits → tri des tenues adaptées aux conditions météo → passage en mode Swipe → swipe des propositions → validation de l’outfit du jour → augmentation du streak utilisateur.
 
-**Objectif :** montrer la création de tenue et le choix du jour en mode Swipe.  
-**Parcours :** onglet Outfits (déverrouillé) → FAB « Ajouter un fit » → assistant par zones → enregistrer → basculer en mode Swipe → swiper → valider outfit du jour → streak qui augmente.
+**Vidéo :** [Scénario3.mp4](Scénarios/Scénario3.mp4)
 
-### Scénario 5 — Météo et tenues adaptées
-
-**Objectif :** relier météo et choix de tenue.  
-**Parcours :** chip météo sur Outfits → feuille détail (timeline 24 h, pluie, vent) → retour → tenues triées en tête selon conditions → choix d'un outfit adapté.
-
-### Scénario 6 — Suggestions IA (UniSaps+)
+### Scénario 4 — Suggestions IA (UniSaps+)
 
 **Objectif :** montrer la génération automatique de tenues.  
-**Parcours :** FAB étincelles → choix de style (ex. Professionnel) ou prompt libre → affichage de 3 suggestions → enregistrer une suggestion → la définir comme outfit du jour.
+**Parcours :** FAB étincelles → choix de style (ex. Professionnel) ou prompt libre → affichage de 3 suggestions → enregistrer une suggestion → la définir comme outfit du jour.  
+**Vidéo :** [Scénario4.mp4](Scénarios/Scénario4.mp4)
 
-### Scénario 7 — Publier sur Inspiration
+### Scénario 5 — Publier sur Inspiration
 
 **Objectif :** montrer le lien outfit du jour → publication sociale.  
-**Parcours :** onglet Inspiration → bouton Publier → aperçu photo + légende + pièces référencées → publication → post visible dans feed Amis → double-tap pour liker un post.
+**Parcours :** onglet Inspiration → bouton Publier → aperçu photo + légende + pièces référencées → publication → post visible dans feed Amis → double-tap pour liker un post.  
+**Vidéo :** [Scénario5.mp4](Scénarios/Scénario5.mp4)
 
-### Scénario 8 — Social (amis et profils)
+### Scénario 6 — Social (amis et profils)
 
 **Objectif :** montrer la dimension réseau.  
-**Parcours :** icône recherche → trouver un utilisateur → envoyer demande d'ami → accepter depuis Profil / Amis → consulter profil ami (posts, dressing) → activer compte privé.
+**Parcours :** icône recherche → trouver un utilisateur → envoyer demande d'ami → accepter depuis Profil / Amis → consulter profil ami (posts, dressing) → activer compte privé.  
+**Vidéo :** [Scénario6.mp4](Scénarios/Scénario6.mp4)
 
-### Scénario 9 — Parcours Créateur (marque)
+### Scénario 7 — Parcours Créateur (marque)
 
-**Objectif :** montrer l'espace marque de bout en bout.  
+**Objectif :** montrer l'espace marque de bout en bout.
+
 **Parcours :** inscription onglet Créateur → checkout 29 $/mois (code activation) → onboarding marque (logo, nom, bio) → ajouter collection + pièces catalogue → créer post pub → vérifier badge Sponsorisé dans Explorer (compte utilisateur).
+
+**Vidéos :**
+- **Création du compte créateur** (inscription, checkout, onboarding marque) : [Scénario7.mp4](Scénarios/Scénario7.mp4)
+- **Interface espace marque** (catalogue, collections, posts pub, profil créateur) : [Scénario7bis.mp4](Scénarios/Scénario7bis.mp4)
 
 ---
 

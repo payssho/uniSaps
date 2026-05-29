@@ -39,3 +39,9 @@ uploads/
 
 # Legacy
 _legacy/
+
+# Rendu / médias volumineux (hors GitHub — livrables locaux ou Drive)
+*.zip
+presentation/Scénarios/
+presentation/Scénarios.zip
+Marius-Durand-*.zip
