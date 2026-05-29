@@ -278,21 +278,23 @@ final list = await api.suggestOutfits(
 
 Développement assisté par **trois agents spécialisés** invocables dans le chat Cursor via `@` :
 
-| Mention `@` | Fichier prompt | Mission | Livrables principaux |
-| ----------- | -------------- | ------- | -------------------- |
-| **unisaps-backend** | `.cursor/agents/unisaps-backend.md` | FastAPI métier (hors `/ai/*`), JWT, upload, creator, `firestore.rules`, Vercel | `backend/app/` (sauf `ai.py`, `ai_service.py`), `firestore.rules` |
-| **unisaps-ia** | `.cursor/agents/unisaps-ia.md` | Gemini vision, scoring rule-based, routes `/ai/*`, garde UniSaps+, intégration client IA | `ai_service.py`, `ai.py`, `api_service.dart`, `add_garment_sheet.dart`, `outfits_screen.dart` |
-| **unisaps-frontend** | `.cursor/agents/unisaps-frontend.md` | UI/UX mobile, thème, écrans, widgets, Riverpod, Firestore client, 320 px | `frontend/lib/`, `core/theme`, widgets |
 
-Index, matrice de périmètres et exemples : [`.cursor/AGENTS.md`](../.cursor/AGENTS.md).
+| Mention `@`          | Fichier prompt                       | Mission                                                                                  | Livrables principaux                                                                          |
+| -------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **unisaps-backend**  | `.cursor/agents/unisaps-backend.md`  | FastAPI métier (hors `/ai/*`), JWT, upload, creator, `firestore.rules`, Vercel           | `backend/app/` (sauf `ai.py`, `ai_service.py`), `firestore.rules`                             |
+| **unisaps-ia**       | `.cursor/agents/unisaps-ia.md`       | Gemini vision, scoring rule-based, routes `/ai/*`, garde UniSaps+, intégration client IA | `ai_service.py`, `ai.py`, `api_service.dart`, `add_garment_sheet.dart`, `outfits_screen.dart` |
+| **unisaps-frontend** | `.cursor/agents/unisaps-frontend.md` | UI/UX mobile, thème, écrans, widgets, Riverpod, Firestore client, 320 px                 | `frontend/lib/`, `core/theme`, widgets                                                        |
+
+
+Index, matrice de périmètres et exemples : `[.cursor/AGENTS.md](../.cursor/AGENTS.md)`.
 
 **Séparation IA / backend** : `@unisaps-backend` ne modifie pas `ai_service.py` ni `api/routes/ai.py` ; `@unisaps-ia` porte toute la chaîne vision + suggestions + premium. Le client Flutter utilise Firestore pour le CRUD ; l’API sert surtout à l’IA et à l’upload.
 
 #### Comment choisir son agent
 
-- Endpoint REST, règles Firestore, Storage, déploiement Vercel → **`@unisaps-backend`**
-- Analyse photo, `_score()`, suggestions, Gemini, dialog premium → **`@unisaps-ia`**
-- Écran, widget, navigation, design, feed, streak, swipe → **`@unisaps-frontend`**
+- Endpoint REST, règles Firestore, Storage, déploiement Vercel → `**@unisaps-backend`**
+- Analyse photo, `_score()`, suggestions, Gemini, dialog premium → `**@unisaps-ia**`
+- Écran, widget, navigation, design, feed, streak, swipe → `**@unisaps-frontend**`
 - Tâche mixte : commencer par l’agent dominant, puis enchaîner un second `@` si nécessaire
 
 #### Exemples de prompts par agent
@@ -317,6 +319,150 @@ La création de tenue passe par le **FAB « Ajouter un fit »** sur l’onglet O
 ```
 
 Découper ensuite par agent : frontend pour la navigation et les écrans, IA pour Gemini et le scoring, backend pour les routes métier et `firestore.rules`.
+
+### 4.6 Construction de plan IA (fonction “Plan” de Cursor)
+
+En complément des agents spécialisés, j’ai utilisé la fonctionnalité **“Plan” de Cursor** avant certaines implémentations importantes. Cette fonctionnalité permet de demander à l’IA non pas directement du code, mais une **structuration du besoin**, une analyse des contraintes et un découpage du travail en étapes cohérentes.
+
+L’objectif était d’éviter un développement “au fil de l’eau” où l’IA génère rapidement du code sans vision globale de l’architecture.
+
+#### Structuration du besoin
+
+Avant d’implémenter une fonctionnalité complexe (exemple : système d’outfit du jour, feed social ou comptes créateur), je formulais le besoin dans Cursor en décrivant :
+
+- les fonctionnalités attendues,
+- les contraintes techniques,
+- les données Firestore concernées,
+- les impacts UI / backend,
+- les règles métier.
+
+La fonctionnalité “Plan” produisait alors :
+
+- un découpage en sous-tâches,
+- une proposition d’architecture,
+- les fichiers potentiellement impactés,
+- les risques techniques,
+- l’ordre recommandé des développements.
+
+Cela m’a permis d’avoir une approche plus proche d’une démarche d’ingénierie logicielle classique plutôt qu’un simple usage de génération automatique de code.
+
+#### Discussion sur le besoin
+
+J’ai également utilisé l’IA comme outil de discussion technique.  
+Avant certaines implémentations, je confrontais plusieurs approches possibles :
+
+- logique côté client ou backend,
+- Firestore direct ou API intermédiaire,
+- IA générative ou moteur déterministe,
+- données calculées dynamiquement ou stockées.
+
+Le mode “Plan” servait alors de support de réflexion.  
+L’intérêt principal n’était pas uniquement la réponse finale, mais le raisonnement proposé par l’IA : avantages, limites, impacts sur les coûts, la maintenabilité ou les performances.
+
+Par exemple, pour les suggestions d’outfits, cette phase de réflexion m’a conduit à abandonner une approche 100 % LLM au profit d’un moteur rule-based beaucoup plus économique et explicable devant un jury.
+
+#### Questions de l’agent
+
+Un point particulièrement utile a été la capacité de Cursor à poser des questions avant génération.
+
+Lorsque le besoin était ambigu ou incomplet, l’agent demandait par exemple :
+
+- quelles collections Firestore utiliser,
+- si la logique devait être temps réel,
+- quelles contraintes responsive appliquer,
+- quelles permissions de sécurité prévoir,
+- si la fonctionnalité concernait les comptes premium.
+
+Cela m’a obligé à préciser plusieurs décisions techniques en amont, exactement comme dans un échange avec un chef de projet ou un lead développeur.
+
+Cette étape a réduit les générations incohérentes et amélioré la qualité globale du code produit.
+
+#### Apport dans le projet
+
+Cette approche m’a apporté plusieurs bénéfices :
+
+- meilleure anticipation des impacts techniques,
+- réduction des refactors tardifs,
+- vision plus globale de l’architecture,
+- gain de temps sur la phase de conception,
+- amélioration de ma capacité à formaliser un besoin technique.
+
+Dans le cadre d’un projet de Master 1, cela m’a aussi permis d’utiliser l’IA non seulement comme générateur de code, mais comme véritable outil d’assistance à la conception logicielle.
+
+### 4.7 Gestion multi-agents et développement simultané avec Cursor
+
+En plus des agents spécialisés, j’ai utilisé les fonctionnalités avancées de gestion d’agents de Cursor pour travailler sur plusieurs sujets en parallèle.
+
+L’objectif était de se rapprocher d’une organisation “multi-équipe” où plusieurs agents IA interviennent chacun sur un périmètre précis, parfois simultanément sur différentes branches Git.
+
+#### Agents simultanés
+
+Cursor permet de lancer plusieurs conversations d’agents spécialisées en parallèle.
+
+Dans mon workflow, cela signifiait par exemple :
+
+- un agent travaillant sur l’UI Flutter,
+- un autre sur les routes FastAPI,
+- un troisième sur la logique IA et le scoring.
+
+Chaque agent conservait son contexte technique et ses contraintes.  
+Cela évitait de mélanger plusieurs responsabilités dans une seule conversation IA, ce qui améliore fortement la cohérence des réponses.
+
+Cette séparation se rapproche d’une organisation réelle en équipe de développement avec plusieurs profils spécialisés.
+
+#### Travail multi-branche
+
+J’ai également utilisé des branches Git séparées selon les sujets :
+
+- `feature/frontend-`*
+- `feature/backend-*`
+- `feature/ai-*`
+
+Les agents Cursor intervenaient alors sur des branches différentes selon leur rôle.
+
+Cette méthode apportait plusieurs avantages :
+
+- isolation des modifications,
+- réduction des conflits,
+- possibilité de tester une fonctionnalité sans casser le reste du projet,
+- comparaison plus simple entre plusieurs implémentations proposées par l’IA.
+
+Cela m’a aussi permis de conserver un historique Git plus propre et plus professionnel.
+
+#### Management des agents
+
+Une partie importante du travail consistait à “manager” les agents IA.
+
+Concrètement, je devais :
+
+- définir précisément le périmètre de chaque agent,
+- rédiger des consignes claires,
+- vérifier les modifications proposées,
+- arbitrer entre plusieurs solutions,
+- corriger les incohérences entre agents.
+
+L’IA ne remplace donc pas la prise de décision technique : elle accélère l’exécution, mais nécessite un pilotage humain constant.
+
+J’ai remarqué que la qualité des résultats dépendait énormément :
+
+- de la précision des prompts,
+- du contexte fourni,
+- de la qualité de la structure du projet,
+- et de la capacité à découper correctement les tâches.
+
+#### Apport personnel
+
+Cette organisation m’a apporté une expérience proche d’un rôle de coordination technique :
+
+- gestion de plusieurs flux de développement,
+- supervision de composants frontend/backend/IA,
+- validation d’architecture,
+- gestion des merges Git,
+- priorisation des tâches.
+
+Cela m’a aussi montré que l’IA est particulièrement efficace lorsqu’elle est utilisée comme un ensemble d’outils spécialisés coordonnés, et non comme un agent unique “généraliste”.
+
+Dans le cadre de ce projet de Master 1, cette approche m’a permis d’augmenter fortement la vitesse de développement tout en gardant une architecture cohérente et maintenable.
 
 ---
 
