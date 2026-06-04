@@ -17,6 +17,7 @@ import '../../widgets/post_detail_sheet.dart';
 import '../../widgets/stat_row.dart';
 import '../../widgets/language_locale_button.dart';
 import '../inspiration/user_profile_screen.dart';
+import '../../l10n/l10n_context.dart';
 
 class CreatorProfileScreen extends ConsumerWidget {
   const CreatorProfileScreen({super.key});
@@ -24,12 +25,13 @@ class CreatorProfileScreen extends ConsumerWidget {
   void _copyShopUrl(BuildContext context, String url) {
     Clipboard.setData(ClipboardData(text: url));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Lien boutique copié')),
+      SnackBar(content: Text(context.l10n.creatorShopLinkCopied)),
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     final userAsync = ref.watch(currentUserProvider);
 
     return Scaffold(
@@ -37,7 +39,7 @@ class CreatorProfileScreen extends ConsumerWidget {
       body: userAsync.when(
         data: (user) {
           if (user == null) {
-            return const Center(child: Text('Non connecté'));
+            return Center(child: Text(l10n.authNotConnected));
           }
           final posts =
               ref.watch(creatorPostsProvider(user.uid)).valueOrNull ?? [];
@@ -54,7 +56,7 @@ class CreatorProfileScreen extends ConsumerWidget {
                 _CreatorProfileHero(user: user, stats: stats, garmentCount: garments.length),
                 if (topPosts.isNotEmpty) ...[
                   const SizedBox(height: 20),
-                  const Text('Performance', style: AppTextStyles.heading3),
+                  Text(l10n.creatorStatPerformance, style: AppTextStyles.heading3),
                   const SizedBox(height: 10),
                   ...topPosts.map(
                     (p) => _TopPostRow(
@@ -69,7 +71,7 @@ class CreatorProfileScreen extends ConsumerWidget {
                   ),
                 ],
                 const SizedBox(height: 20),
-                const Text('Espace marque', style: AppTextStyles.heading3),
+                Text(l10n.creatorLandingTitle, style: AppTextStyles.heading3),
                 const SizedBox(height: 10),
                 _CreatorSubscriptionTile(user: user),
                 if (user.creatorShopUrl.isNotEmpty) ...[
@@ -107,7 +109,7 @@ class CreatorProfileScreen extends ConsumerWidget {
                     if (context.mounted) context.go('/login');
                   },
                   icon: const Icon(Icons.logout_rounded, size: 18),
-                  label: const Text('Déconnexion'),
+                  label: Text(l10n.authSignOut),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
@@ -120,7 +122,7 @@ class CreatorProfileScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Erreur : $e')),
+        error: (e, _) => Center(child: Text(l10n.commonErrorDetail(e))),
       ),
     );
   }
@@ -139,6 +141,7 @@ class _CreatorProfileHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final avatar = user.displayAvatarUrl;
     final active = user.isCreatorSubscriptionActive;
     final expires = user.creatorSubscriptionExpiresAt;
@@ -185,7 +188,7 @@ class _CreatorProfileHero extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(displayName, style: AppTextStyles.heading2),
                 if (user.username.isNotEmpty)
-                  Text('@${user.username}', style: AppTextStyles.bodySecondary),
+                  Text(l10n.userAtUsername(user.username), style: AppTextStyles.bodySecondary),
                 const SizedBox(height: 8),
                 Container(
                   padding:
@@ -256,7 +259,7 @@ class _CreatorProfileHero extends StatelessWidget {
                   child: Row(
                     children: [
                       StatCell(
-                        label: 'Posts',
+                        label: l10n.creatorTabPosts,
                         value: '${stats.totalPosts}',
                         icon: Icons.campaign_outlined,
                         color: AppColors.primary,
@@ -264,7 +267,7 @@ class _CreatorProfileHero extends StatelessWidget {
                       ),
                       statRowDivider(),
                       StatCell(
-                        label: 'Actifs',
+                        label: l10n.creatorStatActive,
                         value: '${stats.activePosts}',
                         icon: Icons.visibility_outlined,
                         color: AppColors.accent,
@@ -272,7 +275,7 @@ class _CreatorProfileHero extends StatelessWidget {
                       ),
                       statRowDivider(),
                       StatCell(
-                        label: 'Vues',
+                        label: l10n.creatorStatViews,
                         value: _fmtCount(stats.totalViews),
                         icon: Icons.remove_red_eye_outlined,
                         color: AppColors.secondary,
@@ -280,7 +283,7 @@ class _CreatorProfileHero extends StatelessWidget {
                       ),
                       statRowDivider(),
                       StatCell(
-                        label: 'Likes',
+                        label: l10n.creatorStatLikes,
                         value: _fmtCount(stats.totalLikes),
                         icon: Icons.favorite_border,
                         color: AppColors.error,

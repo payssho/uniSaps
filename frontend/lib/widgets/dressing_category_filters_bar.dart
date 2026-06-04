@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../models/garment_model.dart';
 import '../services/color_service.dart';
+import '../l10n/l10n_context.dart';
 
 /// Barre de filtres nom / marque / couleur (Dressing + profil ami).
 class DressingCategoryFiltersBar extends StatelessWidget {
@@ -26,6 +27,7 @@ class DressingCategoryFiltersBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final brands = garmentsForOptions
         .map((g) => g.brand.trim())
         .where((b) => b.isNotEmpty)
@@ -77,7 +79,7 @@ class DressingCategoryFiltersBar extends StatelessWidget {
                     isDense: true,
                     contentPadding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                    hintText: 'Nom',
+                    hintText: l10n.dressingNameHint,
                     hintStyle: hintStyle,
                     prefixIcon: Icon(
                       Icons.search_rounded,
@@ -106,9 +108,9 @@ class DressingCategoryFiltersBar extends StatelessWidget {
                     iconSize: 18,
                     isExpanded: true,
                     items: [
-                      const DropdownMenuItem(
+                      DropdownMenuItem(
                         value: '',
-                        child: Text('— Marque', style: denseStyle),
+                        child: Text(l10n.dressingFilterBrand, style: denseStyle),
                       ),
                       ...brands.map(
                         (b) => DropdownMenuItem(
@@ -135,9 +137,9 @@ class DressingCategoryFiltersBar extends StatelessWidget {
                     iconSize: 18,
                     isExpanded: true,
                     items: [
-                      const DropdownMenuItem(
+                      DropdownMenuItem(
                         value: '',
-                        child: Text('— Couleur', style: denseStyle),
+                        child: Text(l10n.dressingFilterColor, style: denseStyle),
                       ),
                       ...colorList.map(
                         (c) {

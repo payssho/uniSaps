@@ -13,6 +13,7 @@ import '../../widgets/app_empty_state.dart';
 import '../../widgets/post_card.dart';
 import '../../widgets/post_detail_sheet.dart';
 import 'creator_post_create_screen.dart';
+import '../../l10n/l10n_context.dart';
 
 class CreatorPostsScreen extends ConsumerStatefulWidget {
   const CreatorPostsScreen({super.key});
@@ -51,6 +52,7 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final uid = ref.watch(authServiceProvider).uid;
     final postsAsync = ref.watch(creatorPostsProvider(uid));
     final collectionsAsync = ref.watch(collectionsProvider(uid));
@@ -62,15 +64,15 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreate,
         icon: const Icon(Icons.add),
-        label: const Text('Post pub'),
+        label: Text(l10n.creatorPostPubLabel),
       ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text('Posts publicitaires', style: AppTextStyles.heading2),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Text(l10n.creatorPostsTitle, style: AppTextStyles.heading2),
             ),
             collectionsAsync.when(
               data: (cols) {
@@ -82,7 +84,7 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     children: [
                       FilterChip(
-                        label: const Text('Toutes'),
+                        label: Text(l10n.creatorPostsFilterAll),
                         selected: _filterCollectionId == null,
                         onSelected: (_) => setState(() => _filterCollectionId = null),
                       ),
@@ -175,13 +177,13 @@ class _CreatorPostsScreenState extends ConsumerState<CreatorPostsScreen> {
                       );
                     },
                     loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, _) => Center(child: Text('$e')),
+                    error: (e, _) => Center(child: Text(l10n.commonErrorDetail(e))),
                   );
                 },
                 loading: () => const Center(
                   child: CircularProgressIndicator(color: AppColors.accent),
                 ),
-                error: (e, _) => Center(child: Text('Erreur : $e')),
+                error: (e, _) => Center(child: Text(l10n.commonErrorDetail(e))),
               ),
             ),
           ],

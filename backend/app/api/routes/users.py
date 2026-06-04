@@ -1,5 +1,6 @@
 from datetime import datetime, date
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
+from app.core.errors import api_error
 from ...core.security import get_current_uid
 from ...core.firebase import get_firestore_client
 from ...models.user import UserCreate, UserUpdate, UserOut
@@ -38,7 +39,7 @@ async def get_me(uid: str = Depends(get_current_uid)):
     db = get_firestore_client()
     doc = db.collection("users").document(uid).get()
     if not doc.exists:
-        raise HTTPException(404, "Utilisateur introuvable.")
+        raise api_error(404, "user_not_found")
     return UserOut(**doc.to_dict())
 
 
@@ -60,7 +61,7 @@ async def daily_check(uid: str = Depends(get_current_uid)):
     ref = db.collection("users").document(uid)
     snap = ref.get()
     if not snap.exists:
-        raise HTTPException(404, "Utilisateur introuvable.")
+        raise api_error(404, "user_not_found")
     data = snap.to_dict()
     today = date.today().isoformat()
     last_date = data.get("daily_outfit_date", "")

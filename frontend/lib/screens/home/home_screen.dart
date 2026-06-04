@@ -17,6 +17,8 @@ import '../outfits/outfits_screen.dart';
 import '../dressing/dressing_screen.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/nav_profile_bubble.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_context.dart';
 
 final selectedTabProvider = StateProvider<int>((ref) => 0);
 
@@ -36,12 +38,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   int _currentTab = 0;
 
   /// Message affiché quand l’utilisateur tente d’ouvrir un onglet verrouillé.
-  String _lockMessage(int index, bool hasGarments, bool hasOutfits) {
+  String _lockMessage(AppLocalizations l10n, int index) {
     switch (index) {
       case 1:
-        return 'Ajoute un vêtement à ton dressing pour débloquer cette section';
+        return l10n.lockTabAddGarment;
       case 2:
-        return 'Crée ton premier outfit pour débloquer cette section';
+        return l10n.lockTabCreateOutfit;
       default:
         return '';
     }
@@ -69,17 +71,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  void _showLockedTabSnackBar(
-    int lockedIndex, {
-    required bool hasGarments,
-    required bool hasOutfits,
-  }) {
+  void _showLockedTabSnackBar(int lockedIndex) {
+    final l10n = context.l10n;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
         SnackBar(
           content: Text(
-            _lockMessage(lockedIndex, hasGarments, hasOutfits),
+            _lockMessage(l10n, lockedIndex),
             style: const TextStyle(fontSize: 13),
           ),
           behavior: SnackBarBehavior.floating,
@@ -184,11 +183,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (tabUnlocked[index]) {
         _goToTab(index);
       } else {
-        _showLockedTabSnackBar(
-          index,
-          hasGarments: hasGarments,
-          hasOutfits: hasOutfits,
-        );
+        _showLockedTabSnackBar(index);
       }
     }
 
@@ -214,11 +209,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         );
                       }
                     });
-                    _showLockedTabSnackBar(
-                      index,
-                      hasGarments: hasGarments,
-                      hasOutfits: hasOutfits,
-                    );
+                    _showLockedTabSnackBar(index);
                   } else {
                     setState(() => _currentTab = index);
                     ref.read(selectedTabProvider.notifier).state = index;
@@ -451,14 +442,14 @@ class _BottomNavBar extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _tabs = [
-    (Icons.checkroom_outlined, Icons.checkroom, 'Dressing'),
-    (Icons.style_outlined, Icons.style, 'Outfits'),
-    (Icons.explore_outlined, Icons.explore, 'Inspiration'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final tabs = [
+      (Icons.checkroom_outlined, Icons.checkroom, l10n.navDressing),
+      (Icons.style_outlined, Icons.style, l10n.navOutfits),
+      (Icons.explore_outlined, Icons.explore, l10n.navInspiration),
+    ];
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -475,8 +466,8 @@ class _BottomNavBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Row(
             children: [
-              ...List.generate(_tabs.length, (i) {
-                final (icon, activeIcon, label) = _tabs[i];
+              ...List.generate(tabs.length, (i) {
+                final (icon, activeIcon, label) = tabs[i];
                 return Expanded(
                   child: _NavItem(
                     icon: icon,
@@ -652,6 +643,7 @@ class _TutorialOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final size = MediaQuery.of(context).size;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     const navBarHeight = kBottomNavigationBarHeight;
@@ -665,26 +657,24 @@ class _TutorialOverlay extends StatelessWidget {
     switch (step) {
       case 0:
         icon = Icons.checkroom;
-        title = 'Commence par ton dressing';
-        description = 'Ajoute un vêtement pour remplir ton dressing.';
+        title = l10n.tutorialDressingTitle;
+        description = l10n.tutorialDressingDesc;
         break;
       case 1:
         icon = Icons.style;
-        title = 'Crée ton premier outfit';
-        description = 'Assemble tes vêtements en un look complet.';
+        title = l10n.tutorialOutfitsTitle;
+        description = l10n.tutorialOutfitsDesc;
         break;
       case 2:
         icon = Icons.explore;
-        title = 'Inspire-toi';
-        description =
-            'Découvre les looks de la communauté et like ceux qui t\'inspirent.';
+        title = l10n.tutorialInspoTitle;
+        description = l10n.tutorialInspoDiscoverDesc;
         break;
       case 3:
       default:
         icon = Icons.person_outline_rounded;
-        title = 'Ton profil';
-        description =
-            'Retrouve tes stats, ta galerie, tes amis et les paramètres de ton compte.';
+        title = l10n.tutorialProfileTitle;
+        description = l10n.tutorialProfileDesc;
         break;
     }
 
@@ -765,9 +755,9 @@ class _TutorialOverlay extends StatelessWidget {
                             Expanded(
                               child: TextButton(
                                 onPressed: onSkip,
-                                child: const Text(
-                                  'Passer',
-                                  style: TextStyle(
+                                child: Text(
+                                  l10n.commonSkip,
+                                  style: const TextStyle(
                                     color: AppColors.textSecondary,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -787,7 +777,7 @@ class _TutorialOverlay extends StatelessWidget {
                                   ),
                                 ),
                                 child: Text(
-                                  step >= 3 ? 'Compris !' : 'Suivant',
+                                  step >= 3 ? l10n.tutorialGotIt : l10n.commonNext,
                                   style: const TextStyle(
                                     color: AppColors.white,
                                     fontWeight: FontWeight.w600,

@@ -26,6 +26,7 @@ import '../../widgets/storage_aware_cached_image.dart';
 import '../../core/constants/categories.dart';
 import '../../utils/dressing_garment_filters.dart';
 import '../../utils/post_garment_image_prefetch.dart';
+import '../../l10n/l10n_context.dart';
 
 class UserProfileScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -192,7 +193,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                 children: [
                   const Icon(Icons.check_circle, color: AppColors.white, size: 18),
                   const SizedBox(width: 10),
-                  Text('Demande envoyée à @${_targetUser!.username} !',
+                  Text(context.l10n.inspoFriendRequestSentExclaim(_targetUser!.username),
                       style: const TextStyle(fontWeight: FontWeight.w600)),
                 ],
               ),
@@ -209,7 +210,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       setState(() => _actionLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur : $e'),
+          content: Text(context.l10n.commonErrorDetail(e)),
           backgroundColor: AppColors.error,
         ),
       );
@@ -256,7 +257,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-        body: const Center(child: Text('Utilisateur introuvable', style: AppTextStyles.bodySecondary)),
+        body: Center(child: Text(context.l10n.userProfileNotFound, style: AppTextStyles.bodySecondary)),
       );
     }
 
@@ -390,12 +391,12 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
                     color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.lock_outline, size: 14, color: AppColors.textHint),
-                      SizedBox(width: 4),
-                      Text('Privé', style: TextStyle(fontSize: 12, color: AppColors.textHint)),
+                      const Icon(Icons.lock_outline, size: 14, color: AppColors.textHint),
+                      const SizedBox(width: 4),
+                      Text(context.l10n.userProfilePrivate, style: const TextStyle(fontSize: 12, color: AppColors.textHint)),
                     ],
                   ),
                 ),
@@ -409,7 +410,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
             style: AppTextStyles.heading3,
           ),
           if (user.username.isNotEmpty)
-            Text('@${user.username}', style: AppTextStyles.bodySecondary),
+            Text(context.l10n.userAtUsername(user.username), style: AppTextStyles.bodySecondary),
           if (user.isCreator) ...[
             const SizedBox(height: 8),
             Container(
@@ -456,25 +457,25 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: user.isCreator
                 ? [
-                    _StatBadge(value: '${_posts.length}', label: 'Posts'),
+                    _StatBadge(value: '${_posts.length}', label: context.l10n.creatorTabPosts),
                     const SizedBox(width: 28),
                     _StatBadge(
                       value: '${_collections.length}',
-                      label: 'Collections',
+                      label: context.l10n.userProfileCollections,
                     ),
                     const SizedBox(width: 28),
-                    _StatBadge(value: '${_garments.length}', label: 'Pièces'),
+                    _StatBadge(value: '${_garments.length}', label: context.l10n.signupCreatorCatalogPieces),
                   ]
                 : [
               _StatBadge(
                 value: '${user.friends.length}',
-                label: 'Amis',
+                label: context.l10n.inspoFeedFriends,
                 onTap: () => _openProfileFriendsList(user, isMe),
               ),
               const SizedBox(width: 28),
-              _StatBadge(value: '${user.currentStreak}', label: 'Streak'),
+              _StatBadge(value: '${user.currentStreak}', label: context.l10n.statStreak),
               const SizedBox(width: 28),
-              _StatBadge(value: '${user.bestStreak}', label: 'Best'),
+              _StatBadge(value: '${user.bestStreak}', label: context.l10n.statBest),
             ],
           ),
         ],
@@ -496,7 +497,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = OutlinedButton.icon(
           onPressed: () => _showRemoveDialog(),
           icon: const Icon(Icons.check, size: 18, color: AppColors.success),
-          label: const Text('Ami', style: TextStyle(color: AppColors.success)),
+          label: Text(context.l10n.userProfileFriend, style: TextStyle(color: AppColors.success)),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: AppColors.success),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -507,7 +508,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = OutlinedButton.icon(
           onPressed: null,
           icon: const Icon(Icons.hourglass_empty, size: 18),
-          label: const Text('Demande envoyee'),
+          label: Text(context.l10n.userProfileRequestSent),
           style: OutlinedButton.styleFrom(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -517,7 +518,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = ElevatedButton.icon(
           onPressed: _acceptRequest,
           icon: const Icon(Icons.person_add, size: 18, color: AppColors.white),
-          label: const Text('Accepter', style: TextStyle(color: AppColors.white)),
+          label: Text(context.l10n.userProfileAccept, style: TextStyle(color: AppColors.white)),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.success,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -528,7 +529,7 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
         button = ElevatedButton.icon(
           onPressed: _sendRequest,
           icon: const Icon(Icons.person_add_outlined, size: 18, color: AppColors.white),
-          label: const Text('Ajouter en ami', style: TextStyle(color: AppColors.white)),
+          label: Text(context.l10n.userProfileAddFriend, style: TextStyle(color: AppColors.white)),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.accent,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -548,21 +549,21 @@ class _UserProfileScreenState extends ConsumerState<UserProfileScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Retirer cet ami ?'),
+        title: Text(context.l10n.profileRemoveFriendTitle),
         content: Text(
           'Retirer @${_targetUser!.username} de ta liste d\'amis ?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
+            child: Text(context.l10n.commonCancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _removeFriend();
             },
-            child: const Text('Retirer', style: TextStyle(color: AppColors.error)),
+            child: Text(context.l10n.profileRemoveFriendAction, style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -811,7 +812,7 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Text('Impossible de charger la liste : ${snap.error}', style: AppTextStyles.bodySecondary),
+                        child: Text(context.l10n.userProfileFriendsLoadFailed(snap.error!), style: AppTextStyles.bodySecondary),
                       ),
                     );
                   }
@@ -839,9 +840,9 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                       Widget? trailing;
                       if (widget.showAddActions && myUser != null && !isSelf) {
                         if (isFriend) {
-                          trailing = const Text('Ami', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.success));
+                          trailing = Text(context.l10n.userProfileFriend, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.success));
                         } else if (pendingSent != null) {
-                          trailing = Text('En attente', style: AppTextStyles.caption.copyWith(color: AppColors.textHint));
+                          trailing = Text(context.l10n.userProfilePending, style: AppTextStyles.caption.copyWith(color: AppColors.textHint));
                         } else if (pendingRecv != null) {
                           trailing = busy
                               ? const SizedBox(
@@ -854,7 +855,7 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                                 )
                               : TextButton(
                                   onPressed: () => _acceptRequest(pendingRecv),
-                                  child: const Text('Accepter'),
+                                  child: Text(context.l10n.userProfileAccept),
                                 );
                         } else {
                           trailing = busy
@@ -868,7 +869,7 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                                 )
                               : TextButton(
                                   onPressed: () => _sendRequest(u),
-                                  child: const Text('Ajouter'),
+                                  child: Text(context.l10n.creationAddZone),
                                 );
                         }
                       }
@@ -879,7 +880,7 @@ class _ProfileFriendsSheetState extends ConsumerState<_ProfileFriendsSheet> {
                         bordered: false,
                         onTap: () => _goToProfile(u),
                         trailing: isSelf
-                            ? Text('Toi',
+                            ? Text(context.l10n.inspoChipYou,
                                 style: AppTextStyles.caption
                                     .copyWith(color: AppColors.textHint))
                             : trailing,
@@ -1108,7 +1109,7 @@ class _CreatorPublicCollectionCard extends StatelessWidget {
                             if (recentLabel.isNotEmpty)
                               _CollectionMetaChip(
                                 icon: Icons.schedule_rounded,
-                                label: 'Ajoutée le $recentLabel',
+                                label: context.l10n.userProfileAddedOn(recentLabel),
                               ),
                             if (dateLine.isNotEmpty)
                               _CollectionMetaChip(
@@ -1408,7 +1409,7 @@ class _DressingTabState extends State<_DressingTab> {
               color: AppColors.textHint.withOpacity(0.3),
             ),
             const SizedBox(height: 12),
-            const Text('Dressing vide', style: AppTextStyles.bodySecondary),
+            Text(context.l10n.userProfileEmptyDressing, style: AppTextStyles.bodySecondary),
           ],
         ),
       );

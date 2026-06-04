@@ -16,6 +16,8 @@ import '../widgets/platform_image.dart';
 import '../widgets/brand_selector.dart';
 import '../widgets/multi_color_selector.dart';
 import '../widgets/premium_upgrade_dialog.dart';
+import '../l10n/api_error_l10n.dart';
+import '../services/api_service.dart';
 import '../l10n/l10n_context.dart';
 import '../l10n/domain_l10n.dart';
 import '../widgets/storage_aware_cached_image.dart';
@@ -531,7 +533,11 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           final testResponse =
               await http.get(Uri.parse(healthUrl)).timeout(const Duration(seconds: 15));
           if (testResponse.statusCode != 200) {
-            throw Exception('Backend non disponible');
+            setState(() {
+              _loading = false;
+              _error = context.l10n.garmentServerUnreachable;
+            });
+            return;
           }
         } catch (e) {
           setState(() {
@@ -609,36 +615,46 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
           }
         } else {
           final errorState = ref.read(garmentNotifierProvider);
-          String errorMessage = context.l10n.garmentSaveError;
+          final l = context.l10n;
+          String errorMessage = l.garmentSaveError;
           if (errorState.hasError) {
-            final error = errorState.error.toString();
-            if (error.contains('Timeout')) {
-              errorMessage = context.l10n.garmentUploadTimeout;
-            } else if (error.contains('connexion') ||
-                error.contains('serveur') ||
-                error.contains('localhost')) {
-              errorMessage = context.l10n.garmentServerContactFailed;
-            } else if (error.contains('FileNotFoundError') || error.contains('serviceAccountKey')) {
-              errorMessage = context.l10n.garmentFirebaseConfigMissing;
-            } else if (error.contains('compte de service Firebase') ||
-                error.contains('Storage Admin') ||
-                error.contains('Storage Object Creator') ||
-                (error.contains('Firebase Storage') &&
-                    (error.contains('droits') ||
-                        error.contains('écriture')))) {
-              // Le backend renvoie souvent du 503 avec « 403 » dans le détail GCS : ce n’est pas une session expirée.
-              errorMessage = context.l10n.garmentStoragePermissions;
-            } else if (error.contains('Token Firebase invalide') ||
-                error.contains('401')) {
-              errorMessage = context.l10n.garmentSessionExpired;
-            } else if (error.contains('403') || error.contains('Forbidden')) {
-              errorMessage = context.l10n.garmentAccessDenied;
+            final err = errorState.error;
+            if (err is ApiException && err.errorCode != null) {
+              errorMessage = apiErrorL10n(l, err.errorCode!);
             } else {
-              errorMessage = error
-                  .replaceAll('Exception: ', '')
-                  .replaceAll('Error: ', '')
-                  .replaceAll('FileNotFoundError: ', '')
-                  .replaceAll('[Errno 2] ', '');
+              final code = err != null ? parseApiErrorCode(err) : null;
+              if (code != null) {
+                errorMessage = apiErrorL10n(l, code);
+              } else {
+                final error = err.toString();
+                if (error.contains('Timeout')) {
+                  errorMessage = l.garmentUploadTimeout;
+                } else if (error.contains('FileNotFoundError') ||
+                    error.contains('serviceAccountKey')) {
+                  errorMessage = l.garmentFirebaseConfigMissing;
+                } else if (error.contains('compte de service Firebase') ||
+                    error.contains('Storage Admin') ||
+                    error.contains('Storage Object Creator') ||
+                    (error.contains('Firebase Storage') &&
+                        (error.contains('droits') ||
+                            error.contains('écriture')))) {
+                  errorMessage = l.garmentStoragePermissions;
+                } else if (error.contains('invalid_firebase_token') ||
+                    error.contains('401')) {
+                  errorMessage = l.garmentSessionExpired;
+                } else if (error.contains('403') || error.contains('Forbidden')) {
+                  errorMessage = l.garmentAccessDenied;
+                } else if (error.contains('garmentImageNamesMismatch')) {
+                  errorMessage = l.garmentImageNamesMismatch;
+                } else if (error.contains('garmentNewImageNamesMismatch')) {
+                  errorMessage = l.garmentNewImageNamesMismatch;
+                } else if (error.contains('connection_error') ||
+                    error.contains('connexion') ||
+                    error.contains('serveur') ||
+                    error.contains('localhost')) {
+                  errorMessage = l.garmentServerContactFailed;
+                }
+              }
             }
           }
           setState(() => _error = errorMessage);
@@ -648,13 +664,24 @@ class _AddGarmentSheetState extends ConsumerState<AddGarmentSheet> {
       if (mounted) {
         setState(() {
           _loading = false;
-          final errorStr = e.toString();
-          if (errorStr.contains('localhost') ||
-              errorStr.contains('connection') ||
-              errorStr.contains('connexion')) {
-            _error = context.l10n.garmentServerUnreachable;
+          final l = context.l10n;
+          if (e is ApiException && e.errorCode != null) {
+            _error = apiErrorL10n(l, e.errorCode!);
           } else {
-            _error = errorStr.replaceAll('Exception: ', '').replaceAll('Error: ', '');
+            final code = parseApiErrorCode(e);
+            if (code != null) {
+              _error = apiErrorL10n(l, code);
+            } else if (e.toString().contains('upload_timeout') ||
+                e.toString().contains('Timeout')) {
+              _error = l.garmentUploadTimeout;
+            } else if (e.toString().contains('connection_error') ||
+                e.toString().contains('localhost') ||
+                e.toString().contains('connection') ||
+                e.toString().contains('connexion')) {
+              _error = l.garmentServerUnreachable;
+            } else {
+              _error = l.garmentSaveError;
+            }
           }
         });
       }

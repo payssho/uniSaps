@@ -8,6 +8,8 @@ import '../models/friend_request_model.dart';
 import '../models/collection_model.dart';
 import '../data/mock_explore_feed_posts.dart';
 
+const _kPostInvalidId = 'postInvalidId';
+
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -267,7 +269,7 @@ class FirestoreService {
   }
 
   Future<void> deletePost(String postId) async {
-    if (postId.isEmpty) throw Exception('ID du post invalide.');
+    if (postId.isEmpty) throw Exception(_kPostInvalidId);
     if (isDevMockExplorePostId(postId)) return;
     await _postCol.doc(postId).delete();
   }

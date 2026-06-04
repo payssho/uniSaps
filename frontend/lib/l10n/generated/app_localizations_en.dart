@@ -9,6 +9,67 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get apiActionNotAllowed => 'Action not allowed.';
+
+  @override
+  String get apiAnalyzeError => 'AI analysis error.';
+
+  @override
+  String get apiCannotAddSelf => 'You can\'t add yourself.';
+
+  @override
+  String get apiConnectionError => 'Could not reach the server.';
+
+  @override
+  String get apiEmptyFile => 'Empty file.';
+
+  @override
+  String get apiFriendRequestAlreadyHandled => 'Request already handled.';
+
+  @override
+  String get apiFriendRequestAlreadySent => 'Request already sent.';
+
+  @override
+  String get apiFriendRequestNotFound => 'Request not found.';
+
+  @override
+  String get apiGarmentNotFound => 'Garment not found.';
+
+  @override
+  String get apiInvalidActivationCode => 'Invalid activation code.';
+
+  @override
+  String get apiInvalidFirebaseToken =>
+      'Session expired. Please sign in again.';
+
+  @override
+  String get apiInvalidServerResponse => 'Invalid server response.';
+
+  @override
+  String get apiNotAuthenticated => 'User not authenticated.';
+
+  @override
+  String get apiOutfitNotFound => 'Outfit not found.';
+
+  @override
+  String get apiPostNotFound => 'Post not found.';
+
+  @override
+  String get apiSuggestError => 'API error.';
+
+  @override
+  String get apiUnknownError => 'Something went wrong.';
+
+  @override
+  String get apiUploadError => 'Upload error.';
+
+  @override
+  String get apiUploadTimeout => 'Image processing is taking too long.';
+
+  @override
+  String get apiUserNotFound => 'User not found.';
+
+  @override
   String get appTitle => 'uniSaps';
 
   @override
@@ -62,6 +123,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authLoginTitle => 'Sign in';
+
+  @override
+  String get authNoUserConnected => 'No user signed in.';
 
   @override
   String get authNotConnected => 'Not signed in';
@@ -184,6 +248,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get colorDarkGrey => 'Dark grey';
 
   @override
+  String get colorFilterTypeHint => 'Type to filter';
+
+  @override
   String get colorGreen => 'Green';
 
   @override
@@ -193,13 +260,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get colorLightGrey => 'Light grey';
 
   @override
+  String get colorMulticolor => 'Multicolor';
+
+  @override
   String get colorOrange => 'Orange';
 
   @override
   String get colorPink => 'Pink';
-
-  @override
-  String get colorMulticolor => 'Multicolor';
 
   @override
   String get colorPurple => 'Purple';
@@ -283,6 +350,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonSkip => 'Skip';
+
+  @override
+  String get commonValidate => 'Validate';
 
   @override
   String get commonYes => 'Yes';
@@ -464,6 +534,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorPersonalAccount => 'Personal uniSaps @ (optional)';
 
   @override
+  String get creatorPostCaptionLabel => 'Caption (optional)';
+
+  @override
   String get creatorPostCollectionLabel => 'Collection';
 
   @override
@@ -493,6 +566,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorPostsEmpty => 'No posts yet.';
 
   @override
+  String get creatorPostsFilterAll => 'All';
+
+  @override
   String get creatorPostsNoCollection => 'No collection';
 
   @override
@@ -514,6 +590,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorShopUrl => 'Shop link (URL)';
 
   @override
+  String get creatorStatActive => 'Active';
+
+  @override
+  String get creatorStatLikes => 'Likes';
+
+  @override
+  String get creatorStatPerformance => 'Performance';
+
+  @override
+  String get creatorStatViews => 'Views';
+
+  @override
   String get creatorSubscriptionActive => 'Active subscription';
 
   @override
@@ -525,39 +613,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorSubscriptionInactive => 'Inactive subscription';
 
   @override
+  String get creatorSubscriptionMonthlyPrice => '29 \$ / month';
+
+  @override
   String creatorSubscriptionRate(Object price) {
     return 'Price: $price';
   }
-
-  @override
-  String get creatorSubscriptionMonthlyPrice => '\$29 / month';
-
-  @override
-  String get creatorCollectionNoPieces => 'No items';
-
-  @override
-  String get creatorCollectionOnePiece => '1 item';
-
-  @override
-  String creatorCollectionPieceCount(int count) {
-    return '$count items';
-  }
-
-  @override
-  String get creatorCollectionEmptyTitle => 'Empty collection';
-
-  @override
-  String get creatorCollectionEmptyHint =>
-      'Add items to stock this collection.';
-
-  @override
-  String get creatorPostDefaultCaption => 'Sponsored post';
-
-  @override
-  String get creatorPostStatusActive => 'Active';
-
-  @override
-  String get creatorPostStatusInactive => 'Inactive';
 
   @override
   String get creatorTabGarments => 'Garments';
@@ -702,7 +763,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get garmentBrandHint => 'Brand';
 
   @override
-  String get garmentBrandNoneFound => 'No brand found. You can type freely.';
+  String get garmentBrandNoneFound => 'No brand found';
 
   @override
   String get garmentBrandTapAgainToFilter => 'Tap again to filter…';
@@ -772,16 +833,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get garmentColorHint => 'Color';
 
   @override
-  String get garmentColorMaxReached => 'Maximum of 3 colors';
+  String get garmentColorMaxReached => 'Maximum of 3 colors reached';
 
   @override
-  String get garmentColorNoneFound => 'No color found. You can type freely.';
+  String get garmentColorNoneFound => 'No color found';
 
   @override
-  String get garmentColorSearchHint => 'Search or pick a color (max 3)';
+  String get garmentColorSearchHint => 'Search for a color…';
 
   @override
-  String get garmentColorTapAgainToFilter => 'Tap again to filter…';
+  String get garmentColorTapAgainToFilter => 'Tap again to filter';
 
   @override
   String get garmentColorsLabel => 'Colors';
@@ -799,6 +860,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get garmentDateStartHint => 'Start (YYYY-MM-DD)';
+
+  @override
+  String get garmentDeleteCollectionAction => 'Delete collection';
 
   @override
   String get garmentDeleteCollectionTitle => 'Delete this collection?';
@@ -820,6 +884,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get garmentGalleryMultiple => 'Gallery — multiple photos';
 
   @override
+  String get garmentImageNamesMismatch => 'Image / filename count mismatch.';
+
+  @override
   String get garmentImageNotRecognizedBody =>
       'AI did not detect clothing, shoes, or an accessory in this photo. Choose a clearer image showing the item you want to add.';
 
@@ -834,6 +901,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get garmentNameRequired => 'Name is required.';
+
+  @override
+  String get garmentNewImageNamesMismatch =>
+      'New image / filename count mismatch.';
 
   @override
   String get garmentNoItemsInCategory => 'No garments in this category';
@@ -984,6 +1055,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get inspoOutfitNoLongerExists =>
       'This outfit no longer exists. Choose today\'s outfit.';
+
+  @override
+  String get inspoPieceFallback => 'Piece';
 
   @override
   String get inspoPostDeleteFailed => 'Could not delete the post.';
@@ -1169,6 +1243,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outfitsRestart => 'Start over';
 
   @override
+  String outfitsStreakCount(Object count) {
+    return '$count';
+  }
+
+  @override
   String get outfitsStreakDaysSuffix => ' days';
 
   @override
@@ -1179,6 +1258,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get outfitsStreakLine => 'Streak: ';
+
+  @override
+  String get outfitsStreakPlusOne => '+1';
 
   @override
   String get outfitsSwipeEmpty =>
@@ -1197,10 +1279,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outfitsWeatherTodayPrefix => 'Today\'s weather, ';
 
   @override
+  String outfitsWeatherTodaySemantics(Object temp) {
+    return 'Today\'s weather, $temp°';
+  }
+
+  @override
   String get pickerCamera => 'Camera';
 
   @override
   String get pickerGallery => 'Gallery';
+
+  @override
+  String get postInvalidId => 'Invalid post ID.';
 
   @override
   String get premiumDialogActivateHint =>
@@ -1316,6 +1406,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileLogOut => 'Log out';
+
+  @override
+  String get profileMemberLabel => 'Member';
 
   @override
   String get profileMemberSince => 'Member since';
@@ -1604,7 +1697,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tutorialDressingTitle => 'Start with your wardrobe';
 
   @override
+  String get tutorialGotIt => 'Got it!';
+
+  @override
   String get tutorialInspoDesc => 'Discover others\' looks and share yours.';
+
+  @override
+  String get tutorialInspoDiscoverDesc =>
+      'Discover community looks and like the ones that inspire you.';
 
   @override
   String get tutorialInspoTitle => 'Get inspired and share';
@@ -1617,6 +1717,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tutorialOutfitsTitle => 'Create your first outfit';
 
   @override
+  String get tutorialProfileDesc =>
+      'Find your stats, gallery, friends, and account settings.';
+
+  @override
+  String get tutorialProfileTitle => 'Your profile';
+
+  @override
   String get tutorialPublishDesc =>
       'From Inspiration, share your outfit-of-the-day photo (one per day).';
 
@@ -1624,10 +1731,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tutorialPublishTitle => 'Share today\'s look';
 
   @override
+  String userAtUsername(Object username) {
+    return '@$username';
+  }
+
+  @override
   String get userProfileAccept => 'Accept';
 
   @override
   String get userProfileAddFriend => 'Add friend';
+
+  @override
+  String userProfileAddedOn(Object date) {
+    return 'Added on $date';
+  }
+
+  @override
+  String get userProfileCollections => 'Collections';
 
   @override
   String get userProfileEmptyDressing => 'Empty wardrobe';
@@ -1702,6 +1822,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weatherFetchFailed => 'Could not fetch weather.';
 
   @override
+  String get weatherFog => 'Fog';
+
+  @override
+  String weatherHourNow(Object hour) {
+    return '${hour}h';
+  }
+
+  @override
   String get weatherHourly => 'Hour by hour';
 
   @override
@@ -1742,6 +1870,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get weatherPartlyClear => 'Partly clear';
+
+  @override
   String get weatherRain => 'Rain';
 
   @override
@@ -1768,27 +1899,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weatherSunset => 'Sunset';
 
   @override
-  String get weatherWind => 'Wind';
-
-  @override
-  String get weatherDrizzle => 'Drizzle';
-
-  @override
-  String get weatherFog => 'Fog';
-
-  @override
-  String weatherHourNow(String hour) {
-    return '$hour';
-  }
-
-  @override
-  String get weatherPartlyClear => 'Partly clear';
-
-  @override
-  String weatherTodayMinMax(String range) {
+  String weatherTodayMinMax(Object range) {
     return 'Today $range';
   }
 
   @override
-  String get weatherVariable => 'Mixed conditions';
+  String get weatherVariable => 'Variable';
+
+  @override
+  String get weatherWind => 'Wind';
 }

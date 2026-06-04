@@ -266,12 +266,12 @@ class OutfitDetailSheet extends StatelessWidget {
                       ),
                     const SizedBox(height: 20),
                     if (pieces.isEmpty)
-                      const Text(
-                        'Aucune pièce liée',
+                      Text(
+                        context.l10n.userProfileNoLinkedPieces,
                         style: AppTextStyles.bodySecondary,
                       )
                     else ...[
-                      const Text('Pièces', style: AppTextStyles.heading3),
+                      Text(context.l10n.signupCreatorCatalogPieces, style: AppTextStyles.heading3),
                       const SizedBox(height: 10),
                       ...pieces.map((entry) {
                         final g = entry.garment;

@@ -1,5 +1,6 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
+from app.core.errors import api_error
 from ...core.security import get_current_uid
 from ...core.firebase import get_firestore_client
 from ...models.garment import GarmentCreate, GarmentUpdate, GarmentOut
@@ -59,7 +60,7 @@ async def create_garment(body: GarmentCreate, uid: str = Depends(get_current_uid
 async def get_garment(garment_id: str, uid: str = Depends(get_current_uid)):
     doc = _col(uid).document(garment_id).get()
     if not doc.exists:
-        raise HTTPException(404, "Vetement introuvable.")
+        raise api_error(404, "garment_not_found")
     doc_data = doc.to_dict()
     # Migration depuis l'ancien format
     if "colors" not in doc_data and "color" in doc_data:
@@ -78,7 +79,7 @@ async def get_garment(garment_id: str, uid: str = Depends(get_current_uid)):
 async def update_garment(garment_id: str, body: GarmentUpdate, uid: str = Depends(get_current_uid)):
     ref = _col(uid).document(garment_id)
     if not ref.get().exists:
-        raise HTTPException(404, "Vetement introuvable.")
+        raise api_error(404, "garment_not_found")
     update_data = body.model_dump(exclude_none=True)
     # Si color est fourni mais pas colors, convertir
     if "color" in update_data and "colors" not in update_data:
@@ -105,5 +106,5 @@ async def update_garment(garment_id: str, body: GarmentUpdate, uid: str = Depend
 async def delete_garment(garment_id: str, uid: str = Depends(get_current_uid)):
     ref = _col(uid).document(garment_id)
     if not ref.get().exists:
-        raise HTTPException(404, "Vetement introuvable.")
+        raise api_error(404, "garment_not_found")
     ref.delete()

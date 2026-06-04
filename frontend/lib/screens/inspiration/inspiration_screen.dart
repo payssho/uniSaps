@@ -31,6 +31,7 @@ import '../../widgets/storage_aware_cached_image.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/post_garment_refs.dart';
 import '../../widgets/post_detail_sheet.dart';
+import '../../l10n/l10n_context.dart';
 
 class InspirationScreen extends ConsumerStatefulWidget {
   const InspirationScreen({super.key});
@@ -200,7 +201,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                           ],
                         ),
                         child: Text(
-                          'Fais défiler pour parcourir les looks',
+                          context.l10n.inspoScrollHint,
                           style: TextStyle(
                             color: AppColors.textPrimary.withValues(alpha: 0.88),
                             fontSize: 14,
@@ -235,7 +236,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: const Text('Choisis d\'abord ton outfit du jour'),
+            content: Text(context.l10n.inspoChooseOutfitFirst),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.accent.withOpacity(0.92),
             shape:
@@ -258,9 +259,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: const Text(
-                'Cet outfit n\'existe plus. Choisis un outfit du jour.',
-              ),
+              content: Text(context.l10n.inspoOutfitNoLongerExists),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.accent.withOpacity(0.92),
               shape: RoundedRectangleBorder(
@@ -281,9 +280,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: const Text(
-                'Ajoute au moins une photo à ton outfit pour publier.',
-              ),
+              content: Text(context.l10n.inspoAddPhotoToPublish),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.accent.withOpacity(0.92),
               shape: RoundedRectangleBorder(
@@ -311,8 +308,8 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
     } catch (_) {
       if (!mounted || !context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Erreur lors de la préparation du post.')),
+        SnackBar(
+            content: Text(context.l10n.inspoPreparePostError)),
       );
     }
   }
@@ -364,9 +361,9 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                       children: [
                         Row(
                           children: [
-                            const Expanded(
+                            Expanded(
                               child: Text(
-                                'Publier l\'outfit du jour',
+                                ctx.l10n.inspoPublishTodayTitle,
                                 style: AppTextStyles.heading3,
                               ),
                             ),
@@ -421,14 +418,14 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                         Text(
                           outfit.name.isNotEmpty
                               ? outfit.name
-                              : 'Mon outfit du jour',
+                              : ctx.l10n.inspoDefaultOutfitName,
                           style: AppTextStyles.body
                               .copyWith(fontWeight: FontWeight.w700),
                         ),
                         if (garments.isNotEmpty) ...[
                           const SizedBox(height: 14),
                           Text(
-                            'Pièces du look',
+                            ctx.l10n.creationPiecesTitle,
                             style: AppTextStyles.body.copyWith(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -455,7 +452,7 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                           maxLines: 3,
                           minLines: 1,
                           decoration: InputDecoration(
-                            hintText: 'Légende (optionnel)...',
+                            hintText: context.l10n.inspoCaptionOptional,
                             filled: true,
                             fillColor: AppColors.surfaceVariant
                                 .withValues(alpha: 0.45),
@@ -499,13 +496,13 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                               ..clearSnackBars()
                               ..showSnackBar(
                                 SnackBar(
-                                  content: const Row(
+                                  content: Row(
                                     children: [
-                                      Icon(Icons.check_circle,
+                                      const Icon(Icons.check_circle,
                                           color: AppColors.white, size: 18),
-                                      SizedBox(width: 10),
-                                      Text('Outfit publié !',
-                                          style: TextStyle(
+                                      const SizedBox(width: 10),
+                                      Text(ctx.l10n.inspoPublishedSnack,
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.w600)),
                                     ],
                                   ),
@@ -524,15 +521,15 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                               ..clearSnackBars()
                               ..showSnackBar(
                                 SnackBar(
-                                  content: const Row(
+                                  content: Row(
                                     children: [
-                                      Icon(Icons.info_outline,
+                                      const Icon(Icons.info_outline,
                                           color: AppColors.white, size: 18),
-                                      SizedBox(width: 10),
+                                      const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
-                                          'Tu as déjà publié ton outfit aujourd\'hui !',
-                                          style: TextStyle(
+                                          ctx.l10n.inspoAlreadyPostedSnack,
+                                          style: const TextStyle(
                                               fontWeight: FontWeight.w600),
                                         ),
                                       ),
@@ -550,9 +547,8 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                               );
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text(
-                                      'Erreur lors de la publication.')),
+                              SnackBar(
+                                  content: Text(ctx.l10n.inspoPublishFailed)),
                             );
                           }
                         },
@@ -562,9 +558,9 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(14)),
                         ),
-                        child: const Text(
-                          'Publier',
-                          style: TextStyle(
+                        child: Text(
+                          ctx.l10n.inspoPublish,
+                          style: const TextStyle(
                               color: AppColors.white,
                               fontWeight: FontWeight.w600),
                         ),
@@ -643,7 +639,7 @@ class _DailyPostGarmentTile extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            label.isNotEmpty ? label : 'Pièce',
+            label.isNotEmpty ? label : context.l10n.inspoPieceFallback,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -675,7 +671,7 @@ class _FeedToggle extends StatelessWidget {
     const pad = 4.0;
     const pillW = (_FeedToggle._w - pad * 3) / 2;
     return Semantics(
-      label: 'Fil Inspiration : ${showFriends ? "Amis" : "Explorer"}',
+      label: '${context.l10n.inspoFeedSemanticsPrefix}${showFriends ? context.l10n.inspoFeedFriends : context.l10n.inspoFeedExplore}',
       child: SizedBox(
       width: _FeedToggle._w,
       height: 44,
@@ -739,7 +735,7 @@ class _FeedToggle extends StatelessWidget {
                               ? AppColors.surface
                               : AppColors.textSecondary,
                         ),
-                        child: const Text('Amis'),
+                        child: Text(context.l10n.inspoFeedFriends),
                       ),
                     ),
                   ),
@@ -763,7 +759,7 @@ class _FeedToggle extends StatelessWidget {
                               ? AppColors.surface
                               : AppColors.textSecondary,
                         ),
-                        child: const Text('Explorer'),
+                        child: Text(context.l10n.inspoFeedExplore),
                       ),
                     ),
                   ),
@@ -788,7 +784,7 @@ class _PublishButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Publier mon look du jour',
+      label: context.l10n.inspoPublishToday,
       button: true,
       child: Material(
         color: AppColors.primary,
@@ -805,7 +801,7 @@ class _PublishButton extends StatelessWidget {
                     color: AppColors.white.withValues(alpha: 0.95), size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  'Publier',
+                  context.l10n.inspoPublish,
                   style: TextStyle(
                     color: AppColors.white.withValues(alpha: 0.98),
                     fontWeight: FontWeight.w600,
@@ -847,8 +843,8 @@ class _FriendsFeed extends ConsumerWidget {
         if (user != null && user!.friends.isEmpty) {
           return EmptyFeedMessage(
             icon: Icons.people_outline,
-            title: 'Aucun ami pour le moment',
-            subtitle: 'Recherche des utilisateurs pour les ajouter !',
+            title: context.l10n.emptyFeedFriendsNoFriendsTitle,
+            subtitle: context.l10n.emptyFeedFriendsNoFriendsSubtitle,
             action: ElevatedButton.icon(
               onPressed: () {
                 Navigator.of(context).push(
@@ -857,7 +853,7 @@ class _FriendsFeed extends ConsumerWidget {
                 );
               },
               icon: const Icon(Icons.search, size: 18),
-              label: const Text('Trouver des amis'),
+              label: Text(context.l10n.inspoFindFriends),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 foregroundColor: AppColors.white,
@@ -886,10 +882,10 @@ class _FriendsFeed extends ConsumerWidget {
         });
 
         if (todayPosts.isEmpty) {
-          return const EmptyFeedMessage(
+          return EmptyFeedMessage(
             icon: Icons.article_outlined,
-            title: 'Aucun post de tes amis aujourd\'hui',
-            subtitle: 'Reviens demain ou invite tes amis à publier.',
+            title: context.l10n.emptyFeedFriendsTodayTitle,
+            subtitle: context.l10n.emptyFeedFriendsTodaySubtitle,
           );
         }
 
@@ -931,10 +927,10 @@ class _ExploreFeed extends ConsumerWidget {
     return postsAsync.when(
       data: (posts) {
         if (posts.isEmpty) {
-          return const EmptyFeedMessage(
+          return EmptyFeedMessage(
             icon: Icons.explore_outlined,
-            title: 'Aucun post à explorer',
-            subtitle: 'Reviens plus tard pour découvrir de nouveaux looks.',
+            title: context.l10n.emptyFeedExploreEmptyTitle,
+            subtitle: context.l10n.emptyFeedExploreEmptySubtitle,
           );
         }
         return _ContinuousFeed(
@@ -1370,7 +1366,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
                               TextButton(
                                 onPressed: () =>
                                     Navigator.pop(d, false),
-                                child: const Text('Annuler'),
+                                child: Text(context.l10n.commonCancel),
                               ),
                               FilledButton(
                                 onPressed: () =>
@@ -1383,7 +1379,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
                                         BorderRadius.circular(12),
                                   ),
                                 ),
-                                child: const Text('Supprimer'),
+                                child: Text(context.l10n.commonDelete),
                               ),
                             ],
                           ),
@@ -1426,10 +1422,10 @@ class _InspoPostCardState extends State<_InspoPostCard>
           maxLines: 4,
           minLines: 1,
           autofocus: true,
-          decoration: const InputDecoration(
-            hintText: 'Légende...',
+          decoration: InputDecoration(
+            hintText: context.l10n.inspoCaption,
             filled: true,
-            border: OutlineInputBorder(
+            border: const OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(14)),
             ),
           ),
@@ -1438,7 +1434,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(d),
-            child: const Text('Annuler'),
+            child: Text(context.l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () {
@@ -1454,7 +1450,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             ),
-            child: const Text('Enregistrer'),
+            child: Text(context.l10n.garmentSaveButton),
           ),
         ],
       ),
@@ -1670,7 +1666,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
                       return Transform.rotate(
                         angle: t * -0.16,
                             child: IconButton(
-                          tooltip: 'Options',
+                          tooltip: context.l10n.inspoOptions,
                           onPressed: () => unawaited(_showPostMenu()),
                           icon: Icon(
                             Icons.more_horiz_rounded,
@@ -1854,7 +1850,7 @@ class _InspoPostCardState extends State<_InspoPostCard>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Pièces du look',
+                    context.l10n.creationPiecesTitle,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
@@ -1964,7 +1960,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Demandes'),
+                    Text(context.l10n.inspoRequestsSection),
                     if ((requestsAsync.valueOrNull?.length ?? 0) > 0) ...[
                       const SizedBox(width: 6),
                       Container(
@@ -2009,10 +2005,10 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
     return requestsAsync.when(
       data: (requests) {
         if (requests.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(40),
+          return Padding(
+            padding: const EdgeInsets.all(40),
             child: Center(
-              child: Text('Aucune demande en attente',
+              child: Text(context.l10n.friendRequestPending,
                   style: AppTextStyles.bodySecondary),
             ),
           );
@@ -2059,7 +2055,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
                           style: const TextStyle(
                               fontWeight: FontWeight.w600, fontSize: 15),
                         ),
-                        const Text('Veut être ton ami',
+                        Text(context.l10n.friendWantsToBe,
                             style: AppTextStyles.caption),
                       ],
                     ),
@@ -2108,7 +2104,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Rechercher un utilisateur...',
+              hintText: context.l10n.inspoSearchUser,
               prefixIcon:
                   const Icon(Icons.search, color: AppColors.textHint),
               border: OutlineInputBorder(
@@ -2167,7 +2163,7 @@ class _SocialSheetState extends ConsumerState<_SocialSheet>
                             style: const TextStyle(
                                 fontWeight: FontWeight.w500)),
                         trailing: u.uid == uid
-                            ? const Chip(label: Text('Toi'))
+                            ? Chip(label: Text(context.l10n.inspoChipYou))
                             : IconButton(
                                 icon: const Icon(Icons.person_add_outlined,
                                     color: AppColors.accent),

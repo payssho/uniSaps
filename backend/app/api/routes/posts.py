@@ -1,6 +1,7 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from google.cloud.firestore_v1 import ArrayUnion, ArrayRemove, Increment
+from app.core.errors import api_error
 from ...core.security import get_current_uid
 from ...core.firebase import get_firestore_client
 from ...models.post import PostCreate, PostOut
@@ -52,7 +53,7 @@ async def toggle_like(post_id: str, uid: str = Depends(get_current_uid)):
     ref = _col().document(post_id)
     snap = ref.get()
     if not snap.exists:
-        raise HTTPException(404, "Post introuvable.")
+        raise api_error(404, "post_not_found")
     liked_by = snap.to_dict().get("liked_by", [])
     if uid in liked_by:
         ref.update({"liked_by": ArrayRemove([uid]), "likes": Increment(-1)})
@@ -67,7 +68,7 @@ async def delete_post(post_id: str, uid: str = Depends(get_current_uid)):
     ref = _col().document(post_id)
     snap = ref.get()
     if not snap.exists:
-        raise HTTPException(404, "Post introuvable.")
+        raise api_error(404, "post_not_found")
     if snap.to_dict().get("user_id") != uid:
-        raise HTTPException(403, "Action non autorisee.")
+        raise api_error(403, "action_not_allowed")
     ref.delete()

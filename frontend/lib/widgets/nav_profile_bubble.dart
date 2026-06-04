@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../core/constants/app_colors.dart';
+import '../l10n/l10n_context.dart';
 
 /// Bulle photo pour l’onglet Profil (nav utilisateur et créateur).
 class NavProfileBubble extends StatelessWidget {
@@ -30,6 +31,7 @@ class NavProfileBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final borderColor = locked
         ? AppColors.textHint.withValues(alpha: 0.35)
         : tutorialSpotlight || selected
@@ -44,7 +46,7 @@ class NavProfileBubble extends StatelessWidget {
             : AppColors.textHint;
 
     Widget bubble = Semantics(
-      label: 'Profil',
+      label: l10n.navProfile,
       button: true,
       selected: selected,
       child: GestureDetector(
@@ -173,7 +175,7 @@ class NavProfileBubble extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                'Profil',
+                l10n.navProfile,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

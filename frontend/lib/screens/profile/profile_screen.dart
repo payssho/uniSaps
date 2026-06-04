@@ -21,9 +21,11 @@ import '../../widgets/async_error_state.dart';
 import '../../widgets/stat_row.dart';
 import '../../widgets/user_list_tile.dart';
 import '../../widgets/language_locale_button.dart';
+import '../../l10n/l10n_context.dart';
 import '../../providers/ui_navigation_provider.dart';
 import '../inspiration/user_profile_screen.dart';
 import '../inspiration/search_users_screen.dart';
+import '../../l10n/l10n_context.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   /// Quand true (onglet racine Home), pas de bouton retour qui ferait pop la mauvaise route.
@@ -48,7 +50,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   static const int _tabAmis = 1;
   static const int _tabCompte = 2;
 
-  int get _tabCount => _ProfileTabRail.entries.length;
+  static const int _tabCount = 3;
+
+  int get tabCount => _tabCount;
 
   void _goToFriendsTab() {
     if (!mounted) return;
@@ -134,8 +138,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         if (!_friendRequestSnackShown) {
           _friendRequestSnackShown = true;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Nouvelle demande d’ami'),
+            SnackBar(
+              content: Text(context.l10n.profileFriendRequestSnack),
               behavior: SnackBarBehavior.floating,
               duration: Duration(seconds: 3),
             ),
@@ -174,7 +178,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     icon: const Icon(Icons.arrow_back_ios_new_rounded,
                         size: 20, color: AppColors.textPrimary),
                     onPressed: () => Navigator.of(context).pop(),
-                    tooltip: 'Retour',
+                    tooltip: context.l10n.commonBack,
                   ),
                 ),
               ),
@@ -675,28 +679,28 @@ class _ProfileHeroStats extends ConsumerWidget {
               child: Row(
                 children: [
                   StatCell(
-                    label: 'Vêtements',
+                    label: context.l10n.statGarments,
                     value: loading ? '—' : '${counts[0]}',
                     icon: Icons.checkroom_outlined,
                     color: AppColors.accent,
                   ),
                   statRowDivider(),
                   StatCell(
-                    label: 'Outfits',
+                    label: context.l10n.snackActionOutfits,
                     value: loading ? '—' : '${counts[1]}',
                     icon: Icons.style_outlined,
                     color: AppColors.secondary,
                   ),
                   statRowDivider(),
                   StatCell(
-                    label: 'Portés',
+                    label: context.l10n.statWorn,
                     value: loading ? '—' : '${counts[2]}',
                     icon: Icons.done_all_rounded,
                     color: AppColors.success,
                   ),
                   statRowDivider(),
                   StatCell(
-                    label: 'Amis',
+                    label: context.l10n.inspoFeedFriends,
                     value: '${user.friends.length}',
                     icon: Icons.people_outline_rounded,
                     color: AppColors.primary,
@@ -727,48 +731,41 @@ class _ProfileTabRail extends StatelessWidget {
   final TabController controller;
   final int pendingFriendRequests;
 
-  static const entries = <
-      ({
-        IconData icon,
-        String short,
-      })>[
-    (
-      icon: Icons.photo_library_rounded,
-      short: 'Souvenirs',
-    ),
-    (
-      icon: Icons.people_alt_outlined,
-      short: 'Amis',
-    ),
-    (
-      icon: Icons.manage_accounts_rounded,
-      short: 'Compte',
-    ),
-  ];
-
   const _ProfileTabRail({
     required this.controller,
     this.pendingFriendRequests = 0,
   });
 
+  static const _icons = [
+    Icons.photo_library_rounded,
+    Icons.people_alt_outlined,
+    Icons.manage_accounts_rounded,
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final labels = [
+      l10n.profileTabMemories,
+      l10n.profileFriendsSection,
+      l10n.profileTabAccount,
+    ];
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
         return SizedBox(
           height: 44,
           child: Row(
-            children: List.generate(entries.length, (i) {
+            children: List.generate(_icons.length, (i) {
               return Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(
                     left: i == 0 ? 0 : 4,
-                    right: i == entries.length - 1 ? 0 : 4,
+                    right: i == _icons.length - 1 ? 0 : 4,
                   ),
                   child: _ProfileTabPill(
-                    icon: entries[i].icon,
-                    label: entries[i].short,
+                    icon: _icons[i],
+                    label: labels[i],
                     selected: controller.index == i,
                     showBadge: i == 1 && pendingFriendRequests > 0,
                     badgeCount: pendingFriendRequests,
@@ -916,7 +913,7 @@ class _MostWornChart extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Les plus portes', style: AppTextStyles.heading3),
+            Text(context.l10n.profileMostWornTitle, style: AppTextStyles.heading3),
             const SizedBox(height: 16),
             ...garments.where((g) => g.timesWorn > 0).map((g) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -1277,7 +1274,7 @@ class _FriendsTab extends ConsumerWidget {
                 },
                 icon: const Icon(Icons.person_add_alt_1_outlined,
                     size: 20, color: AppColors.accent),
-                tooltip: 'Ajouter un ami',
+                tooltip: context.l10n.profileAddFriend,
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.accent.withValues(alpha: 0.1),
                   padding: const EdgeInsets.all(8),
@@ -1328,7 +1325,7 @@ class _FriendsTab extends ConsumerWidget {
                           _confirmRemoveFriend(context, ref, friend);
                         }
                       },
-                      itemBuilder: (_) => const [
+                      itemBuilder: (ctx) => [
                         PopupMenuItem(
                           value: 'view',
                           child: Row(
@@ -1336,7 +1333,7 @@ class _FriendsTab extends ConsumerWidget {
                               Icon(Icons.person_outline,
                                   size: 18, color: AppColors.textSecondary),
                               SizedBox(width: 10),
-                              Text('Voir le profil'),
+                              Text(ctx.l10n.profileViewProfile),
                             ],
                           ),
                         ),
@@ -1347,7 +1344,7 @@ class _FriendsTab extends ConsumerWidget {
                               Icon(Icons.person_remove,
                                   size: 18, color: AppColors.error),
                               SizedBox(width: 10),
-                              Text('Retirer',
+                              Text(ctx.l10n.profileRemoveFriendAction,
                                   style: TextStyle(color: AppColors.error)),
                             ],
                           ),
@@ -1390,16 +1387,19 @@ void _confirmRemoveFriend(
   WidgetRef ref,
   UserModel friend,
 ) {
+  final l10n = context.l10n;
   showDialog<void>(
     context: context,
     builder: (ctx) => AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: const Text('Retirer cet ami ?'),
-      content: Text('Retirer @${friend.username} de ta liste d\'amis ?'),
+      title: Text(l10n.profileRemoveFriendTitle),
+      content: Text(
+        '${l10n.profileRemoveFriendBodyPrefix}@${friend.username}${l10n.profileRemoveFriendBodySuffix}',
+      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(ctx),
-          child: const Text('Annuler'),
+          child: Text(l10n.commonCancel),
         ),
         TextButton(
           onPressed: () {
@@ -1407,7 +1407,8 @@ void _confirmRemoveFriend(
             ref.read(friendshipNotifierProvider.notifier).removeFriend(friend.uid);
             ref.invalidate(friendUsersProvider);
           },
-          child: const Text('Retirer', style: TextStyle(color: AppColors.error)),
+          child: Text(l10n.profileRemoveFriendAction,
+              style: const TextStyle(color: AppColors.error)),
         ),
       ],
     ),
@@ -1506,7 +1507,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Code incorrect.'),
+          content: Text(context.l10n.profileIncorrectCode),
           backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -1550,7 +1551,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Erreur : $e'),
+          content: Text(context.l10n.commonErrorDetail(e)),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape:
@@ -1574,26 +1575,26 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
         builder: (ctx, setStateDlg) => AlertDialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded,
+              const Icon(Icons.warning_amber_rounded,
                   color: AppColors.error, size: 24),
-              SizedBox(width: 10),
-              Text('Supprimer le compte'),
+              const SizedBox(width: 10),
+              Text(ctx.l10n.deleteAccountTitle),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Cette action est irréversible. Toutes tes données seront supprimées définitivement.',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              Text(
+                ctx.l10n.deleteAccountWarning,
+                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Confirme avec ton mot de passe :',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              Text(
+                ctx.l10n.deleteAccountConfirmPassword,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -1601,7 +1602,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                 obscureText: obscure,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'Mot de passe',
+                  hintText: ctx.l10n.authPassword,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -1621,7 +1622,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler'),
+              child: Text(ctx.l10n.commonCancel),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, true),
@@ -1631,7 +1632,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Supprimer définitivement'),
+              child: Text(ctx.l10n.deleteAccountConfirmButton),
             ),
           ],
         ),
@@ -1678,21 +1679,21 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Activer UniSaps+', style: AppTextStyles.heading3),
+        title: Text(context.l10n.profileActivateUniSaps, style: AppTextStyles.heading3),
         content: TextField(
           controller: _premiumCodeController,
           textCapitalization: TextCapitalization.characters,
           autocorrect: false,
           obscureText: true,
           decoration: InputDecoration(
-            hintText: 'Code d’activation',
+            hintText: context.l10n.profileActivationCodeLabel,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
+            child: Text(context.l10n.commonCancel),
           ),
           FilledButton(
             onPressed: _premiumApplying
@@ -1702,7 +1703,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                     await _applyPremiumCode();
                   },
             style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
-            child: const Text('Valider'),
+            child: Text(context.l10n.commonValidate),
           ),
         ],
       ),
@@ -1728,7 +1729,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
               child: _AccountInfoTile(
                 icon: Icons.alternate_email_rounded,
                 iconColor: AppColors.primary,
-                label: 'Pseudo',
+                label: context.l10n.authPseudo,
                 value: '@${widget.user.username}',
               ),
             ),
@@ -1737,7 +1738,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
               child: _AccountInfoTile(
                 icon: Icons.mail_outline_rounded,
                 iconColor: AppColors.accent,
-                label: 'Email',
+                label: context.l10n.authEmail,
                 value: emailShort,
               ),
             ),
@@ -1750,7 +1751,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
               child: _AccountInfoTile(
                 icon: Icons.calendar_today_outlined,
                 iconColor: AppColors.textSecondary,
-                label: 'Membre',
+                label: context.l10n.profileMemberLabel,
                 value: memberSince,
               ),
             ),
@@ -1761,7 +1762,7 @@ class _InfosTabState extends ConsumerState<_InfosTab> {
                 iconColor: widget.user.isPremium
                     ? AppColors.accent
                     : AppColors.textHint,
-                label: 'UniSaps+',
+                label: context.l10n.premiumDialogTitle,
                 value: widget.user.isPremium ? 'Actif' : 'Gratuit',
                 valueColor:
                     widget.user.isPremium ? AppColors.accent : null,

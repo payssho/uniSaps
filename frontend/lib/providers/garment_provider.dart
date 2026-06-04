@@ -7,6 +7,9 @@ import '../services/storage_service.dart';
 import '../services/api_service.dart';
 import 'auth_provider.dart';
 
+const _kGarmentImageNamesMismatch = 'garmentImageNamesMismatch';
+const _kGarmentNewImageNamesMismatch = 'garmentNewImageNamesMismatch';
+
 final storageServiceProvider = Provider<StorageService>((ref) => StorageService());
 
 final apiServiceProvider = Provider<ApiService>((ref) {
@@ -84,7 +87,7 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
       final urls = <String>[];
       if (imageBytesList.isNotEmpty) {
         if (imageBytesList.length != imageNames.length) {
-          throw Exception('Incohérence images / noms de fichiers.');
+          throw Exception(_kGarmentImageNamesMismatch);
         }
         for (var i = 0; i < imageBytesList.length; i++) {
           final u = await _uploadGarmentBytes(
@@ -146,7 +149,7 @@ class GarmentNotifier extends StateNotifier<AsyncValue<void>> {
 
       if (newImageBytesList.isNotEmpty &&
           newImageBytesList.length != newImageNames.length) {
-        throw Exception('Incohérence nouvelles images / noms de fichiers.');
+        throw Exception(_kGarmentNewImageNamesMismatch);
       }
 
       final previousUrls = existingGarment.imageUrls.isNotEmpty

@@ -1,6 +1,7 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from google.cloud.firestore_v1 import ArrayUnion, ArrayRemove
+from app.core.errors import api_error
 from ...core.security import get_current_uid
 from ...core.firebase import get_firestore_client
 from ...models.friend_request import FriendRequestCreate, FriendRequestOut
@@ -20,7 +21,7 @@ def _users():
 @router.post("/request", response_model=FriendRequestOut, status_code=201)
 async def send_friend_request(body: FriendRequestCreate, uid: str = Depends(get_current_uid)):
     if body.to_uid == uid:
-        raise HTTPException(400, "Impossible de s'ajouter soi-meme.")
+        raise api_error(400, "cannot_add_self")
 
     existing = list(
         _col()
@@ -31,7 +32,7 @@ async def send_friend_request(body: FriendRequestCreate, uid: str = Depends(get_
         .stream()
     )
     if existing:
-        raise HTTPException(409, "Demande deja envoyee.")
+        raise api_error(409, "friend_request_already_sent")
 
     reverse = list(
         _col()
@@ -70,12 +71,12 @@ async def send_friend_request(body: FriendRequestCreate, uid: str = Depends(get_
 async def accept_friend_request(request_id: str, uid: str = Depends(get_current_uid)):
     doc = _col().document(request_id).get()
     if not doc.exists:
-        raise HTTPException(404, "Demande introuvable.")
+        raise api_error(404, "friend_request_not_found")
     data = doc.to_dict()
     if data["to_uid"] != uid:
-        raise HTTPException(403, "Action non autorisee.")
+        raise api_error(403, "action_not_allowed")
     if data["status"] != "pending":
-        raise HTTPException(400, "Demande deja traitee.")
+        raise api_error(400, "friend_request_already_handled")
     _accept(request_id, data["from_uid"], data["to_uid"])
     data["status"] = "accepted"
     data["id"] = request_id
@@ -86,10 +87,10 @@ async def accept_friend_request(request_id: str, uid: str = Depends(get_current_
 async def reject_friend_request(request_id: str, uid: str = Depends(get_current_uid)):
     doc = _col().document(request_id).get()
     if not doc.exists:
-        raise HTTPException(404, "Demande introuvable.")
+        raise api_error(404, "friend_request_not_found")
     data = doc.to_dict()
     if data["to_uid"] != uid:
-        raise HTTPException(403, "Action non autorisee.")
+        raise api_error(403, "action_not_allowed")
     _col().document(request_id).update({"status": "rejected"})
     data["status"] = "rejected"
     data["id"] = request_id
@@ -100,10 +101,10 @@ async def reject_friend_request(request_id: str, uid: str = Depends(get_current_
 async def cancel_friend_request(request_id: str, uid: str = Depends(get_current_uid)):
     doc = _col().document(request_id).get()
     if not doc.exists:
-        raise HTTPException(404, "Demande introuvable.")
+        raise api_error(404, "friend_request_not_found")
     data = doc.to_dict()
     if data["from_uid"] != uid:
-        raise HTTPException(403, "Action non autorisee.")
+        raise api_error(403, "action_not_allowed")
     _col().document(request_id).delete()
 
 

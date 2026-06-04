@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
+const _kAuthNoUserConnected = 'authNoUserConnected';
+
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -39,7 +41,7 @@ class AuthService {
   /// Ré-authentifie puis supprime le compte Firebase Auth.
   Future<void> deleteAccount(String password) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception('Aucun utilisateur connecté.');
+    if (user == null) throw Exception(_kAuthNoUserConnected);
     final credential = EmailAuthProvider.credential(
       email: user.email!,
       password: password,

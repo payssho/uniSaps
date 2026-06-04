@@ -23,6 +23,7 @@ CATALOG = {
     "settingsDarkMode": ("Mode sombre", "Dark mode"),
     "commonCancel": ("Annuler", "Cancel"),
     "commonConfirm": ("Confirmer", "Confirm"),
+    "commonValidate": ("Valider", "Validate"),
     "commonSave": ("Enregistrer", "Save"),
     "commonDelete": ("Supprimer", "Delete"),
     "commonRetry": ("Réessayer", "Retry"),
@@ -30,6 +31,7 @@ CATALOG = {
     "commonNext": ("Suivant", "Next"),
     "commonPrevious": ("Précédent", "Previous"),
     "commonSkip": ("Passer", "Skip"),
+    "tutorialGotIt": ("Compris !", "Got it!"),
     "commonAdd": ("Ajouter", "Add"),
     "commonClose": ("Fermer", "Close"),
     "commonBack": ("Retour", "Back"),
@@ -150,6 +152,15 @@ CATALOG = {
         "Depuis Inspiration, partage la photo de ton outfit du jour (1 par jour).",
         "From Inspiration, share your outfit-of-the-day photo (one per day).",
     ),
+    "tutorialProfileTitle": ("Ton profil", "Your profile"),
+    "tutorialProfileDesc": (
+        "Retrouve tes stats, ta galerie, tes amis et les paramètres de ton compte.",
+        "Find your stats, gallery, friends, and account settings.",
+    ),
+    "tutorialInspoDiscoverDesc": (
+        "Découvre les looks de la communauté et like ceux qui t'inspirent.",
+        "Discover community looks and like the ones that inspire you.",
+    ),
     # Dressing
     "dressingAddGarment": ("Ajouter un vêtement", "Add a garment"),
     "dressingEmptyTitle": ("Ton dressing est vide", "Your wardrobe is empty"),
@@ -224,6 +235,9 @@ CATALOG = {
     "weatherRain": ("Pluie", "Rain"),
     "weatherSnow": ("Neige", "Snow"),
     "weatherStorm": ("Orage", "Storm"),
+    "weatherFog": ("Brouillard", "Fog"),
+    "weatherPartlyClear": ("Partiellement dégagé", "Partly clear"),
+    "weatherVariable": ("Variable", "Variable"),
     # Creation steps
     "creationStepPieces": ("Pièces", "Pieces"),
     "creationStepNamePhoto": ("Nom & photo", "Name & photo"),
@@ -253,7 +267,9 @@ CATALOG = {
     "colorYellow": ("Jaune", "Yellow"),
     "colorOrange": ("Orange", "Orange"),
     "colorPink": ("Rose", "Pink"),
+    "colorMulticolor": ("Multicolore", "Multicolor"),
     "colorPurple": ("Violet", "Purple"),
+    "colorMulticolor": ("Multicolore", "Multicolor"),
     "profileAccountPrivate": ("Privé", "Private"),
     "profileAccountPublic": ("Public", "Public"),
     "profilePremiumActive": ("Actif", "Active"),
@@ -312,7 +328,31 @@ CATALOG = {
     "dressingFilterColor": ("— Couleur", "— Color"),
     "garmentNameDescHint": ("Nom / description", "Name / description"),
     "garmentBrandHint": ("Marque", "Brand"),
+    "garmentBrandTapAgainToFilter": (
+        "Appuie à nouveau pour filtrer…",
+        "Tap again to filter…",
+    ),
+    "garmentBrandNoneFound": (
+        "Aucune marque trouvée",
+        "No brand found",
+    ),
     "garmentColorHint": ("Couleur", "Color"),
+    "garmentColorMaxReached": (
+        "Maximum 3 couleurs atteint",
+        "Maximum of 3 colors reached",
+    ),
+    "garmentColorTapAgainToFilter": (
+        "Taper à nouveau pour filtrer",
+        "Tap again to filter",
+    ),
+    "garmentColorSearchHint": (
+        "Rechercher une couleur…",
+        "Search for a color…",
+    ),
+    "garmentColorNoneFound": (
+        "Aucune couleur trouvée",
+        "No color found",
+    ),
     "garmentCategoryTitle": ("Catégorie", "Category"),
     "garmentAddPhotoCaption": ("Ajouter une photo", "Add a photo"),
     "garmentNameRequired": ("Le nom est obligatoire.", "Name is required."),
@@ -340,13 +380,15 @@ CATALOG = {
     "friendWantsToBe": ("Veut être ton ami", "Wants to be your friend"),
     "searchTab": ("Rechercher", "Search"),
     "requestsTab": ("Demandes", "Requests"),
-    "statWorn": ("Portes", "Worn"),
+    "statWorn": ("Portés", "Worn"),
     "statStreak": ("Streak", "Streak"),
     "statBest": ("Best", "Best"),
     "userProfilePrivate": ("Privé", "Private"),
     "weatherRefresh": ("Actualiser à ma position", "Refresh to my location"),
     "weatherHourly": ("Heure par heure", "Hour by hour"),
     "weatherNow": ("En ce moment", "Right now"),
+    "weatherHourNow": ("{hour}h", "{hour}h"),
+    "weatherTodayMinMax": ("Auj. {range}", "Today {range}"),
     "weatherFeelsLike": ("Ressenti", "Feels like"),
     "weatherWind": ("Vent", "Wind"),
     "weatherHumidity": ("Humidité", "Humidity"),
@@ -354,6 +396,13 @@ CATALOG = {
     "weatherSunset": ("Coucher", "Sunset"),
     "outfitsDeleteTooltip": ("Supprimer cet outfit", "Delete this outfit"),
     "outfitsWeatherTodayPrefix": ("Météo du jour, ", "Today's weather, "),
+    "outfitsWeatherTodaySemantics": (
+        "Météo du jour, {temp}°",
+        "Today's weather, {temp}°",
+    ),
+    "outfitsStreakCount": ("{count}", "{count}"),
+    "outfitsStreakPlusOne": ("+1", "+1"),
+    "inspoPieceFallback": ("Pièce", "Piece"),
     "creationAddZone": ("Ajouter", "Add"),
     "deleteAccountTitle": ("Supprimer le compte", "Delete account"),
     "deleteAccountWarning": (
@@ -1020,6 +1069,7 @@ CATALOG = {
     "creatorOnboardingFinish": ("Terminer", "Finish"),
     # Creator checkout
     "creatorCheckoutTitle": ("Abonnement marque", "Brand subscription"),
+    "creatorSubscriptionMonthlyPrice": ("29 $ / mois", "29 $ / month"),
     "creatorCheckoutActivate": (
         "Activer mon espace marque",
         "Activate my brand space",
@@ -1044,6 +1094,20 @@ CATALOG = {
         "Visible in feed (active)",
     ),
     "creatorPostFeedPreview": ("Aperçu feed", "Feed preview"),
+    "creatorPostCaptionLabel": ("Légende (optionnel)", "Caption (optional)"),
+    "creatorPostsFilterAll": ("Toutes", "All"),
+    "creatorStatPerformance": ("Performance", "Performance"),
+    "creatorStatActive": ("Actifs", "Active"),
+    "creatorStatViews": ("Vues", "Views"),
+    "creatorStatLikes": ("Likes", "Likes"),
+    "garmentDeleteCollectionAction": (
+        "Supprimer la collection",
+        "Delete collection",
+    ),
+    "userProfileCollections": ("Collections", "Collections"),
+    "userProfileAddedOn": ("Ajoutée le {date}", "Added on {date}"),
+    "colorFilterTypeHint": ("Taper pour filtrer", "Type to filter"),
+    "profileMemberLabel": ("Membre", "Member"),
     # Signup creator tab
     "signupCreatorForBrands": (
         "Pour les marques & créateurs",
@@ -1126,6 +1190,74 @@ CATALOG = {
         "Amis de @{username}",
         "Friends of @{username}",
     ),
+    # API error codes (backend error_code → l10n)
+    "apiInvalidFirebaseToken": (
+        "Session expirée. Reconnecte-toi.",
+        "Session expired. Please sign in again.",
+    ),
+    "apiGarmentNotFound": ("Vêtement introuvable.", "Garment not found."),
+    "apiOutfitNotFound": ("Outfit introuvable.", "Outfit not found."),
+    "apiPostNotFound": ("Post introuvable.", "Post not found."),
+    "apiUserNotFound": ("Utilisateur introuvable.", "User not found."),
+    "apiActionNotAllowed": ("Action non autorisée.", "Action not allowed."),
+    "apiCannotAddSelf": (
+        "Impossible de t'ajouter toi-même.",
+        "You can't add yourself.",
+    ),
+    "apiFriendRequestAlreadySent": (
+        "Demande déjà envoyée.",
+        "Request already sent.",
+    ),
+    "apiFriendRequestNotFound": (
+        "Demande introuvable.",
+        "Request not found.",
+    ),
+    "apiFriendRequestAlreadyHandled": (
+        "Demande déjà traitée.",
+        "Request already handled.",
+    ),
+    "apiInvalidActivationCode": (
+        "Code d'activation invalide.",
+        "Invalid activation code.",
+    ),
+    "apiEmptyFile": ("Fichier vide.", "Empty file."),
+    "apiUnknownError": ("Une erreur est survenue.", "Something went wrong."),
+    "apiNotAuthenticated": (
+        "Utilisateur non authentifié.",
+        "User not authenticated.",
+    ),
+    "apiConnectionError": (
+        "Impossible de contacter le serveur.",
+        "Could not reach the server.",
+    ),
+    "apiUploadTimeout": (
+        "Le traitement de l'image prend trop de temps.",
+        "Image processing is taking too long.",
+    ),
+    "apiInvalidServerResponse": (
+        "Réponse invalide du serveur.",
+        "Invalid server response.",
+    ),
+    "apiSuggestError": ("Erreur API.", "API error."),
+    "apiAnalyzeError": ("Erreur analyse IA.", "AI analysis error."),
+    "apiUploadError": ("Erreur lors de l'upload.", "Upload error."),
+    "garmentImageNamesMismatch": (
+        "Incohérence images / noms de fichiers.",
+        "Image / filename count mismatch.",
+    ),
+    "garmentNewImageNamesMismatch": (
+        "Incohérence nouvelles images / noms de fichiers.",
+        "New image / filename count mismatch.",
+    ),
+    "authNoUserConnected": (
+        "Aucun utilisateur connecté.",
+        "No user signed in.",
+    ),
+    "postInvalidId": (
+        "ID du post invalide.",
+        "Invalid post ID.",
+    ),
+    "userAtUsername": ("@{username}", "@{username}"),
 }
 
 def slug(s: str) -> str:

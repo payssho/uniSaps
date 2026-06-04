@@ -255,18 +255,18 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
                   ),
                   const SizedBox(height: 12),
                   Semantics(
-                    label: 'Ajouter un fit',
+                    label: context.l10n.outfitsAddFit,
                     button: true,
                     child: FloatingActionButton.extended(
                     heroTag: 'outfits_fab',
-                    tooltip: 'Créer une tenue',
+                    tooltip: context.l10n.outfitsCreateTooltip,
                     backgroundColor: AppColors.accent,
                     elevation: 6,
                     onPressed: _openCreation,
                     icon: const Icon(Icons.add, color: AppColors.white, size: 24),
-                    label: const Text(
-                      'Ajouter un fit',
-                      style: TextStyle(
+                    label: Text(
+                      context.l10n.outfitsAddFit,
+                      style: const TextStyle(
                         color: AppColors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -389,7 +389,7 @@ class _Header extends StatelessWidget {
                         const Icon(Icons.local_fire_department,
                             size: 16, color: AppColors.warning),
                         const SizedBox(width: 4),
-                        Text('$streak',
+                        Text(context.l10n.outfitsStreakCount(streak),
                             style: const TextStyle(
                                 fontWeight: FontWeight.w800, fontSize: 14)),
                       ],
@@ -405,9 +405,9 @@ class _Header extends StatelessWidget {
               child: TextButton.icon(
                 onPressed: onAdd,
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text(
-                  'Ajouter un fit',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                label: Text(
+                  context.l10n.outfitsAddFit,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -563,7 +563,7 @@ class _CompactWeatherPill extends StatelessWidget {
     final colors = _browseHeroGradient(tags, avgC);
 
     return Semantics(
-      label: 'Météo du jour, $avg°',
+      label: context.l10n.outfitsWeatherTodaySemantics(avg),
       button: true,
       child: Material(
         color: Colors.transparent,
@@ -707,7 +707,7 @@ class _SwipeModeState extends State<_SwipeMode> {
                 onPressed: _reset,
                 icon: const Icon(Icons.refresh_rounded,
                     size: 20, color: AppColors.white),
-                label: const Text('Recommencer'),
+                label: Text(context.l10n.outfitsRestart),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: AppColors.white,
@@ -777,7 +777,7 @@ class _SwipeModeState extends State<_SwipeMode> {
                       size: 20,
                       color: AppColors.textHint.withOpacity(0.4)),
                   const SizedBox(height: 2),
-                  Text('Swipe',
+                  Text(context.l10n.outfitsModeSwipe,
                       style: TextStyle(
                           fontSize: 10,
                           color: AppColors.textHint.withOpacity(0.4),
@@ -918,7 +918,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la génération')),
+          SnackBar(content: Text(context.l10n.outfitsGenerateError)),
         );
       }
     } finally {
@@ -1461,7 +1461,7 @@ class _OutfitPhotoCard extends StatelessWidget {
                     Icon(Icons.touch_app_rounded,
                         size: 14, color: AppColors.white.withOpacity(0.7)),
                     const SizedBox(width: 4),
-                    Text('Détails',
+                    Text(context.l10n.inspoDetails,
                         style: TextStyle(
                             color: AppColors.white.withOpacity(0.7),
                             fontSize: 11,
@@ -1960,7 +1960,7 @@ class _DailyOutfitView extends StatelessWidget {
                   onPressed: onTakePhoto,
                   icon: const Icon(Icons.camera_alt_outlined,
                       size: 18, color: AppColors.white),
-                  label: const Text('Photo du jour'),
+                  label: Text(context.l10n.outfitsDayPhoto),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
@@ -1973,7 +1973,7 @@ class _DailyOutfitView extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
-                  child: const Text('Changer'),
+                  child: Text(context.l10n.creationChangePhoto),
                 ),
               ),
             ],
@@ -2102,8 +2102,8 @@ class _StreakCelebrationOverlayState
                         color: AppColors.white,
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: const Text('+1',
-                          style: TextStyle(
+                      child: Text(context.l10n.outfitsStreakPlusOne,
+                          style: const TextStyle(
                               color: AppColors.accent,
                               fontSize: 13,
                               fontWeight: FontWeight.w700)),

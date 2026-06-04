@@ -19,6 +19,7 @@ import '../../widgets/creator_post_preview_sheet.dart';
 import '../../widgets/creation_step_breadcrumb.dart';
 import '../../widgets/garment_picker_grid_sheet.dart';
 import '../../widgets/storage_aware_cached_image.dart';
+import '../../l10n/l10n_context.dart';
 
 class CreatorPostCreateScreen extends ConsumerStatefulWidget {
   const CreatorPostCreateScreen({super.key});
@@ -145,7 +146,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
                 Expanded(
                   child: _CreatorPostSourceOption(
                     icon: Icons.camera_alt_rounded,
-                    label: 'Appareil photo',
+                    label: context.l10n.pickerCamera,
                     onTap: () {
                       Navigator.pop(context);
                       _pickPhoto(ImageSource.camera);
@@ -156,7 +157,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
                 Expanded(
                   child: _CreatorPostSourceOption(
                     icon: Icons.photo_library_rounded,
-                    label: 'Galerie',
+                    label: context.l10n.pickerGallery,
                     onTap: () {
                       Navigator.pop(context);
                       _pickPhoto(ImageSource.gallery);
@@ -321,7 +322,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
     if (ok) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Post publicitaire publié.')),
+        SnackBar(content: Text(context.l10n.creatorPostPublishedSnack)),
       );
     } else {
       setState(() => _error = 'Publication impossible.');
@@ -844,7 +845,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Nouveau post pub', style: AppTextStyles.heading3),
+        title: Text(context.l10n.creatorNewPostPub, style: AppTextStyles.heading3),
         centerTitle: true,
         elevation: 0,
         backgroundColor: AppColors.background,
@@ -880,7 +881,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
                       style: const TextStyle(
                           fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
-                        hintText: 'Nom du post / look',
+                        hintText: context.l10n.creatorPostName,
                         prefixIcon: const Icon(Icons.edit_outlined,
                             size: 20, color: AppColors.textHint),
                         filled: true,
@@ -914,7 +915,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Collection', style: AppTextStyles.heading3),
+                            Text(context.l10n.creatorPostCollectionLabel, style: AppTextStyles.heading3),
                             const SizedBox(height: 8),
                             _buildExistingCollectionPicker(sorted),
                           ],
@@ -922,12 +923,12 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
                       },
                       loading: () => const LinearProgressIndicator(),
                       error: (e, _) =>
-                          Text('Collections : $e', style: const TextStyle(color: AppColors.error)),
+                          Text(context.l10n.creatorPostCollectionsError(e), style: const TextStyle(color: AppColors.error)),
                     ),
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Visible dans le feed (actif)'),
+                    title: Text(context.l10n.creatorPostVisibleInFeed),
                     value: _isActive,
                     onChanged: (v) => setState(() => _isActive = v),
                   ),
@@ -938,7 +939,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
                       maxLines: 3,
                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
-                        hintText: 'Légende (optionnel)',
+                        hintText: context.l10n.creatorPostCaptionLabel,
                         filled: true,
                         fillColor: AppColors.surfaceVariant,
                         border: OutlineInputBorder(
@@ -959,7 +960,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
                       Expanded(
                         child: OutlinedButton(
                           onPressed: _saving ? null : _previewFeed,
-                          child: const Text('Aperçu feed'),
+                          child: Text(context.l10n.creatorPostFeedPreview),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -972,7 +973,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
                                   height: 20,
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
-                              : const Text('Publier'),
+                              : Text(context.l10n.inspoPublish),
                         ),
                       ),
                     ],
@@ -995,7 +996,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
                     Expanded(
                       child: OutlinedButton(
                         onPressed: _onPrevStep,
-                        child: const Text('Précédent'),
+                        child: Text(context.l10n.commonPrevious),
                       ),
                     ),
                   if (_creationStep > 0) const SizedBox(width: 12),
@@ -1003,7 +1004,7 @@ class _CreatorPostCreateScreenState extends ConsumerState<CreatorPostCreateScree
                     Expanded(
                       child: FilledButton(
                         onPressed: _onNextStep,
-                        child: const Text('Suivant'),
+                        child: Text(context.l10n.commonNext),
                       ),
                     ),
                 ],

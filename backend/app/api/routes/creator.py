@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from app.core.errors import api_error
 from ...core.security import get_current_uid
 from ...core.firebase import get_firestore_client
 
@@ -27,13 +28,13 @@ async def activate_subscription(
 ):
     code = body.activation_code.strip().upper().replace(" ", "")
     if code != CREATOR_ACTIVATION_CODE:
-        raise HTTPException(400, "Code d'activation invalide.")
+        raise api_error(400, "invalid_activation_code")
 
     db = get_firestore_client()
     ref = db.collection("users").document(uid)
     snap = ref.get()
     if not snap.exists:
-        raise HTTPException(404, "Utilisateur introuvable.")
+        raise api_error(404, "user_not_found")
 
     expires = (datetime.utcnow() + timedelta(days=SUBSCRIPTION_DAYS)).isoformat()
     updates = {
@@ -55,7 +56,7 @@ async def subscription_status(uid: str = Depends(get_current_uid)):
     db = get_firestore_client()
     snap = db.collection("users").document(uid).get()
     if not snap.exists:
-        raise HTTPException(404, "Utilisateur introuvable.")
+        raise api_error(404, "user_not_found")
     data = snap.to_dict()
     return SubscriptionStatusOut(
         account_type=data.get("account_type", "user"),

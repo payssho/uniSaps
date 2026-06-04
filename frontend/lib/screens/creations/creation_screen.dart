@@ -108,7 +108,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Erreur lors de l'upload")),
+        SnackBar(content: Text(context.l10n.creationUploadError)),
       );
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
@@ -145,7 +145,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 Expanded(
                   child: _SourceOption(
                     icon: Icons.camera_alt_rounded,
-                    label: 'Appareil photo',
+                    label: context.l10n.pickerCamera,
                     onTap: () {
                       Navigator.pop(context);
                       _pickPhoto(ImageSource.camera);
@@ -156,7 +156,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 Expanded(
                   child: _SourceOption(
                     icon: Icons.photo_library_rounded,
-                    label: 'Galerie',
+                    label: context.l10n.pickerGallery,
                     onTap: () {
                       Navigator.pop(context);
                       _pickPhoto(ImageSource.gallery);
@@ -255,8 +255,8 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             const SizedBox(height: 8),
             Expanded(
               child: garments.isEmpty
-                  ? const Center(
-                      child: Text('Aucun vêtement dans cette catégorie',
+                  ? Center(
+                      child: Text(context.l10n.creationNoGarmentInCategory,
                           style: AppTextStyles.bodySecondary))
                   : GridView.builder(
                       padding: const EdgeInsets.all(12),
@@ -343,7 +343,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: const Text('Cette pièce est déjà dans la liste.'),
+              content: Text(context.l10n.creationPieceAlreadyListed),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -370,7 +370,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: const Text('Ajoute la photo de ton outfit.'),
+            content: Text(context.l10n.creationAddOutfitPhotoSnack),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.error.withOpacity(0.96),
             shape: RoundedRectangleBorder(
@@ -388,7 +388,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: const Text('Donne un nom à ton outfit.'),
+            content: Text(context.l10n.creationNameRequiredSnack),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.error.withOpacity(0.96),
             shape: RoundedRectangleBorder(
@@ -405,7 +405,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         ..clearSnackBars()
         ..showSnackBar(
           SnackBar(
-            content: const Text('Sélectionne au moins un vêtement.'),
+            content: Text(context.l10n.creationSelectGarmentSnack),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.error.withOpacity(0.96),
             shape: RoundedRectangleBorder(
@@ -446,7 +446,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Outfit créé !'),
+            content: Text(context.l10n.creationCreatedSnack),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.success,
             shape: RoundedRectangleBorder(
@@ -458,7 +458,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           ..clearSnackBars()
           ..showSnackBar(
             SnackBar(
-              content: const Text('Erreur lors de la création.'),
+              content: Text(context.l10n.creationCreateErrorSnack),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.error.withOpacity(0.96),
               shape: RoundedRectangleBorder(
@@ -755,7 +755,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
           icon: const Icon(Icons.close_rounded, size: 24),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('Nouveau look'),
+        title: Text(context.l10n.creationNewLookTitle),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -770,7 +770,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                       height: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppColors.accent))
-                  : const Text('Sauver',
+                  : Text(context.l10n.creationSaveButton,
                       style: TextStyle(
                           fontWeight: FontWeight.w700,
                           color: AppColors.accent)),
@@ -817,13 +817,13 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: _uploadingPhoto
-                    ? const Center(
+                    ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            CircularProgressIndicator(strokeWidth: 2),
-                            SizedBox(height: 12),
-                            Text('Upload en cours...',
+                            const CircularProgressIndicator(strokeWidth: 2),
+                            const SizedBox(height: 12),
+                            Text(context.l10n.creationUploading,
                                 style: TextStyle(
                                     color: AppColors.textHint,
                                     fontSize: 13)),
@@ -860,15 +860,15 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                                     borderRadius:
                                         BorderRadius.circular(10),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.edit_rounded,
+                                      const Icon(Icons.edit_rounded,
                                           size: 14,
                                           color: AppColors.white),
-                                      SizedBox(width: 4),
-                                      Text('Changer',
-                                          style: TextStyle(
+                                      const SizedBox(width: 4),
+                                      Text(context.l10n.creationChangePhoto,
+                                          style: const TextStyle(
                                               color: AppColors.white,
                                               fontSize: 12,
                                               fontWeight:
@@ -1003,7 +1003,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 28, 16, 0),
               child: _MultiSelectDropdownTile(
-                label: 'Temps',
+                label: context.l10n.creationWeatherLabel,
                 hintWhenEmpty: 'Toutes les conditions',
                 summary: _weatherSummaryText(),
                 expanded: _weatherDropdownOpen,
@@ -1028,7 +1028,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               child: _MultiSelectDropdownTile(
-                label: 'Saisons',
+                label: context.l10n.creationSeasonsLabel,
                 hintWhenEmpty: 'Toutes les saisons',
                 summary: _seasonSummaryText(),
                 expanded: _seasonDropdownOpen,
@@ -1061,7 +1061,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                         onPressed: () =>
                             setState(() => _creationStep = _creationStep - 1),
                         icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                        label: const Text('Précédent'),
+                        label: Text(context.l10n.commonPrevious),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.accent,
                           side: const BorderSide(color: AppColors.accent),
@@ -1081,7 +1081,7 @@ class _CreationScreenState extends ConsumerState<CreationScreen> {
                         onPressed: () =>
                             setState(() => _creationStep = _creationStep + 1),
                         icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                        label: const Text('Suivant'),
+                        label: Text(context.l10n.commonNext),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.accent,
                           foregroundColor: AppColors.white,

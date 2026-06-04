@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/nav_profile_bubble.dart';
+import '../../l10n/l10n_context.dart';
 import 'creator_dressing_screen.dart';
 import 'creator_posts_screen.dart';
 import 'creator_profile_screen.dart';
@@ -32,6 +33,7 @@ class _CreatorHomeScreenState extends ConsumerState<CreatorHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final tab = ref.watch(creatorTabProvider);
     final user = ref.watch(currentUserProvider).valueOrNull;
 
@@ -66,7 +68,7 @@ class _CreatorHomeScreenState extends ConsumerState<CreatorHomeScreen> {
                   child: _CreatorNavItem(
                     icon: Icons.checkroom_outlined,
                     activeIcon: Icons.checkroom,
-                    label: 'Vêtements',
+                    label: l10n.creatorTabGarments,
                     selected: tab == 0,
                     onTap: () => _goTo(0),
                   ),
@@ -75,7 +77,7 @@ class _CreatorHomeScreenState extends ConsumerState<CreatorHomeScreen> {
                   child: _CreatorNavItem(
                     icon: Icons.campaign_outlined,
                     activeIcon: Icons.campaign,
-                    label: 'Posts',
+                    label: l10n.creatorTabPosts,
                     selected: tab == 1,
                     onTap: () => _goTo(1),
                   ),

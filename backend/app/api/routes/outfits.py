@@ -1,5 +1,6 @@
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
+from app.core.errors import api_error
 from ...core.security import get_current_uid
 from ...core.firebase import get_firestore_client
 from ...models.outfit import OutfitCreate, OutfitUpdate, OutfitOut
@@ -43,7 +44,7 @@ async def create_outfit(body: OutfitCreate, uid: str = Depends(get_current_uid))
 async def get_outfit(outfit_id: str, uid: str = Depends(get_current_uid)):
     doc = _col(uid).document(outfit_id).get()
     if not doc.exists:
-        raise HTTPException(404, "Outfit introuvable.")
+        raise api_error(404, "outfit_not_found")
     return OutfitOut(**doc.to_dict(), id=doc.id)
 
 
@@ -51,7 +52,7 @@ async def get_outfit(outfit_id: str, uid: str = Depends(get_current_uid)):
 async def update_outfit(outfit_id: str, body: OutfitUpdate, uid: str = Depends(get_current_uid)):
     ref = _col(uid).document(outfit_id)
     if not ref.get().exists:
-        raise HTTPException(404, "Outfit introuvable.")
+        raise api_error(404, "outfit_not_found")
     ref.update(body.model_dump(exclude_none=True))
     return OutfitOut(**ref.get().to_dict(), id=outfit_id)
 
@@ -60,5 +61,5 @@ async def update_outfit(outfit_id: str, body: OutfitUpdate, uid: str = Depends(g
 async def delete_outfit(outfit_id: str, uid: str = Depends(get_current_uid)):
     ref = _col(uid).document(outfit_id)
     if not ref.get().exists:
-        raise HTTPException(404, "Outfit introuvable.")
+        raise api_error(404, "outfit_not_found")
     ref.delete()

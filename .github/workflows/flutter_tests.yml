@@ -35,6 +35,11 @@ jobs:
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
         working-directory: frontend
 
+      - name: Vérifier strings i18n (pas de FR en dur)
+        run: python tool/check_hardcoded_strings.py
+        working-directory: frontend
+        continue-on-error: false
+
       # 5. Lancer les tests
       - name: Run tests
         run: flutter test --reporter github

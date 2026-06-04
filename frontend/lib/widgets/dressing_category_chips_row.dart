@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants/categories.dart';
 import 'category_chip.dart';
 import 'garment_category_glyph.dart';
+import '../l10n/l10n_context.dart';
 
 /// Rangée horizontale Tout + catégories (Dressing + profil ami).
 class DressingCategoryChipsRow extends StatelessWidget {
@@ -16,6 +17,7 @@ class DressingCategoryChipsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return SizedBox(
       height: 44,
       child: ListView(
@@ -23,7 +25,7 @@ class DressingCategoryChipsRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 18),
         children: [
           CategoryChip(
-            label: 'Tout',
+            label: l10n.dressingFilterAll,
             leadingBuilder: (c) =>
                 Icon(Icons.grid_view_rounded, size: 16, color: c),
             selected: selectedCategory.isEmpty,

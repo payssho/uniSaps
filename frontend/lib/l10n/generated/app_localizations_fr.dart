@@ -9,6 +9,67 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
+  String get apiActionNotAllowed => 'Action non autorisée.';
+
+  @override
+  String get apiAnalyzeError => 'Erreur analyse IA.';
+
+  @override
+  String get apiCannotAddSelf => 'Impossible de t\'ajouter toi-même.';
+
+  @override
+  String get apiConnectionError => 'Impossible de contacter le serveur.';
+
+  @override
+  String get apiEmptyFile => 'Fichier vide.';
+
+  @override
+  String get apiFriendRequestAlreadyHandled => 'Demande déjà traitée.';
+
+  @override
+  String get apiFriendRequestAlreadySent => 'Demande déjà envoyée.';
+
+  @override
+  String get apiFriendRequestNotFound => 'Demande introuvable.';
+
+  @override
+  String get apiGarmentNotFound => 'Vêtement introuvable.';
+
+  @override
+  String get apiInvalidActivationCode => 'Code d\'activation invalide.';
+
+  @override
+  String get apiInvalidFirebaseToken => 'Session expirée. Reconnecte-toi.';
+
+  @override
+  String get apiInvalidServerResponse => 'Réponse invalide du serveur.';
+
+  @override
+  String get apiNotAuthenticated => 'Utilisateur non authentifié.';
+
+  @override
+  String get apiOutfitNotFound => 'Outfit introuvable.';
+
+  @override
+  String get apiPostNotFound => 'Post introuvable.';
+
+  @override
+  String get apiSuggestError => 'Erreur API.';
+
+  @override
+  String get apiUnknownError => 'Une erreur est survenue.';
+
+  @override
+  String get apiUploadError => 'Erreur lors de l\'upload.';
+
+  @override
+  String get apiUploadTimeout =>
+      'Le traitement de l\'image prend trop de temps.';
+
+  @override
+  String get apiUserNotFound => 'Utilisateur introuvable.';
+
+  @override
   String get appTitle => 'uniSaps';
 
   @override
@@ -62,6 +123,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get authLoginTitle => 'Connexion';
+
+  @override
+  String get authNoUserConnected => 'Aucun utilisateur connecté.';
 
   @override
   String get authNotConnected => 'Non connecté';
@@ -185,6 +249,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get colorDarkGrey => 'Gris foncé';
 
   @override
+  String get colorFilterTypeHint => 'Taper pour filtrer';
+
+  @override
   String get colorGreen => 'Vert';
 
   @override
@@ -194,13 +261,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get colorLightGrey => 'Gris clair';
 
   @override
+  String get colorMulticolor => 'Multicolore';
+
+  @override
   String get colorOrange => 'Orange';
 
   @override
   String get colorPink => 'Rose';
-
-  @override
-  String get colorMulticolor => 'Multicolore';
 
   @override
   String get colorPurple => 'Violet';
@@ -284,6 +351,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get commonSkip => 'Passer';
+
+  @override
+  String get commonValidate => 'Valider';
 
   @override
   String get commonYes => 'Oui';
@@ -467,6 +537,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get creatorPersonalAccount => '@compte perso uniSaps (optionnel)';
 
   @override
+  String get creatorPostCaptionLabel => 'Légende (optionnel)';
+
+  @override
   String get creatorPostCollectionLabel => 'Collection';
 
   @override
@@ -496,6 +569,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get creatorPostsEmpty => 'Aucun post pour l\'instant.';
 
   @override
+  String get creatorPostsFilterAll => 'Toutes';
+
+  @override
   String get creatorPostsNoCollection => 'Sans collection';
 
   @override
@@ -517,6 +593,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get creatorShopUrl => 'Lien boutique (URL)';
 
   @override
+  String get creatorStatActive => 'Actifs';
+
+  @override
+  String get creatorStatLikes => 'Likes';
+
+  @override
+  String get creatorStatPerformance => 'Performance';
+
+  @override
+  String get creatorStatViews => 'Vues';
+
+  @override
   String get creatorSubscriptionActive => 'Abonnement actif';
 
   @override
@@ -528,39 +616,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get creatorSubscriptionInactive => 'Abonnement inactif';
 
   @override
-  String creatorSubscriptionRate(Object price) {
-    return 'Tarif : $price';
-  }
-
-  @override
   String get creatorSubscriptionMonthlyPrice => '29 \$ / mois';
 
   @override
-  String get creatorCollectionNoPieces => 'Aucune pièce';
-
-  @override
-  String get creatorCollectionOnePiece => '1 pièce';
-
-  @override
-  String creatorCollectionPieceCount(int count) {
-    return '$count pièces';
+  String creatorSubscriptionRate(Object price) {
+    return 'Tarif : $price';
   }
-
-  @override
-  String get creatorCollectionEmptyTitle => 'Collection vide';
-
-  @override
-  String get creatorCollectionEmptyHint =>
-      'Ajoute des pièces pour alimenter cette ligne.';
-
-  @override
-  String get creatorPostDefaultCaption => 'Post sponsorisé';
-
-  @override
-  String get creatorPostStatusActive => 'Actif';
-
-  @override
-  String get creatorPostStatusInactive => 'Inactif';
 
   @override
   String get creatorTabGarments => 'Vêtements';
@@ -708,8 +769,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get garmentBrandHint => 'Marque';
 
   @override
-  String get garmentBrandNoneFound =>
-      'Aucune marque trouvée. Tu peux saisir librement.';
+  String get garmentBrandNoneFound => 'Aucune marque trouvée';
 
   @override
   String get garmentBrandTapAgainToFilter => 'Appuie à nouveau pour filtrer…';
@@ -784,15 +844,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get garmentColorMaxReached => 'Maximum 3 couleurs atteint';
 
   @override
-  String get garmentColorNoneFound =>
-      'Aucune couleur trouvée. Tu peux saisir librement.';
+  String get garmentColorNoneFound => 'Aucune couleur trouvée';
 
   @override
-  String get garmentColorSearchHint =>
-      'Rechercher ou choisir une couleur (max 3)';
+  String get garmentColorSearchHint => 'Rechercher une couleur…';
 
   @override
-  String get garmentColorTapAgainToFilter => 'Appuie à nouveau pour filtrer…';
+  String get garmentColorTapAgainToFilter => 'Taper à nouveau pour filtrer';
 
   @override
   String get garmentColorsLabel => 'Couleurs';
@@ -810,6 +868,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get garmentDateStartHint => 'Début (AAAA-MM-JJ)';
+
+  @override
+  String get garmentDeleteCollectionAction => 'Supprimer la collection';
 
   @override
   String get garmentDeleteCollectionTitle => 'Supprimer la collection ?';
@@ -831,6 +892,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get garmentGalleryMultiple => 'Galerie - plusieurs photos';
 
   @override
+  String get garmentImageNamesMismatch =>
+      'Incohérence images / noms de fichiers.';
+
+  @override
   String get garmentImageNotRecognizedBody =>
       'L\'IA n\'a pas reconnu de vêtement, chaussure ou accessoire sur cette photo. Choisis une autre image plus claire montrant la pièce que tu veux ajouter.';
 
@@ -845,6 +910,10 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get garmentNameRequired => 'Le nom est obligatoire.';
+
+  @override
+  String get garmentNewImageNamesMismatch =>
+      'Incohérence nouvelles images / noms de fichiers.';
 
   @override
   String get garmentNoItemsInCategory => 'Aucun vêtement dans cette catégorie';
@@ -995,6 +1064,9 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get inspoOutfitNoLongerExists =>
       'Cet outfit n\'existe plus. Choisis un outfit du jour.';
+
+  @override
+  String get inspoPieceFallback => 'Pièce';
 
   @override
   String get inspoPostDeleteFailed => 'Impossible de supprimer le post.';
@@ -1181,6 +1253,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get outfitsRestart => 'Recommencer';
 
   @override
+  String outfitsStreakCount(Object count) {
+    return '$count';
+  }
+
+  @override
   String get outfitsStreakDaysSuffix => ' jours';
 
   @override
@@ -1191,6 +1268,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get outfitsStreakLine => 'Streak de ';
+
+  @override
+  String get outfitsStreakPlusOne => '+1';
 
   @override
   String get outfitsSwipeEmpty =>
@@ -1209,10 +1289,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get outfitsWeatherTodayPrefix => 'Météo du jour, ';
 
   @override
+  String outfitsWeatherTodaySemantics(Object temp) {
+    return 'Météo du jour, $temp°';
+  }
+
+  @override
   String get pickerCamera => 'Appareil photo';
 
   @override
   String get pickerGallery => 'Galerie';
+
+  @override
+  String get postInvalidId => 'ID du post invalide.';
 
   @override
   String get premiumDialogActivateHint =>
@@ -1330,6 +1418,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get profileLogOut => 'Se déconnecter';
+
+  @override
+  String get profileMemberLabel => 'Membre';
 
   @override
   String get profileMemberSince => 'Membre depuis';
@@ -1579,7 +1670,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get statStreak => 'Streak';
 
   @override
-  String get statWorn => 'Portes';
+  String get statWorn => 'Portés';
 
   @override
   String get styleCasual => 'Décontracté';
@@ -1619,8 +1710,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tutorialDressingTitle => 'Commence par ton dressing';
 
   @override
+  String get tutorialGotIt => 'Compris !';
+
+  @override
   String get tutorialInspoDesc =>
       'Découvre les looks des autres et partage le tien.';
+
+  @override
+  String get tutorialInspoDiscoverDesc =>
+      'Découvre les looks de la communauté et like ceux qui t\'inspirent.';
 
   @override
   String get tutorialInspoTitle => 'Inspire-toi et publie';
@@ -1633,6 +1731,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tutorialOutfitsTitle => 'Crée ton premier outfit';
 
   @override
+  String get tutorialProfileDesc =>
+      'Retrouve tes stats, ta galerie, tes amis et les paramètres de ton compte.';
+
+  @override
+  String get tutorialProfileTitle => 'Ton profil';
+
+  @override
   String get tutorialPublishDesc =>
       'Depuis Inspiration, partage la photo de ton outfit du jour (1 par jour).';
 
@@ -1640,10 +1745,23 @@ class AppLocalizationsFr extends AppLocalizations {
   String get tutorialPublishTitle => 'Publie ton look du jour';
 
   @override
+  String userAtUsername(Object username) {
+    return '@$username';
+  }
+
+  @override
   String get userProfileAccept => 'Accepter';
 
   @override
   String get userProfileAddFriend => 'Ajouter en ami';
+
+  @override
+  String userProfileAddedOn(Object date) {
+    return 'Ajoutée le $date';
+  }
+
+  @override
+  String get userProfileCollections => 'Collections';
 
   @override
   String get userProfileEmptyDressing => 'Dressing vide';
@@ -1718,6 +1836,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get weatherFetchFailed => 'Impossible de récupérer la météo.';
 
   @override
+  String get weatherFog => 'Brouillard';
+
+  @override
+  String weatherHourNow(Object hour) {
+    return '${hour}h';
+  }
+
+  @override
   String get weatherHourly => 'Heure par heure';
 
   @override
@@ -1759,6 +1885,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get weatherPartlyClear => 'Partiellement dégagé';
+
+  @override
   String get weatherRain => 'Pluie';
 
   @override
@@ -1785,27 +1914,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get weatherSunset => 'Coucher';
 
   @override
-  String get weatherWind => 'Vent';
-
-  @override
-  String get weatherDrizzle => 'Bruine';
-
-  @override
-  String get weatherFog => 'Brouillard';
-
-  @override
-  String weatherHourNow(String hour) {
-    return '${hour}h';
-  }
-
-  @override
-  String get weatherPartlyClear => 'Éclaircies';
-
-  @override
-  String weatherTodayMinMax(String range) {
+  String weatherTodayMinMax(Object range) {
     return 'Auj. $range';
   }
 
   @override
-  String get weatherVariable => 'Temps variable';
+  String get weatherVariable => 'Variable';
+
+  @override
+  String get weatherWind => 'Vent';
 }

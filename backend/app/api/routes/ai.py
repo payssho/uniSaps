@@ -1,9 +1,10 @@
 import os
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile
 from pydantic import BaseModel
 
+from app.core.errors import api_error
 from ...core.security import get_current_uid
 from ...core.firebase import get_firestore_client
 from ...services.ai_service import suggest_multiple, analyze_garment_image
@@ -62,7 +63,7 @@ async def analyze_garment(
     """
     content = await file.read()
     if not content:
-        raise HTTPException(status_code=400, detail="Fichier vide.")
+        raise api_error(400, "empty_file")
 
     result = analyze_garment_image(content, file.filename or "garment.jpg")
     return result

@@ -98,6 +98,126 @@ abstract class AppLocalizations {
     Locale('fr')
   ];
 
+  /// No description provided for @apiActionNotAllowed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Action non autorisée.'**
+  String get apiActionNotAllowed;
+
+  /// No description provided for @apiAnalyzeError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Erreur analyse IA.'**
+  String get apiAnalyzeError;
+
+  /// No description provided for @apiCannotAddSelf.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de t\'ajouter toi-même.'**
+  String get apiCannotAddSelf;
+
+  /// No description provided for @apiConnectionError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de contacter le serveur.'**
+  String get apiConnectionError;
+
+  /// No description provided for @apiEmptyFile.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fichier vide.'**
+  String get apiEmptyFile;
+
+  /// No description provided for @apiFriendRequestAlreadyHandled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demande déjà traitée.'**
+  String get apiFriendRequestAlreadyHandled;
+
+  /// No description provided for @apiFriendRequestAlreadySent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demande déjà envoyée.'**
+  String get apiFriendRequestAlreadySent;
+
+  /// No description provided for @apiFriendRequestNotFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Demande introuvable.'**
+  String get apiFriendRequestNotFound;
+
+  /// No description provided for @apiGarmentNotFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vêtement introuvable.'**
+  String get apiGarmentNotFound;
+
+  /// No description provided for @apiInvalidActivationCode.
+  ///
+  /// In fr, this message translates to:
+  /// **'Code d\'activation invalide.'**
+  String get apiInvalidActivationCode;
+
+  /// No description provided for @apiInvalidFirebaseToken.
+  ///
+  /// In fr, this message translates to:
+  /// **'Session expirée. Reconnecte-toi.'**
+  String get apiInvalidFirebaseToken;
+
+  /// No description provided for @apiInvalidServerResponse.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réponse invalide du serveur.'**
+  String get apiInvalidServerResponse;
+
+  /// No description provided for @apiNotAuthenticated.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utilisateur non authentifié.'**
+  String get apiNotAuthenticated;
+
+  /// No description provided for @apiOutfitNotFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Outfit introuvable.'**
+  String get apiOutfitNotFound;
+
+  /// No description provided for @apiPostNotFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Post introuvable.'**
+  String get apiPostNotFound;
+
+  /// No description provided for @apiSuggestError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Erreur API.'**
+  String get apiSuggestError;
+
+  /// No description provided for @apiUnknownError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une erreur est survenue.'**
+  String get apiUnknownError;
+
+  /// No description provided for @apiUploadError.
+  ///
+  /// In fr, this message translates to:
+  /// **'Erreur lors de l\'upload.'**
+  String get apiUploadError;
+
+  /// No description provided for @apiUploadTimeout.
+  ///
+  /// In fr, this message translates to:
+  /// **'Le traitement de l\'image prend trop de temps.'**
+  String get apiUploadTimeout;
+
+  /// No description provided for @apiUserNotFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Utilisateur introuvable.'**
+  String get apiUserNotFound;
+
   /// No description provided for @appTitle.
   ///
   /// In fr, this message translates to:
@@ -205,6 +325,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Connexion'**
   String get authLoginTitle;
+
+  /// No description provided for @authNoUserConnected.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun utilisateur connecté.'**
+  String get authNoUserConnected;
 
   /// No description provided for @authNotConnected.
   ///
@@ -446,6 +572,12 @@ abstract class AppLocalizations {
   /// **'Gris foncé'**
   String get colorDarkGrey;
 
+  /// No description provided for @colorFilterTypeHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Taper pour filtrer'**
+  String get colorFilterTypeHint;
+
   /// No description provided for @colorGreen.
   ///
   /// In fr, this message translates to:
@@ -464,6 +596,12 @@ abstract class AppLocalizations {
   /// **'Gris clair'**
   String get colorLightGrey;
 
+  /// No description provided for @colorMulticolor.
+  ///
+  /// In fr, this message translates to:
+  /// **'Multicolore'**
+  String get colorMulticolor;
+
   /// No description provided for @colorOrange.
   ///
   /// In fr, this message translates to:
@@ -475,12 +613,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Rose'**
   String get colorPink;
-
-  /// No description provided for @colorMulticolor.
-  ///
-  /// In fr, this message translates to:
-  /// **'Multicolore'**
-  String get colorMulticolor;
 
   /// No description provided for @colorPurple.
   ///
@@ -643,6 +775,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Passer'**
   String get commonSkip;
+
+  /// No description provided for @commonValidate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider'**
+  String get commonValidate;
 
   /// No description provided for @commonYes.
   ///
@@ -986,6 +1124,12 @@ abstract class AppLocalizations {
   /// **'@compte perso uniSaps (optionnel)'**
   String get creatorPersonalAccount;
 
+  /// No description provided for @creatorPostCaptionLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Légende (optionnel)'**
+  String get creatorPostCaptionLabel;
+
   /// No description provided for @creatorPostCollectionLabel.
   ///
   /// In fr, this message translates to:
@@ -1040,6 +1184,12 @@ abstract class AppLocalizations {
   /// **'Aucun post pour l\'instant.'**
   String get creatorPostsEmpty;
 
+  /// No description provided for @creatorPostsFilterAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Toutes'**
+  String get creatorPostsFilterAll;
+
   /// No description provided for @creatorPostsNoCollection.
   ///
   /// In fr, this message translates to:
@@ -1082,6 +1232,30 @@ abstract class AppLocalizations {
   /// **'Lien boutique (URL)'**
   String get creatorShopUrl;
 
+  /// No description provided for @creatorStatActive.
+  ///
+  /// In fr, this message translates to:
+  /// **'Actifs'**
+  String get creatorStatActive;
+
+  /// No description provided for @creatorStatLikes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Likes'**
+  String get creatorStatLikes;
+
+  /// No description provided for @creatorStatPerformance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Performance'**
+  String get creatorStatPerformance;
+
+  /// No description provided for @creatorStatViews.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vues'**
+  String get creatorStatViews;
+
   /// No description provided for @creatorSubscriptionActive.
   ///
   /// In fr, this message translates to:
@@ -1100,65 +1274,17 @@ abstract class AppLocalizations {
   /// **'Abonnement inactif'**
   String get creatorSubscriptionInactive;
 
-  /// No description provided for @creatorSubscriptionRate.
-  ///
-  /// In fr, this message translates to:
-  /// **'Tarif : {price}'**
-  String creatorSubscriptionRate(Object price);
-
   /// No description provided for @creatorSubscriptionMonthlyPrice.
   ///
   /// In fr, this message translates to:
   /// **'29 \$ / mois'**
   String get creatorSubscriptionMonthlyPrice;
 
-  /// No description provided for @creatorCollectionNoPieces.
+  /// No description provided for @creatorSubscriptionRate.
   ///
   /// In fr, this message translates to:
-  /// **'Aucune pièce'**
-  String get creatorCollectionNoPieces;
-
-  /// No description provided for @creatorCollectionOnePiece.
-  ///
-  /// In fr, this message translates to:
-  /// **'1 pièce'**
-  String get creatorCollectionOnePiece;
-
-  /// No description provided for @creatorCollectionPieceCount.
-  ///
-  /// In fr, this message translates to:
-  /// **'{count} pièces'**
-  String creatorCollectionPieceCount(int count);
-
-  /// No description provided for @creatorCollectionEmptyTitle.
-  ///
-  /// In fr, this message translates to:
-  /// **'Collection vide'**
-  String get creatorCollectionEmptyTitle;
-
-  /// No description provided for @creatorCollectionEmptyHint.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ajoute des pièces pour alimenter cette ligne.'**
-  String get creatorCollectionEmptyHint;
-
-  /// No description provided for @creatorPostDefaultCaption.
-  ///
-  /// In fr, this message translates to:
-  /// **'Post sponsorisé'**
-  String get creatorPostDefaultCaption;
-
-  /// No description provided for @creatorPostStatusActive.
-  ///
-  /// In fr, this message translates to:
-  /// **'Actif'**
-  String get creatorPostStatusActive;
-
-  /// No description provided for @creatorPostStatusInactive.
-  ///
-  /// In fr, this message translates to:
-  /// **'Inactif'**
-  String get creatorPostStatusInactive;
+  /// **'Tarif : {price}'**
+  String creatorSubscriptionRate(Object price);
 
   /// No description provided for @creatorTabGarments.
   ///
@@ -1433,7 +1559,7 @@ abstract class AppLocalizations {
   /// No description provided for @garmentBrandNoneFound.
   ///
   /// In fr, this message translates to:
-  /// **'Aucune marque trouvée. Tu peux saisir librement.'**
+  /// **'Aucune marque trouvée'**
   String get garmentBrandNoneFound;
 
   /// No description provided for @garmentBrandTapAgainToFilter.
@@ -1565,19 +1691,19 @@ abstract class AppLocalizations {
   /// No description provided for @garmentColorNoneFound.
   ///
   /// In fr, this message translates to:
-  /// **'Aucune couleur trouvée. Tu peux saisir librement.'**
+  /// **'Aucune couleur trouvée'**
   String get garmentColorNoneFound;
 
   /// No description provided for @garmentColorSearchHint.
   ///
   /// In fr, this message translates to:
-  /// **'Rechercher ou choisir une couleur (max 3)'**
+  /// **'Rechercher une couleur…'**
   String get garmentColorSearchHint;
 
   /// No description provided for @garmentColorTapAgainToFilter.
   ///
   /// In fr, this message translates to:
-  /// **'Appuie à nouveau pour filtrer…'**
+  /// **'Taper à nouveau pour filtrer'**
   String get garmentColorTapAgainToFilter;
 
   /// No description provided for @garmentColorsLabel.
@@ -1609,6 +1735,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Début (AAAA-MM-JJ)'**
   String get garmentDateStartHint;
+
+  /// No description provided for @garmentDeleteCollectionAction.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer la collection'**
+  String get garmentDeleteCollectionAction;
 
   /// No description provided for @garmentDeleteCollectionTitle.
   ///
@@ -1646,6 +1778,12 @@ abstract class AppLocalizations {
   /// **'Galerie - plusieurs photos'**
   String get garmentGalleryMultiple;
 
+  /// No description provided for @garmentImageNamesMismatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Incohérence images / noms de fichiers.'**
+  String get garmentImageNamesMismatch;
+
   /// No description provided for @garmentImageNotRecognizedBody.
   ///
   /// In fr, this message translates to:
@@ -1675,6 +1813,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Le nom est obligatoire.'**
   String get garmentNameRequired;
+
+  /// No description provided for @garmentNewImageNamesMismatch.
+  ///
+  /// In fr, this message translates to:
+  /// **'Incohérence nouvelles images / noms de fichiers.'**
+  String get garmentNewImageNamesMismatch;
 
   /// No description provided for @garmentNoItemsInCategory.
   ///
@@ -1951,6 +2095,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Cet outfit n\'existe plus. Choisis un outfit du jour.'**
   String get inspoOutfitNoLongerExists;
+
+  /// No description provided for @inspoPieceFallback.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pièce'**
+  String get inspoPieceFallback;
 
   /// No description provided for @inspoPostDeleteFailed.
   ///
@@ -2306,6 +2456,12 @@ abstract class AppLocalizations {
   /// **'Recommencer'**
   String get outfitsRestart;
 
+  /// No description provided for @outfitsStreakCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count}'**
+  String outfitsStreakCount(Object count);
+
   /// No description provided for @outfitsStreakDaysSuffix.
   ///
   /// In fr, this message translates to:
@@ -2329,6 +2485,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Streak de '**
   String get outfitsStreakLine;
+
+  /// No description provided for @outfitsStreakPlusOne.
+  ///
+  /// In fr, this message translates to:
+  /// **'+1'**
+  String get outfitsStreakPlusOne;
 
   /// No description provided for @outfitsSwipeEmpty.
   ///
@@ -2360,6 +2522,12 @@ abstract class AppLocalizations {
   /// **'Météo du jour, '**
   String get outfitsWeatherTodayPrefix;
 
+  /// No description provided for @outfitsWeatherTodaySemantics.
+  ///
+  /// In fr, this message translates to:
+  /// **'Météo du jour, {temp}°'**
+  String outfitsWeatherTodaySemantics(Object temp);
+
   /// No description provided for @pickerCamera.
   ///
   /// In fr, this message translates to:
@@ -2371,6 +2539,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Galerie'**
   String get pickerGallery;
+
+  /// No description provided for @postInvalidId.
+  ///
+  /// In fr, this message translates to:
+  /// **'ID du post invalide.'**
+  String get postInvalidId;
 
   /// No description provided for @premiumDialogActivateHint.
   ///
@@ -2599,6 +2773,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Se déconnecter'**
   String get profileLogOut;
+
+  /// No description provided for @profileMemberLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Membre'**
+  String get profileMemberLabel;
 
   /// No description provided for @profileMemberSince.
   ///
@@ -3083,7 +3263,7 @@ abstract class AppLocalizations {
   /// No description provided for @statWorn.
   ///
   /// In fr, this message translates to:
-  /// **'Portes'**
+  /// **'Portés'**
   String get statWorn;
 
   /// No description provided for @styleCasual.
@@ -3158,11 +3338,23 @@ abstract class AppLocalizations {
   /// **'Commence par ton dressing'**
   String get tutorialDressingTitle;
 
+  /// No description provided for @tutorialGotIt.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compris !'**
+  String get tutorialGotIt;
+
   /// No description provided for @tutorialInspoDesc.
   ///
   /// In fr, this message translates to:
   /// **'Découvre les looks des autres et partage le tien.'**
   String get tutorialInspoDesc;
+
+  /// No description provided for @tutorialInspoDiscoverDesc.
+  ///
+  /// In fr, this message translates to:
+  /// **'Découvre les looks de la communauté et like ceux qui t\'inspirent.'**
+  String get tutorialInspoDiscoverDesc;
 
   /// No description provided for @tutorialInspoTitle.
   ///
@@ -3182,6 +3374,18 @@ abstract class AppLocalizations {
   /// **'Crée ton premier outfit'**
   String get tutorialOutfitsTitle;
 
+  /// No description provided for @tutorialProfileDesc.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retrouve tes stats, ta galerie, tes amis et les paramètres de ton compte.'**
+  String get tutorialProfileDesc;
+
+  /// No description provided for @tutorialProfileTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton profil'**
+  String get tutorialProfileTitle;
+
   /// No description provided for @tutorialPublishDesc.
   ///
   /// In fr, this message translates to:
@@ -3194,6 +3398,12 @@ abstract class AppLocalizations {
   /// **'Publie ton look du jour'**
   String get tutorialPublishTitle;
 
+  /// No description provided for @userAtUsername.
+  ///
+  /// In fr, this message translates to:
+  /// **'@{username}'**
+  String userAtUsername(Object username);
+
   /// No description provided for @userProfileAccept.
   ///
   /// In fr, this message translates to:
@@ -3205,6 +3415,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ajouter en ami'**
   String get userProfileAddFriend;
+
+  /// No description provided for @userProfileAddedOn.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajoutée le {date}'**
+  String userProfileAddedOn(Object date);
+
+  /// No description provided for @userProfileCollections.
+  ///
+  /// In fr, this message translates to:
+  /// **'Collections'**
+  String get userProfileCollections;
 
   /// No description provided for @userProfileEmptyDressing.
   ///
@@ -3332,6 +3554,18 @@ abstract class AppLocalizations {
   /// **'Impossible de récupérer la météo.'**
   String get weatherFetchFailed;
 
+  /// No description provided for @weatherFog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillard'**
+  String get weatherFog;
+
+  /// No description provided for @weatherHourNow.
+  ///
+  /// In fr, this message translates to:
+  /// **'{hour}h'**
+  String weatherHourNow(Object hour);
+
   /// No description provided for @weatherHourly.
   ///
   /// In fr, this message translates to:
@@ -3404,6 +3638,12 @@ abstract class AppLocalizations {
   /// **'Données Open-Meteo - mis à jour à {time}'**
   String weatherOpenMeteoUpdated(Object time);
 
+  /// No description provided for @weatherPartlyClear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partiellement dégagé'**
+  String get weatherPartlyClear;
+
   /// No description provided for @weatherRain.
   ///
   /// In fr, this message translates to:
@@ -3452,47 +3692,23 @@ abstract class AppLocalizations {
   /// **'Coucher'**
   String get weatherSunset;
 
+  /// No description provided for @weatherTodayMinMax.
+  ///
+  /// In fr, this message translates to:
+  /// **'Auj. {range}'**
+  String weatherTodayMinMax(Object range);
+
+  /// No description provided for @weatherVariable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Variable'**
+  String get weatherVariable;
+
   /// No description provided for @weatherWind.
   ///
   /// In fr, this message translates to:
   /// **'Vent'**
   String get weatherWind;
-
-  /// No description provided for @weatherDrizzle.
-  ///
-  /// In fr, this message translates to:
-  /// **'Bruine'**
-  String get weatherDrizzle;
-
-  /// No description provided for @weatherFog.
-  ///
-  /// In fr, this message translates to:
-  /// **'Brouillard'**
-  String get weatherFog;
-
-  /// No description provided for @weatherHourNow.
-  ///
-  /// In fr, this message translates to:
-  /// **'{hour}h'**
-  String weatherHourNow(String hour);
-
-  /// No description provided for @weatherPartlyClear.
-  ///
-  /// In fr, this message translates to:
-  /// **'Éclaircies'**
-  String get weatherPartlyClear;
-
-  /// No description provided for @weatherTodayMinMax.
-  ///
-  /// In fr, this message translates to:
-  /// **'Auj. {range}'**
-  String weatherTodayMinMax(String range);
-
-  /// No description provided for @weatherVariable.
-  ///
-  /// In fr, this message translates to:
-  /// **'Temps variable'**
-  String get weatherVariable;
 }
 
 class _AppLocalizationsDelegate

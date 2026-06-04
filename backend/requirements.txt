@@ -9,5 +9,6 @@ python-multipart==0.0.9
 Pillow==10.4.0
 pydantic==2.9.0
 pydantic-settings==2.5.0
+pytest==8.3.3
 # rembg désactivé : dépassement de la limite 500 MB des Lambdas Vercel.
 # Pour réactiver en local, ajouter : rembg==2.0.50

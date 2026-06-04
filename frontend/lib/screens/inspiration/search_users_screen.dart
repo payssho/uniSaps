@@ -8,6 +8,9 @@ import '../../providers/auth_provider.dart';
 import '../../providers/friendship_provider.dart';
 import '../../widgets/user_list_tile.dart';
 import 'user_profile_screen.dart';
+import '../../l10n/l10n_context.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/l10n_context.dart';
 
 class SearchUsersScreen extends ConsumerStatefulWidget {
   const SearchUsersScreen({super.key});
@@ -96,6 +99,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final currentUser = ref.watch(currentUserProvider).valueOrNull;
 
     return Scaffold(
@@ -119,8 +123,8 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
             focusNode: _focusNode,
             onChanged: _onSearchChanged,
             style: const TextStyle(fontSize: 15),
-            decoration: const InputDecoration(
-              hintText: 'Rechercher un utilisateur...',
+            decoration: InputDecoration(
+              hintText: l10n.inspoSearchUser,
               hintStyle: TextStyle(color: AppColors.textHint, fontSize: 15),
               prefixIcon: Icon(Icons.search, color: AppColors.textHint, size: 20),
               border: InputBorder.none,
@@ -130,13 +134,13 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
         ),
         actions: const [SizedBox(width: 12)],
       ),
-      body: _buildBody(currentUser),
+      body: _buildBody(l10n, currentUser),
     );
   }
 
-  Widget _buildBody(UserModel? currentUser) {
+  Widget _buildBody(AppLocalizations l10n, UserModel? currentUser) {
     if (_controller.text.trim().isEmpty) {
-      return _buildSuggestions(currentUser);
+      return _buildSuggestions(l10n, currentUser);
     }
 
     if (_loading) {
@@ -153,12 +157,12 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
               children: [
                 Icon(Icons.person_off_outlined, size: 64, color: AppColors.textHint.withOpacity(0.3)),
                 const SizedBox(height: 12),
-                const Text('Aucun resultat', style: AppTextStyles.bodySecondary),
+                Text(l10n.searchNoResultsShort, style: AppTextStyles.bodySecondary),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          Expanded(child: _buildSuggestions(currentUser, compactHeader: true)),
+          Expanded(child: _buildSuggestions(l10n, currentUser, compactHeader: true)),
         ],
       );
     }
@@ -181,7 +185,8 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
     );
   }
 
-  Widget _buildSuggestions(UserModel? currentUser, {bool compactHeader = false}) {
+  Widget _buildSuggestions(AppLocalizations l10n, UserModel? currentUser,
+      {bool compactHeader = false}) {
     if (_loadingSuggestions) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -193,7 +198,7 @@ class _SearchUsersScreenState extends ConsumerState<SearchUsersScreen> {
           children: [
             Icon(Icons.search, size: 64, color: AppColors.textHint.withOpacity(0.3)),
             const SizedBox(height: 16),
-            const Text('Tape un pseudo pour chercher', style: AppTextStyles.bodySecondary),
+            Text(l10n.searchTypePseudo, style: AppTextStyles.bodySecondary),
           ],
         ),
       );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import '../services/color_service.dart';
+import '../l10n/l10n_context.dart';
 
 class ColorSelector extends StatefulWidget {
   final TextEditingController controller;
@@ -181,7 +182,7 @@ class _ColorSelectorState extends State<ColorSelector> {
                 : _showSuggestions
                     ? IconButton(
                         icon: const Icon(Icons.keyboard_outlined, size: 20, color: AppColors.textHint),
-                        tooltip: 'Taper pour filtrer',
+                        tooltip: context.l10n.colorFilterTypeHint,
                         onPressed: _onTap,
                       )
                     : null,

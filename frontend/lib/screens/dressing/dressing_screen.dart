@@ -17,6 +17,7 @@ import '../../widgets/garment_detail_sheet.dart';
 import '../../widgets/add_garment_sheet.dart';
 import '../../widgets/async_error_state.dart';
 import '../../widgets/loading_shimmer_grid.dart';
+import '../../l10n/l10n_context.dart';
 import '../../utils/dressing_garment_filters.dart';
 
 class DressingScreen extends ConsumerStatefulWidget {
@@ -78,6 +79,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final uid = ref.watch(authServiceProvider).uid;
     final garmentsAsync = ref.watch(garmentsProvider(uid));
     final hasAnyGarment = garmentsAsync.valueOrNull?.isNotEmpty ?? false;
@@ -91,9 +93,9 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text('Mon Dressing', style: AppTextStyles.heading2),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(l10n.dressingMyWardrobe, style: AppTextStyles.heading2),
               ),
               const SizedBox(height: 20),
               DressingCategoryChipsRow(
@@ -131,11 +133,11 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                       return AppEmptyState(
                         icon: Icons.checkroom,
                         title: hasItemsInCat && !noFilters
-                            ? 'Aucun résultat'
-                            : 'Aucun vêtement',
+                            ? l10n.dressingNoResults
+                            : l10n.dressingNoGarments,
                         subtitle: hasItemsInCat && !noFilters
-                            ? 'Essaie un autre nom, marque ou couleur.'
-                            : 'Ajoute ton premier vêtement !',
+                            ? l10n.dressingTryOtherFilters
+                            : l10n.dressingAddFirstGarment,
                         action: wardrobeEmpty && noFilters
                             ? _AnimatedAddGarmentButton(
                                 onPressed: _showAddGarmentSheet,
@@ -189,18 +191,18 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
           ? Padding(
               padding: const EdgeInsets.only(bottom: 16, right: 16),
               child: Semantics(
-                label: 'Ajouter un vêtement',
+                label: l10n.dressingAddGarment,
                 button: true,
                 child: FloatingActionButton.extended(
                   heroTag: 'dressing_fab',
-                  tooltip: 'Ajouter un vêtement',
+                  tooltip: l10n.dressingAddGarment,
                   backgroundColor: AppColors.accent,
                   elevation: 6,
                   onPressed: _showAddGarmentSheet,
                   icon: const Icon(Icons.add, color: AppColors.white, size: 24),
-                  label: const Text(
-                    'Ajouter',
-                    style: TextStyle(
+                  label: Text(
+                    l10n.dressingAddShort,
+                    style: const TextStyle(
                       color: AppColors.white,
                       fontWeight: FontWeight.w600,
                     ),
@@ -259,7 +261,7 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
   Future<bool?> _confirmDelete(GarmentModel garment) {
     return showConfirmDeleteSheet(
       context,
-      title: 'Supprimer ce vêtement ?',
+      title: context.l10n.garmentDeleteConfirmTitle,
       subtitle: '"${garment.name}"',
     );
   }
@@ -281,8 +283,8 @@ class _AnimatedAddGarmentButton extends StatelessWidget {
         shadowColor: AppColors.accent.withValues(alpha: 0.45),
       ),
       icon: const Icon(Icons.add_rounded, size: 22),
-      label: const Text(
-        'Ajouter un vêtement',
+      label: Text(
+        context.l10n.dressingAddGarment,
         style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
       ),
     )

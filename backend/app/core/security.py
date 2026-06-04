@@ -1,5 +1,6 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from .errors import api_error
 from .firebase import verify_id_token
 
 bearer_scheme = HTTPBearer()
@@ -13,7 +14,4 @@ async def get_current_uid(
         decoded = verify_id_token(cred.credentials)
         return decoded["uid"]
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token Firebase invalide ou expire.",
-        )
+        raise api_error(status.HTTP_401_UNAUTHORIZED, "invalid_firebase_token")
