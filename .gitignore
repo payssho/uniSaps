@@ -30,6 +30,9 @@ firebase_options.dart
 *.swp
 *.swo
 
+# Git worktrees (superpowers)
+.worktrees/
+
 # OS
 .DS_Store
 Thumbs.db
