@@ -1,3 +1,5 @@
+import 'style_profile.dart';
+
 class TutorialState {
   final bool dressing;
   final bool creations;
@@ -74,6 +76,7 @@ class UserModel {
   final String linkedUserUid;
   final String creatorSubscriptionStatus;
   final String creatorSubscriptionExpiresAt;
+  final StyleProfile? styleProfile;
 
   const UserModel({
     this.uid = '',
@@ -99,7 +102,11 @@ class UserModel {
     this.linkedUserUid = '',
     this.creatorSubscriptionStatus = 'inactive',
     this.creatorSubscriptionExpiresAt = '',
+    this.styleProfile,
   });
+
+  bool get hasStyleProfile =>
+      styleProfile != null && styleProfile!.updatedAt.isNotEmpty;
 
   bool get isPremium =>
       accountTier.toLowerCase() == 'premium' ||
@@ -151,6 +158,11 @@ class UserModel {
           map['creator_subscription_status'] as String? ?? 'inactive',
       creatorSubscriptionExpiresAt:
           map['creator_subscription_expires_at'] ?? '',
+      styleProfile: map['style_profile'] != null
+          ? StyleProfile.fromMap(
+              Map<String, dynamic>.from(map['style_profile'] as Map),
+            )
+          : null,
     );
   }
 
@@ -178,6 +190,7 @@ class UserModel {
         'linked_user_uid': linkedUserUid,
         'creator_subscription_status': creatorSubscriptionStatus,
         'creator_subscription_expires_at': creatorSubscriptionExpiresAt,
+        if (styleProfile != null) 'style_profile': styleProfile!.toMap(),
       };
 
   UserModel copyWith({
@@ -204,6 +217,7 @@ class UserModel {
     String? linkedUserUid,
     String? creatorSubscriptionStatus,
     String? creatorSubscriptionExpiresAt,
+    StyleProfile? styleProfile,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -231,6 +245,7 @@ class UserModel {
           creatorSubscriptionStatus ?? this.creatorSubscriptionStatus,
       creatorSubscriptionExpiresAt:
           creatorSubscriptionExpiresAt ?? this.creatorSubscriptionExpiresAt,
+      styleProfile: styleProfile ?? this.styleProfile,
     );
   }
 }
