@@ -22,7 +22,9 @@ import '../../widgets/stat_row.dart';
 import '../../widgets/user_list_tile.dart';
 import '../../widgets/language_locale_button.dart';
 import '../../providers/ui_navigation_provider.dart';
+import '../../l10n/l10n_context.dart';
 import '../inspiration/user_profile_screen.dart';
+import 'style_preferences_screen.dart';
 import '../inspiration/search_users_screen.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -1225,6 +1227,25 @@ class _FriendsTab extends ConsumerWidget {
             },
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: ListTile(
+              title: Text(context.l10n.styleSettingsTitle),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const StylePreferencesScreen(),
+                  ),
+                );
+              },
+            ),
           ),
           const SizedBox(height: 12),
           Container(

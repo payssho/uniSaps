@@ -63,7 +63,6 @@
   "colorLightGrey": "Gris clair",
   "colorOrange": "Orange",
   "colorPink": "Rose",
-  "colorMulticolor": "Multicolore",
   "colorPurple": "Violet",
   "colorRed": "Rouge",
   "colorWhite": "Blanc",
@@ -168,22 +167,6 @@
   "creatorSubscriptionExpires": "Expire le {date}",
   "creatorSubscriptionInactive": "Abonnement inactif",
   "creatorSubscriptionRate": "Tarif : {price}",
-  "creatorSubscriptionMonthlyPrice": "29 $ / mois",
-  "creatorCollectionNoPieces": "Aucune pièce",
-  "creatorCollectionOnePiece": "1 pièce",
-  "creatorCollectionPieceCount": "{count} pièces",
-  "@creatorCollectionPieceCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "creatorCollectionEmptyTitle": "Collection vide",
-  "creatorCollectionEmptyHint": "Ajoute des pièces pour alimenter cette ligne.",
-  "creatorPostDefaultCaption": "Post sponsorisé",
-  "creatorPostStatusActive": "Actif",
-  "creatorPostStatusInactive": "Inactif",
   "creatorTabGarments": "Vêtements",
   "creatorTabPosts": "Posts",
   "creatorTabProfile": "Profil",
@@ -229,8 +212,6 @@
   "garmentAiUnavailable": "Analyse IA indisponible. Vérifie ta connexion et réessaie dans un instant.",
   "garmentAnalyzing": "Analyse IA en cours…",
   "garmentBrandHint": "Marque",
-  "garmentBrandNoneFound": "Aucune marque trouvée. Tu peux saisir librement.",
-  "garmentBrandTapAgainToFilter": "Appuie à nouveau pour filtrer…",
   "garmentCategoryLabel": "Catégorie",
   "garmentCategoryTitle": "Catégorie",
   "garmentChooseCollection": "Choisir une collection",
@@ -250,10 +231,6 @@
   "garmentCollectionStartDate": "Date de début",
   "garmentCollectionsErrorPrefix": "Collections : ",
   "garmentColorHint": "Couleur",
-  "garmentColorMaxReached": "Maximum 3 couleurs atteint",
-  "garmentColorNoneFound": "Aucune couleur trouvée. Tu peux saisir librement.",
-  "garmentColorSearchHint": "Rechercher ou choisir une couleur (max 3)",
-  "garmentColorTapAgainToFilter": "Appuie à nouveau pour filtrer…",
   "garmentColorsLabel": "Couleurs",
   "garmentCreateCollectionFirst": "Crée d'abord une collection depuis ton catalogue marque.",
   "garmentCreatorPseudoMissing": "Ton pseudo (@identifiant) est introuvable. Complète ton profil créateur.",
@@ -505,14 +482,42 @@
   "statGarments": "Vêtements",
   "statStreak": "Streak",
   "statWorn": "Portes",
+  "styleAudacity": "Audace",
+  "styleAudacityHigh": "Audacieux",
+  "styleAudacityLow": "Sobre",
   "styleCasual": "Décontracté",
   "styleClassy": "Classe",
   "styleColorful": "Coloré",
+  "styleComfortBalanced": "J'ai des bases",
+  "styleComfortBeginner": "Je débute",
+  "styleComfortConfident": "Je suis à l'aise",
+  "styleComfortTitle": "Ton rapport à la mode",
   "styleEvening": "Soirée",
+  "styleGoalInspiration": "Trouver l'inspiration",
+  "styleGoalRefine": "Affiner mon style",
+  "styleGoalTrack": "Suivre ce que je porte",
+  "styleGoalWardrobe": "Gérer ma garde-robe",
+  "styleIdentityCasual": "Casual",
+  "styleIdentityClassic": "Classique",
+  "styleIdentityColorful": "Coloré",
+  "styleIdentityEvening": "Soirée",
+  "styleIdentityMinimal": "Minimal",
+  "styleIdentityProfessional": "Professionnel",
+  "styleIdentitySport": "Sport",
+  "styleIdentityStreetwear": "Streetwear",
+  "styleIdentityTitle": "Ton style",
+  "styleOnboardingContinue": "Continuer",
+  "styleOnboardingSkip": "Passer",
+  "styleOnboardingSkipAll": "Passer la personnalisation",
+  "styleOnboardingTitle": "Personnalise uniSaps",
   "styleProfessional": "Professionnel",
+  "styleSettingsReset": "Réinitialiser",
+  "styleSettingsSave": "Enregistrer",
+  "styleSettingsTitle": "Style & préférences",
   "styleSimple": "Simple",
   "styleSporty": "Sportif",
   "styleStreetwear": "Streetwear",
+  "stylistRationaleFallback": "Look équilibré pour ta garde-robe.",
   "teasePremiumAiSuggestions": "Suggestions IA",
   "teasePremiumDiscover": "Découvrir",
   "tutorialDressingDesc": "Ajoute un vêtement pour remplir ton dressing.",
@@ -566,25 +571,5 @@
   "weatherSunCourse": "Course du soleil",
   "weatherSunrise": "Lever",
   "weatherSunset": "Coucher",
-  "weatherWind": "Vent",
-  "weatherDrizzle": "Bruine",
-  "weatherFog": "Brouillard",
-  "weatherHourNow": "{hour}h",
-  "@weatherHourNow": {
-    "placeholders": {
-      "hour": {
-        "type": "String"
-      }
-    }
-  },
-  "weatherPartlyClear": "Éclaircies",
-  "weatherTodayMinMax": "Auj. {range}",
-  "@weatherTodayMinMax": {
-    "placeholders": {
-      "range": {
-        "type": "String"
-      }
-    }
-  },
-  "weatherVariable": "Temps variable"
+  "weatherWind": "Vent"
 }

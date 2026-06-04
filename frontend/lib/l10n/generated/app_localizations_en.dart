@@ -199,9 +199,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get colorPink => 'Pink';
 
   @override
-  String get colorMulticolor => 'Multicolor';
-
-  @override
   String get colorPurple => 'Purple';
 
   @override
@@ -530,36 +527,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get creatorSubscriptionMonthlyPrice => '\$29 / month';
-
-  @override
-  String get creatorCollectionNoPieces => 'No items';
-
-  @override
-  String get creatorCollectionOnePiece => '1 item';
-
-  @override
-  String creatorCollectionPieceCount(int count) {
-    return '$count items';
-  }
-
-  @override
-  String get creatorCollectionEmptyTitle => 'Empty collection';
-
-  @override
-  String get creatorCollectionEmptyHint =>
-      'Add items to stock this collection.';
-
-  @override
-  String get creatorPostDefaultCaption => 'Sponsored post';
-
-  @override
-  String get creatorPostStatusActive => 'Active';
-
-  @override
-  String get creatorPostStatusInactive => 'Inactive';
-
-  @override
   String get creatorTabGarments => 'Garments';
 
   @override
@@ -702,12 +669,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get garmentBrandHint => 'Brand';
 
   @override
-  String get garmentBrandNoneFound => 'No brand found. You can type freely.';
-
-  @override
-  String get garmentBrandTapAgainToFilter => 'Tap again to filter…';
-
-  @override
   String get garmentCategoryLabel => 'Category';
 
   @override
@@ -770,18 +731,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get garmentColorHint => 'Color';
-
-  @override
-  String get garmentColorMaxReached => 'Maximum of 3 colors';
-
-  @override
-  String get garmentColorNoneFound => 'No color found. You can type freely.';
-
-  @override
-  String get garmentColorSearchHint => 'Search or pick a color (max 3)';
-
-  @override
-  String get garmentColorTapAgainToFilter => 'Tap again to filter…';
 
   @override
   String get garmentColorsLabel => 'Colors';
@@ -1568,6 +1517,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get statWorn => 'Worn';
 
   @override
+  String get styleAudacity => 'Boldness';
+
+  @override
+  String get styleAudacityHigh => 'Bold';
+
+  @override
+  String get styleAudacityLow => 'Understated';
+
+  @override
   String get styleCasual => 'Casual';
 
   @override
@@ -1577,10 +1535,82 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleColorful => 'Colorful';
 
   @override
+  String get styleComfortBalanced => 'I know the basics';
+
+  @override
+  String get styleComfortBeginner => 'I\'m starting out';
+
+  @override
+  String get styleComfortConfident => 'I\'m confident';
+
+  @override
+  String get styleComfortTitle => 'Your fashion comfort';
+
+  @override
   String get styleEvening => 'Evening';
 
   @override
+  String get styleGoalInspiration => 'Find inspiration';
+
+  @override
+  String get styleGoalRefine => 'Refine my style';
+
+  @override
+  String get styleGoalTrack => 'Track what I wear';
+
+  @override
+  String get styleGoalWardrobe => 'Manage my wardrobe';
+
+  @override
+  String get styleIdentityCasual => 'Casual';
+
+  @override
+  String get styleIdentityClassic => 'Classic';
+
+  @override
+  String get styleIdentityColorful => 'Colorful';
+
+  @override
+  String get styleIdentityEvening => 'Evening';
+
+  @override
+  String get styleIdentityMinimal => 'Minimal';
+
+  @override
+  String get styleIdentityProfessional => 'Professional';
+
+  @override
+  String get styleIdentitySport => 'Sport';
+
+  @override
+  String get styleIdentityStreetwear => 'Streetwear';
+
+  @override
+  String get styleIdentityTitle => 'Your style';
+
+  @override
+  String get styleOnboardingContinue => 'Continue';
+
+  @override
+  String get styleOnboardingSkip => 'Skip';
+
+  @override
+  String get styleOnboardingSkipAll => 'Skip personalization';
+
+  @override
+  String get styleOnboardingTitle => 'Personalize uniSaps';
+
+  @override
   String get styleProfessional => 'Professional';
+
+  @override
+  String get styleSettingsReset => 'Reset';
+
+  @override
+  String get styleSettingsSave => 'Save';
+
+  @override
+  String get styleSettingsTitle => 'Style & preferences';
 
   @override
   String get styleSimple => 'Simple';
@@ -1590,6 +1620,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get styleStreetwear => 'Streetwear';
+
+  @override
+  String get stylistRationaleFallback => 'A balanced look for your wardrobe.';
 
   @override
   String get teasePremiumAiSuggestions => 'AI suggestions';
@@ -1769,26 +1802,4 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weatherWind => 'Wind';
-
-  @override
-  String get weatherDrizzle => 'Drizzle';
-
-  @override
-  String get weatherFog => 'Fog';
-
-  @override
-  String weatherHourNow(String hour) {
-    return '$hour';
-  }
-
-  @override
-  String get weatherPartlyClear => 'Partly clear';
-
-  @override
-  String weatherTodayMinMax(String range) {
-    return 'Today $range';
-  }
-
-  @override
-  String get weatherVariable => 'Mixed conditions';
 }

@@ -476,12 +476,6 @@ abstract class AppLocalizations {
   /// **'Rose'**
   String get colorPink;
 
-  /// No description provided for @colorMulticolor.
-  ///
-  /// In fr, this message translates to:
-  /// **'Multicolore'**
-  String get colorMulticolor;
-
   /// No description provided for @colorPurple.
   ///
   /// In fr, this message translates to:
@@ -1106,60 +1100,6 @@ abstract class AppLocalizations {
   /// **'Tarif : {price}'**
   String creatorSubscriptionRate(Object price);
 
-  /// No description provided for @creatorSubscriptionMonthlyPrice.
-  ///
-  /// In fr, this message translates to:
-  /// **'29 \$ / mois'**
-  String get creatorSubscriptionMonthlyPrice;
-
-  /// No description provided for @creatorCollectionNoPieces.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucune pièce'**
-  String get creatorCollectionNoPieces;
-
-  /// No description provided for @creatorCollectionOnePiece.
-  ///
-  /// In fr, this message translates to:
-  /// **'1 pièce'**
-  String get creatorCollectionOnePiece;
-
-  /// No description provided for @creatorCollectionPieceCount.
-  ///
-  /// In fr, this message translates to:
-  /// **'{count} pièces'**
-  String creatorCollectionPieceCount(int count);
-
-  /// No description provided for @creatorCollectionEmptyTitle.
-  ///
-  /// In fr, this message translates to:
-  /// **'Collection vide'**
-  String get creatorCollectionEmptyTitle;
-
-  /// No description provided for @creatorCollectionEmptyHint.
-  ///
-  /// In fr, this message translates to:
-  /// **'Ajoute des pièces pour alimenter cette ligne.'**
-  String get creatorCollectionEmptyHint;
-
-  /// No description provided for @creatorPostDefaultCaption.
-  ///
-  /// In fr, this message translates to:
-  /// **'Post sponsorisé'**
-  String get creatorPostDefaultCaption;
-
-  /// No description provided for @creatorPostStatusActive.
-  ///
-  /// In fr, this message translates to:
-  /// **'Actif'**
-  String get creatorPostStatusActive;
-
-  /// No description provided for @creatorPostStatusInactive.
-  ///
-  /// In fr, this message translates to:
-  /// **'Inactif'**
-  String get creatorPostStatusInactive;
-
   /// No description provided for @creatorTabGarments.
   ///
   /// In fr, this message translates to:
@@ -1430,18 +1370,6 @@ abstract class AppLocalizations {
   /// **'Marque'**
   String get garmentBrandHint;
 
-  /// No description provided for @garmentBrandNoneFound.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucune marque trouvée. Tu peux saisir librement.'**
-  String get garmentBrandNoneFound;
-
-  /// No description provided for @garmentBrandTapAgainToFilter.
-  ///
-  /// In fr, this message translates to:
-  /// **'Appuie à nouveau pour filtrer…'**
-  String get garmentBrandTapAgainToFilter;
-
   /// No description provided for @garmentCategoryLabel.
   ///
   /// In fr, this message translates to:
@@ -1555,30 +1483,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Couleur'**
   String get garmentColorHint;
-
-  /// No description provided for @garmentColorMaxReached.
-  ///
-  /// In fr, this message translates to:
-  /// **'Maximum 3 couleurs atteint'**
-  String get garmentColorMaxReached;
-
-  /// No description provided for @garmentColorNoneFound.
-  ///
-  /// In fr, this message translates to:
-  /// **'Aucune couleur trouvée. Tu peux saisir librement.'**
-  String get garmentColorNoneFound;
-
-  /// No description provided for @garmentColorSearchHint.
-  ///
-  /// In fr, this message translates to:
-  /// **'Rechercher ou choisir une couleur (max 3)'**
-  String get garmentColorSearchHint;
-
-  /// No description provided for @garmentColorTapAgainToFilter.
-  ///
-  /// In fr, this message translates to:
-  /// **'Appuie à nouveau pour filtrer…'**
-  String get garmentColorTapAgainToFilter;
 
   /// No description provided for @garmentColorsLabel.
   ///
@@ -3086,6 +2990,24 @@ abstract class AppLocalizations {
   /// **'Portes'**
   String get statWorn;
 
+  /// No description provided for @styleAudacity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Audace'**
+  String get styleAudacity;
+
+  /// No description provided for @styleAudacityHigh.
+  ///
+  /// In fr, this message translates to:
+  /// **'Audacieux'**
+  String get styleAudacityHigh;
+
+  /// No description provided for @styleAudacityLow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sobre'**
+  String get styleAudacityLow;
+
   /// No description provided for @styleCasual.
   ///
   /// In fr, this message translates to:
@@ -3104,17 +3026,161 @@ abstract class AppLocalizations {
   /// **'Coloré'**
   String get styleColorful;
 
+  /// No description provided for @styleComfortBalanced.
+  ///
+  /// In fr, this message translates to:
+  /// **'J\'ai des bases'**
+  String get styleComfortBalanced;
+
+  /// No description provided for @styleComfortBeginner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je débute'**
+  String get styleComfortBeginner;
+
+  /// No description provided for @styleComfortConfident.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je suis à l\'aise'**
+  String get styleComfortConfident;
+
+  /// No description provided for @styleComfortTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton rapport à la mode'**
+  String get styleComfortTitle;
+
   /// No description provided for @styleEvening.
   ///
   /// In fr, this message translates to:
   /// **'Soirée'**
   String get styleEvening;
 
+  /// No description provided for @styleGoalInspiration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trouver l\'inspiration'**
+  String get styleGoalInspiration;
+
+  /// No description provided for @styleGoalRefine.
+  ///
+  /// In fr, this message translates to:
+  /// **'Affiner mon style'**
+  String get styleGoalRefine;
+
+  /// No description provided for @styleGoalTrack.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suivre ce que je porte'**
+  String get styleGoalTrack;
+
+  /// No description provided for @styleGoalWardrobe.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérer ma garde-robe'**
+  String get styleGoalWardrobe;
+
+  /// No description provided for @styleIdentityCasual.
+  ///
+  /// In fr, this message translates to:
+  /// **'Casual'**
+  String get styleIdentityCasual;
+
+  /// No description provided for @styleIdentityClassic.
+  ///
+  /// In fr, this message translates to:
+  /// **'Classique'**
+  String get styleIdentityClassic;
+
+  /// No description provided for @styleIdentityColorful.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coloré'**
+  String get styleIdentityColorful;
+
+  /// No description provided for @styleIdentityEvening.
+  ///
+  /// In fr, this message translates to:
+  /// **'Soirée'**
+  String get styleIdentityEvening;
+
+  /// No description provided for @styleIdentityMinimal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Minimal'**
+  String get styleIdentityMinimal;
+
+  /// No description provided for @styleIdentityProfessional.
+  ///
+  /// In fr, this message translates to:
+  /// **'Professionnel'**
+  String get styleIdentityProfessional;
+
+  /// No description provided for @styleIdentitySport.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sport'**
+  String get styleIdentitySport;
+
+  /// No description provided for @styleIdentityStreetwear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Streetwear'**
+  String get styleIdentityStreetwear;
+
+  /// No description provided for @styleIdentityTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton style'**
+  String get styleIdentityTitle;
+
+  /// No description provided for @styleOnboardingContinue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer'**
+  String get styleOnboardingContinue;
+
+  /// No description provided for @styleOnboardingSkip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passer'**
+  String get styleOnboardingSkip;
+
+  /// No description provided for @styleOnboardingSkipAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passer la personnalisation'**
+  String get styleOnboardingSkipAll;
+
+  /// No description provided for @styleOnboardingTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnalise uniSaps'**
+  String get styleOnboardingTitle;
+
   /// No description provided for @styleProfessional.
   ///
   /// In fr, this message translates to:
   /// **'Professionnel'**
   String get styleProfessional;
+
+  /// No description provided for @styleSettingsReset.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get styleSettingsReset;
+
+  /// No description provided for @styleSettingsSave.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer'**
+  String get styleSettingsSave;
+
+  /// No description provided for @styleSettingsTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Style & préférences'**
+  String get styleSettingsTitle;
 
   /// No description provided for @styleSimple.
   ///
@@ -3133,6 +3199,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Streetwear'**
   String get styleStreetwear;
+
+  /// No description provided for @stylistRationaleFallback.
+  ///
+  /// In fr, this message translates to:
+  /// **'Look équilibré pour ta garde-robe.'**
+  String get stylistRationaleFallback;
 
   /// No description provided for @teasePremiumAiSuggestions.
   ///
@@ -3457,42 +3529,6 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Vent'**
   String get weatherWind;
-
-  /// No description provided for @weatherDrizzle.
-  ///
-  /// In fr, this message translates to:
-  /// **'Bruine'**
-  String get weatherDrizzle;
-
-  /// No description provided for @weatherFog.
-  ///
-  /// In fr, this message translates to:
-  /// **'Brouillard'**
-  String get weatherFog;
-
-  /// No description provided for @weatherHourNow.
-  ///
-  /// In fr, this message translates to:
-  /// **'{hour}h'**
-  String weatherHourNow(String hour);
-
-  /// No description provided for @weatherPartlyClear.
-  ///
-  /// In fr, this message translates to:
-  /// **'Éclaircies'**
-  String get weatherPartlyClear;
-
-  /// No description provided for @weatherTodayMinMax.
-  ///
-  /// In fr, this message translates to:
-  /// **'Auj. {range}'**
-  String weatherTodayMinMax(String range);
-
-  /// No description provided for @weatherVariable.
-  ///
-  /// In fr, this message translates to:
-  /// **'Temps variable'**
-  String get weatherVariable;
 }
 
 class _AppLocalizationsDelegate

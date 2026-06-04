@@ -63,7 +63,6 @@
   "colorLightGrey": "Light grey",
   "colorOrange": "Orange",
   "colorPink": "Pink",
-  "colorMulticolor": "Multicolor",
   "colorPurple": "Purple",
   "colorRed": "Red",
   "colorWhite": "White",
@@ -168,22 +167,6 @@
   "creatorSubscriptionExpires": "Expires on {date}",
   "creatorSubscriptionInactive": "Inactive subscription",
   "creatorSubscriptionRate": "Price: {price}",
-  "creatorSubscriptionMonthlyPrice": "$29 / month",
-  "creatorCollectionNoPieces": "No items",
-  "creatorCollectionOnePiece": "1 item",
-  "creatorCollectionPieceCount": "{count} items",
-  "@creatorCollectionPieceCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "creatorCollectionEmptyTitle": "Empty collection",
-  "creatorCollectionEmptyHint": "Add items to stock this collection.",
-  "creatorPostDefaultCaption": "Sponsored post",
-  "creatorPostStatusActive": "Active",
-  "creatorPostStatusInactive": "Inactive",
   "creatorTabGarments": "Garments",
   "creatorTabPosts": "Posts",
   "creatorTabProfile": "Profile",
@@ -229,8 +212,6 @@
   "garmentAiUnavailable": "AI analysis unavailable. Check your connection and try again shortly.",
   "garmentAnalyzing": "AI analysis in progress…",
   "garmentBrandHint": "Brand",
-  "garmentBrandNoneFound": "No brand found. You can type freely.",
-  "garmentBrandTapAgainToFilter": "Tap again to filter…",
   "garmentCategoryLabel": "Category",
   "garmentCategoryTitle": "Category",
   "garmentChooseCollection": "Choose a collection",
@@ -250,10 +231,6 @@
   "garmentCollectionStartDate": "Start date",
   "garmentCollectionsErrorPrefix": "Collections: ",
   "garmentColorHint": "Color",
-  "garmentColorMaxReached": "Maximum of 3 colors",
-  "garmentColorNoneFound": "No color found. You can type freely.",
-  "garmentColorSearchHint": "Search or pick a color (max 3)",
-  "garmentColorTapAgainToFilter": "Tap again to filter…",
   "garmentColorsLabel": "Colors",
   "garmentCreateCollectionFirst": "Create a collection from your brand catalog first.",
   "garmentCreatorPseudoMissing": "Your @handle was not found. Complete your creator profile.",
@@ -505,14 +482,42 @@
   "statGarments": "Garments",
   "statStreak": "Streak",
   "statWorn": "Worn",
+  "styleAudacity": "Boldness",
+  "styleAudacityHigh": "Bold",
+  "styleAudacityLow": "Understated",
   "styleCasual": "Casual",
   "styleClassy": "Classy",
   "styleColorful": "Colorful",
+  "styleComfortBalanced": "I know the basics",
+  "styleComfortBeginner": "I'm starting out",
+  "styleComfortConfident": "I'm confident",
+  "styleComfortTitle": "Your fashion comfort",
   "styleEvening": "Evening",
+  "styleGoalInspiration": "Find inspiration",
+  "styleGoalRefine": "Refine my style",
+  "styleGoalTrack": "Track what I wear",
+  "styleGoalWardrobe": "Manage my wardrobe",
+  "styleIdentityCasual": "Casual",
+  "styleIdentityClassic": "Classic",
+  "styleIdentityColorful": "Colorful",
+  "styleIdentityEvening": "Evening",
+  "styleIdentityMinimal": "Minimal",
+  "styleIdentityProfessional": "Professional",
+  "styleIdentitySport": "Sport",
+  "styleIdentityStreetwear": "Streetwear",
+  "styleIdentityTitle": "Your style",
+  "styleOnboardingContinue": "Continue",
+  "styleOnboardingSkip": "Skip",
+  "styleOnboardingSkipAll": "Skip personalization",
+  "styleOnboardingTitle": "Personalize uniSaps",
   "styleProfessional": "Professional",
+  "styleSettingsReset": "Reset",
+  "styleSettingsSave": "Save",
+  "styleSettingsTitle": "Style & preferences",
   "styleSimple": "Simple",
   "styleSporty": "Sporty",
   "styleStreetwear": "Streetwear",
+  "stylistRationaleFallback": "A balanced look for your wardrobe.",
   "teasePremiumAiSuggestions": "AI suggestions",
   "teasePremiumDiscover": "Discover",
   "tutorialDressingDesc": "Add a garment to fill your wardrobe.",
@@ -566,25 +571,5 @@
   "weatherSunCourse": "Sun path",
   "weatherSunrise": "Sunrise",
   "weatherSunset": "Sunset",
-  "weatherWind": "Wind",
-  "weatherDrizzle": "Drizzle",
-  "weatherFog": "Fog",
-  "weatherHourNow": "{hour}",
-  "@weatherHourNow": {
-    "placeholders": {
-      "hour": {
-        "type": "String"
-      }
-    }
-  },
-  "weatherPartlyClear": "Partly clear",
-  "weatherTodayMinMax": "Today {range}",
-  "@weatherTodayMinMax": {
-    "placeholders": {
-      "range": {
-        "type": "String"
-      }
-    }
-  },
-  "weatherVariable": "Mixed conditions"
+  "weatherWind": "Wind"
 }
