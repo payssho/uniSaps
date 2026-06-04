@@ -1,12 +1,15 @@
 import os
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from ...core.security import get_current_uid
 from ...core.firebase import get_firestore_client
+from ...core.errors import api_error
+from ...models.style_profile import StyleProfile
 from ...services.ai_service import suggest_multiple, analyze_garment_image
+from ...services.style_profile_service import identity_to_canonical_style
 
 router = APIRouter()
 
@@ -18,6 +21,14 @@ class SuggestRequest(BaseModel):
     # rendre le scoring sensible au temps qu'il fait / à la saison.
     season_key: Optional[str] = None
     weather_tags: Optional[List[str]] = None
+    style_profile: Optional[Dict[str, Any]] = None
+
+
+def _parse_style_profile(raw: dict[str, Any]) -> StyleProfile:
+    try:
+        return StyleProfile.model_validate(raw)
+    except ValidationError:
+        raise api_error(400, "invalid_style_profile") from None
 
 
 @router.post("/suggest")
@@ -38,13 +49,28 @@ async def suggest_outfits(body: SuggestRequest, uid: str = Depends(get_current_u
         o["id"] = d.id
         existing.append(o)
 
+    profile: StyleProfile | None = None
+    if body.style_profile is not None:
+        profile = _parse_style_profile(body.style_profile)
+    else:
+        user_snap = db.collection("users").document(uid).get()
+        if user_snap.exists:
+            raw = (user_snap.to_dict() or {}).get("style_profile")
+            if raw:
+                profile = _parse_style_profile(raw)
+
+    effective_style = (
+        identity_to_canonical_style(profile.identity_style) if profile else body.style
+    )
+
     suggestions = suggest_multiple(
         garments,
-        body.style,
+        effective_style,
         body.count,
         existing,
         season_key=body.season_key,
         weather_tags=body.weather_tags,
+        style_profile=profile,
     )
     return {"suggestions": suggestions}
 
