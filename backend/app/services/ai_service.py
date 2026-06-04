@@ -15,6 +15,9 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+from app.models.style_profile import StyleProfile
+from app.services.style_profile_service import identity_to_canonical_style
+
 logger = logging.getLogger("unisaps.ai")
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -388,6 +391,33 @@ def _score(
     return base
 
 
+def _score_with_profile(
+    g: dict,
+    style: str,
+    season_key: Optional[str],
+    weather_tags: List[str],
+    profile: Optional[StyleProfile] = None,
+) -> int:
+    """Score d'une pièce avec bonus optionnels du profil stylistique."""
+    if profile:
+        base_style = identity_to_canonical_style(profile.identity_style)
+        score = _score(g, base_style, season_key, weather_tags)
+        color = ""
+        colors = g.get("colors")
+        if isinstance(colors, list) and colors:
+            color = str(colors[0])
+        if not color:
+            color = str(g.get("color") or "")
+        family = _color_family(color)
+        if profile.audacity >= 4 and family in ("warm", "pastel"):
+            score += 1
+        pattern = str(g.get("pattern") or "").lower().strip()
+        if profile.goal_wardrobe >= 4 and (not pattern or pattern == "uni"):
+            score += 1
+        return score
+    return _score(g, style, season_key, weather_tags)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
@@ -398,6 +428,7 @@ def suggest_outfit(
     existing_outfits: list[dict] | None = None,
     season_key: Optional[str] = None,
     weather_tags: Optional[List[str]] = None,
+    style_profile: Optional[StyleProfile] = None,
 ) -> dict[str, str]:
     """Propose une combinaison une-par-catégorie.
 
@@ -429,6 +460,7 @@ def suggest_outfit(
                             recently_worn.add(pid)
 
     suggestion: dict[str, str] = {c: "" for c in ALL_CATS}
+    worn_penalty = -1 if style_profile and style_profile.goal_inspiration >= 4 else -2
 
     for cat in ALL_CATS:
         available = by_cat.get(cat, [])
@@ -438,8 +470,8 @@ def suggest_outfit(
         scored = sorted(
             available,
             key=lambda g: (
-                _score(g, resolved, season_key, weather)
-                + (-2 if g.get("id") in recently_worn else 0)
+                _score_with_profile(g, resolved, season_key, weather, style_profile)
+                + (worn_penalty if g.get("id") in recently_worn else 0)
             ),
             reverse=True,
         )
@@ -456,7 +488,9 @@ def suggest_outfit(
         if "outerwear" in by_cat and by_cat["outerwear"] and not suggestion.get("outerwear"):
             scored_out = sorted(
                 by_cat["outerwear"],
-                key=lambda g: _score(g, resolved, season_key, weather),
+                key=lambda g: _score_with_profile(
+                    g, resolved, season_key, weather, style_profile
+                ),
                 reverse=True,
             )
             suggestion["outerwear"] = scored_out[0].get("id", "")
@@ -471,6 +505,7 @@ def suggest_multiple(
     existing_outfits: list[dict] | None = None,
     season_key: Optional[str] = None,
     weather_tags: Optional[List[str]] = None,
+    style_profile: Optional[StyleProfile] = None,
 ) -> list[dict[str, str]]:
     results: list[dict[str, str]] = []
     seen: set[tuple] = set()
@@ -482,6 +517,7 @@ def suggest_multiple(
             existing_outfits,
             season_key=season_key,
             weather_tags=weather_tags,
+            style_profile=style_profile,
         )
         key = tuple(sorted(s.items()))
         if key not in seen:
