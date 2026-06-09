@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../l10n/l10n_context.dart';
+import '../../../widgets/onboarding_progress_bar.dart';
 import '../../../models/style_profile.dart';
 import '../../../providers/style_onboarding_draft_provider.dart';
 import '../../../widgets/style_profile_form.dart';
@@ -34,14 +34,7 @@ class StyleIdentityScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.styleOnboardingTitle),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: LinearProgressIndicator(
-            value: 2 / 3,
-            valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
-            backgroundColor: AppColors.accent.withOpacity(0.2),
-          ),
-        ),
+        bottom: const OnboardingProgressBar(step: 2, total: 3),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
