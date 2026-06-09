@@ -921,6 +921,26 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
             seasonKey: seasonKey,
             weatherTags: weatherTags,
           );
+          // Retry silencieux si toutes les rationales sont vides
+          if (list.every((s) => s.rationaleShort.isEmpty)) {
+            final retry = await api.suggestStylist(
+              count: 3,
+              userPrompt: custom,
+              seasonKey: seasonKey,
+              weatherTags: weatherTags,
+            );
+            list = retry;
+          }
+          // Fallback générique si encore vides après retry
+          if (list.every((s) => s.rationaleShort.isEmpty) && mounted) {
+            final fallback = context.l10n.stylistRationaleFallback;
+            list = list
+                .map((s) => AiOutfitSuggestion(
+                      garments: s.garments,
+                      rationaleShort: fallback,
+                    ))
+                .toList();
+          }
         } catch (_) {
           list = await api.suggestOutfits(
             style: style,
