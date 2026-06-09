@@ -31,7 +31,7 @@ void main() {
     });
 
     test('fromMap → toMap est idempotent', () {
-      final map = {'name': 'Robe', 'brand': 'Zara'};
+      final map = {'name': 'Robe', 'brand': 'Zara', 'image_url': ''};
       final result = GarmentRef.fromMap(map).toMap();
       expect(result, map);
     });

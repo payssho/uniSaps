@@ -194,6 +194,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get colorLightGrey => 'Gris clair';
 
   @override
+  String get colorMulticolor => 'Multicolore';
+
+  @override
   String get colorOrange => 'Orange';
 
   @override
@@ -525,6 +528,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get creatorSubscriptionInactive => 'Abonnement inactif';
 
   @override
+  String get creatorSubscriptionMonthlyPrice => '29 \$ / mois';
+
+  @override
   String creatorSubscriptionRate(Object price) {
     return 'Tarif : $price';
   }
@@ -675,6 +681,12 @@ class AppLocalizationsFr extends AppLocalizations {
   String get garmentBrandHint => 'Marque';
 
   @override
+  String get garmentBrandNoneFound => 'Aucune marque trouvée';
+
+  @override
+  String get garmentBrandTapAgainToFilter => 'Appuie à nouveau pour filtrer…';
+
+  @override
   String get garmentCategoryLabel => 'Catégorie';
 
   @override
@@ -739,6 +751,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get garmentColorHint => 'Couleur';
+
+  @override
+  String get garmentColorMaxReached => 'Maximum 3 couleurs atteint';
+
+  @override
+  String get garmentColorNoneFound => 'Aucune couleur trouvée';
+
+  @override
+  String get garmentColorSearchHint => 'Rechercher une couleur…';
+
+  @override
+  String get garmentColorTapAgainToFilter => 'Taper à nouveau pour filtrer';
 
   @override
   String get garmentColorsLabel => 'Couleurs';
@@ -1748,6 +1772,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get weatherFetchFailed => 'Impossible de récupérer la météo.';
 
   @override
+  String get weatherFog => 'Brouillard';
+
+  @override
+  String weatherHourNow(Object hour) {
+    return '${hour}h';
+  }
+
+  @override
   String get weatherHourly => 'Heure par heure';
 
   @override
@@ -1789,6 +1821,9 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get weatherPartlyClear => 'Partiellement dégagé';
+
+  @override
   String get weatherRain => 'Pluie';
 
   @override
@@ -1813,6 +1848,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get weatherSunset => 'Coucher';
+
+  @override
+  String weatherTodayMinMax(Object range) {
+    return 'Auj. $range';
+  }
+
+  @override
+  String get weatherVariable => 'Variable';
 
   @override
   String get weatherWind => 'Vent';

@@ -193,6 +193,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get colorLightGrey => 'Light grey';
 
   @override
+  String get colorMulticolor => 'Multicolor';
+
+  @override
   String get colorOrange => 'Orange';
 
   @override
@@ -522,6 +525,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get creatorSubscriptionInactive => 'Inactive subscription';
 
   @override
+  String get creatorSubscriptionMonthlyPrice => '29 \$ / month';
+
+  @override
   String creatorSubscriptionRate(Object price) {
     return 'Price: $price';
   }
@@ -669,6 +675,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get garmentBrandHint => 'Brand';
 
   @override
+  String get garmentBrandNoneFound => 'No brand found';
+
+  @override
+  String get garmentBrandTapAgainToFilter => 'Tap again to filter…';
+
+  @override
   String get garmentCategoryLabel => 'Category';
 
   @override
@@ -731,6 +743,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get garmentColorHint => 'Color';
+
+  @override
+  String get garmentColorMaxReached => 'Maximum of 3 colors reached';
+
+  @override
+  String get garmentColorNoneFound => 'No color found';
+
+  @override
+  String get garmentColorSearchHint => 'Search for a color…';
+
+  @override
+  String get garmentColorTapAgainToFilter => 'Tap again to filter';
 
   @override
   String get garmentColorsLabel => 'Colors';
@@ -1735,6 +1759,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weatherFetchFailed => 'Could not fetch weather.';
 
   @override
+  String get weatherFog => 'Fog';
+
+  @override
+  String weatherHourNow(Object hour) {
+    return '${hour}h';
+  }
+
+  @override
   String get weatherHourly => 'Hour by hour';
 
   @override
@@ -1775,6 +1807,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get weatherPartlyClear => 'Partly clear';
+
+  @override
   String get weatherRain => 'Rain';
 
   @override
@@ -1799,6 +1834,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weatherSunset => 'Sunset';
+
+  @override
+  String weatherTodayMinMax(Object range) {
+    return 'Today $range';
+  }
+
+  @override
+  String get weatherVariable => 'Variable';
 
   @override
   String get weatherWind => 'Wind';

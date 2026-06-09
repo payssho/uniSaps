@@ -224,6 +224,9 @@ CATALOG = {
     "weatherRain": ("Pluie", "Rain"),
     "weatherSnow": ("Neige", "Snow"),
     "weatherStorm": ("Orage", "Storm"),
+    "weatherFog": ("Brouillard", "Fog"),
+    "weatherPartlyClear": ("Partiellement dégagé", "Partly clear"),
+    "weatherVariable": ("Variable", "Variable"),
     # Creation steps
     "creationStepPieces": ("Pièces", "Pieces"),
     "creationStepNamePhoto": ("Nom & photo", "Name & photo"),
@@ -253,6 +256,7 @@ CATALOG = {
     "colorYellow": ("Jaune", "Yellow"),
     "colorOrange": ("Orange", "Orange"),
     "colorPink": ("Rose", "Pink"),
+    "colorMulticolor": ("Multicolore", "Multicolor"),
     "colorPurple": ("Violet", "Purple"),
     "profileAccountPrivate": ("Privé", "Private"),
     "profileAccountPublic": ("Public", "Public"),
@@ -312,7 +316,31 @@ CATALOG = {
     "dressingFilterColor": ("— Couleur", "— Color"),
     "garmentNameDescHint": ("Nom / description", "Name / description"),
     "garmentBrandHint": ("Marque", "Brand"),
+    "garmentBrandTapAgainToFilter": (
+        "Appuie à nouveau pour filtrer…",
+        "Tap again to filter…",
+    ),
+    "garmentBrandNoneFound": (
+        "Aucune marque trouvée",
+        "No brand found",
+    ),
     "garmentColorHint": ("Couleur", "Color"),
+    "garmentColorMaxReached": (
+        "Maximum 3 couleurs atteint",
+        "Maximum of 3 colors reached",
+    ),
+    "garmentColorTapAgainToFilter": (
+        "Taper à nouveau pour filtrer",
+        "Tap again to filter",
+    ),
+    "garmentColorSearchHint": (
+        "Rechercher une couleur…",
+        "Search for a color…",
+    ),
+    "garmentColorNoneFound": (
+        "Aucune couleur trouvée",
+        "No color found",
+    ),
     "garmentCategoryTitle": ("Catégorie", "Category"),
     "garmentAddPhotoCaption": ("Ajouter une photo", "Add a photo"),
     "garmentNameRequired": ("Le nom est obligatoire.", "Name is required."),
@@ -347,6 +375,8 @@ CATALOG = {
     "weatherRefresh": ("Actualiser à ma position", "Refresh to my location"),
     "weatherHourly": ("Heure par heure", "Hour by hour"),
     "weatherNow": ("En ce moment", "Right now"),
+    "weatherHourNow": ("{hour}h", "{hour}h"),
+    "weatherTodayMinMax": ("Auj. {range}", "Today {range}"),
     "weatherFeelsLike": ("Ressenti", "Feels like"),
     "weatherWind": ("Vent", "Wind"),
     "weatherHumidity": ("Humidité", "Humidity"),
@@ -1101,6 +1131,12 @@ CATALOG = {
     "signupCreatorCatalogPieces": ("Pièces", "Pieces"),
     "signupCreatorCatalogOutfits": ("Tenues", "Outfits"),
     "creatorPostsNoCollection": ("Sans collection", "No collection"),
+    "creatorCheckoutTitle": ("Abonnement marque", "Brand subscription"),
+    "creatorSubscriptionMonthlyPrice": ("29 $ / mois", "29 $ / month"),
+    "creatorCheckoutActivate": (
+        "Activer mon espace marque",
+        "Activate my brand space",
+    ),
     "creatorCheckoutSimulatedPayment": (
         "Paiement simulé en développement. Saisis le code d'activation pour activer ton espace.",
         "Simulated payment in development. Enter the activation code to activate your space.",

@@ -1,7 +1,7 @@
 # Profil style & suggestions styliste — Design
 
 **Date:** 2026-06-04  
-**Statut:** Approuvé — plan d’implémentation `docs/superpowers/plans/2026-06-04-style-profile-stylist.md`  
+**Statut:** Implémenté — plan `docs/superpowers/plans/2026-06-04-style-profile-stylist.md`  
 **Branche cible suggérée :** `feature/style-profile-stylist` (à part de `feature/i18n-api-errors`)
 
 ## Objectif

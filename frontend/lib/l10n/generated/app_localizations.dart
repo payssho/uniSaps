@@ -464,6 +464,12 @@ abstract class AppLocalizations {
   /// **'Gris clair'**
   String get colorLightGrey;
 
+  /// No description provided for @colorMulticolor.
+  ///
+  /// In fr, this message translates to:
+  /// **'Multicolore'**
+  String get colorMulticolor;
+
   /// No description provided for @colorOrange.
   ///
   /// In fr, this message translates to:
@@ -1094,6 +1100,12 @@ abstract class AppLocalizations {
   /// **'Abonnement inactif'**
   String get creatorSubscriptionInactive;
 
+  /// No description provided for @creatorSubscriptionMonthlyPrice.
+  ///
+  /// In fr, this message translates to:
+  /// **'29 \$ / mois'**
+  String get creatorSubscriptionMonthlyPrice;
+
   /// No description provided for @creatorSubscriptionRate.
   ///
   /// In fr, this message translates to:
@@ -1370,6 +1382,18 @@ abstract class AppLocalizations {
   /// **'Marque'**
   String get garmentBrandHint;
 
+  /// No description provided for @garmentBrandNoneFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune marque trouvée'**
+  String get garmentBrandNoneFound;
+
+  /// No description provided for @garmentBrandTapAgainToFilter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Appuie à nouveau pour filtrer…'**
+  String get garmentBrandTapAgainToFilter;
+
   /// No description provided for @garmentCategoryLabel.
   ///
   /// In fr, this message translates to:
@@ -1483,6 +1507,30 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Couleur'**
   String get garmentColorHint;
+
+  /// No description provided for @garmentColorMaxReached.
+  ///
+  /// In fr, this message translates to:
+  /// **'Maximum 3 couleurs atteint'**
+  String get garmentColorMaxReached;
+
+  /// No description provided for @garmentColorNoneFound.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune couleur trouvée'**
+  String get garmentColorNoneFound;
+
+  /// No description provided for @garmentColorSearchHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher une couleur…'**
+  String get garmentColorSearchHint;
+
+  /// No description provided for @garmentColorTapAgainToFilter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Taper à nouveau pour filtrer'**
+  String get garmentColorTapAgainToFilter;
 
   /// No description provided for @garmentColorsLabel.
   ///
@@ -3404,6 +3452,18 @@ abstract class AppLocalizations {
   /// **'Impossible de récupérer la météo.'**
   String get weatherFetchFailed;
 
+  /// No description provided for @weatherFog.
+  ///
+  /// In fr, this message translates to:
+  /// **'Brouillard'**
+  String get weatherFog;
+
+  /// No description provided for @weatherHourNow.
+  ///
+  /// In fr, this message translates to:
+  /// **'{hour}h'**
+  String weatherHourNow(Object hour);
+
   /// No description provided for @weatherHourly.
   ///
   /// In fr, this message translates to:
@@ -3476,6 +3536,12 @@ abstract class AppLocalizations {
   /// **'Données Open-Meteo - mis à jour à {time}'**
   String weatherOpenMeteoUpdated(Object time);
 
+  /// No description provided for @weatherPartlyClear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partiellement dégagé'**
+  String get weatherPartlyClear;
+
   /// No description provided for @weatherRain.
   ///
   /// In fr, this message translates to:
@@ -3523,6 +3589,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Coucher'**
   String get weatherSunset;
+
+  /// No description provided for @weatherTodayMinMax.
+  ///
+  /// In fr, this message translates to:
+  /// **'Auj. {range}'**
+  String weatherTodayMinMax(Object range);
+
+  /// No description provided for @weatherVariable.
+  ///
+  /// In fr, this message translates to:
+  /// **'Variable'**
+  String get weatherVariable;
 
   /// No description provided for @weatherWind.
   ///
