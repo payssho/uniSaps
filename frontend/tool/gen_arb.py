@@ -1197,6 +1197,7 @@ CATALOG = {
     "styleIdentityProfessional": ("Professionnel", "Professional"),
     "styleIdentityColorful": ("Coloré", "Colorful"),
     "styleIdentityEvening": ("Soirée", "Evening"),
+    "styleDominantFocusPrefix": ("Ton focus", "Your focus"),
 }
 
 def slug(s: str) -> str:

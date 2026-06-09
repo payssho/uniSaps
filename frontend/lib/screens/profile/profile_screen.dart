@@ -1229,6 +1229,52 @@ class _FriendsTab extends ConsumerWidget {
             error: (_, __) => const SizedBox.shrink(),
           ),
           const SizedBox(height: 12),
+          // ############### CODE IA (Cursor / Claude) ###############
+          Builder(
+            builder: (context) {
+              final sp = user?.styleProfile;
+              if (sp == null || sp.onboardingSkipped) return const SizedBox.shrink();
+              final goalLabels = <String, String>{
+                'goal_wardrobe': context.l10n.styleGoalWardrobe,
+                'goal_inspiration': context.l10n.styleGoalInspiration,
+                'goal_refine_style': context.l10n.styleGoalRefine,
+                'goal_track_wear': context.l10n.styleGoalTrack,
+              };
+              final goalLabel = goalLabels[sp.dominantGoalKey];
+              if (goalLabel == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.accent),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            '${context.l10n.styleDominantFocusPrefix} : $goalLabel',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
           Container(
             decoration: BoxDecoration(
               color: AppColors.surface,

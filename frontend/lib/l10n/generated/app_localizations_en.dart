@@ -1571,6 +1571,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleComfortTitle => 'Your fashion comfort';
 
   @override
+  String get styleDominantFocusPrefix => 'Your focus';
+
+  @override
   String get styleEvening => 'Evening';
 
   @override

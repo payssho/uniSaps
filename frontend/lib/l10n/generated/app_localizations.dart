@@ -3098,6 +3098,12 @@ abstract class AppLocalizations {
   /// **'Ton rapport à la mode'**
   String get styleComfortTitle;
 
+  /// No description provided for @styleDominantFocusPrefix.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton focus'**
+  String get styleDominantFocusPrefix;
+
   /// No description provided for @styleEvening.
   ///
   /// In fr, this message translates to:

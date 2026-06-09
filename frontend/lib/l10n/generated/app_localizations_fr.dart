@@ -1582,6 +1582,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get styleComfortTitle => 'Ton rapport à la mode';
 
   @override
+  String get styleDominantFocusPrefix => 'Ton focus';
+
+  @override
   String get styleEvening => 'Soirée';
 
   @override
