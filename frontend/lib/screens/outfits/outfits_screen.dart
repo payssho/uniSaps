@@ -923,15 +923,19 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
           );
           // Retry silencieux si toutes les rationales sont vides
           if (list.every((s) => s.rationaleShort.isEmpty)) {
-            final retry = await api.suggestStylist(
-              count: 3,
-              userPrompt: custom,
-              seasonKey: seasonKey,
-              weatherTags: weatherTags,
-            );
-            list = retry;
+            try {
+              final retry = await api.suggestStylist(
+                count: 3,
+                userPrompt: custom,
+                seasonKey: seasonKey,
+                weatherTags: weatherTags,
+              );
+              list = retry;
+            } catch (_) {
+              // Retry échoué silencieusement — liste originale conservée, fallback appliqué ci-dessous
+            }
           }
-          // Fallback générique si encore vides après retry
+          // Fallback générique si encore vides après retry (ou si retry a échoué)
           if (list.every((s) => s.rationaleShort.isEmpty) && mounted) {
             final fallback = context.l10n.stylistRationaleFallback;
             list = list
@@ -968,6 +972,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
           styleProfile: user?.styleProfile,
         );
       }
+      if (!mounted) return;
       ref.read(biblioAiSuggestionsProvider.notifier).state = list;
     } catch (_) {
       if (mounted) {
