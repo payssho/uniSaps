@@ -1697,6 +1697,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleEvening => 'Evening';
 
   @override
+  String get styleExtraTitle => 'Your preferences';
+
+  @override
   String get styleGoalInspiration => 'Find inspiration';
 
   @override
@@ -1748,6 +1751,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleOnboardingTitle => 'Personalize uniSaps';
 
   @override
+  String get stylePreferredStylesHint => 'Optional — pick several';
+
+  @override
+  String get stylePreferredStylesTitle => 'Styles you like';
+
+  @override
   String get styleProfessional => 'Professional';
 
   @override
@@ -1763,10 +1772,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get styleSimple => 'Simple';
 
   @override
+  String get styleSocialFriends => 'Yes, with friends';
+
+  @override
+  String get styleSocialPrivate => 'Mostly private';
+
+  @override
+  String get styleSocialTitle => 'Share your outfits?';
+
+  @override
+  String get styleSocialUndecided => 'Decide later';
+
+  @override
   String get styleSporty => 'Sporty';
 
   @override
   String get styleStreetwear => 'Streetwear';
+
+  @override
+  String get styleUsageDaily => 'Every day';
+
+  @override
+  String get styleUsageOccasional => 'Occasionally';
+
+  @override
+  String get styleUsageTitle => 'How often?';
+
+  @override
+  String get styleUsageWeekly => 'A few times a week';
 
   @override
   String get stylistRationaleFallback => 'A balanced look for your wardrobe.';

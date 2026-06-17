@@ -3338,6 +3338,12 @@ abstract class AppLocalizations {
   /// **'Soirée'**
   String get styleEvening;
 
+  /// No description provided for @styleExtraTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tes préférences'**
+  String get styleExtraTitle;
+
   /// No description provided for @styleGoalInspiration.
   ///
   /// In fr, this message translates to:
@@ -3440,6 +3446,18 @@ abstract class AppLocalizations {
   /// **'Personnalise uniSaps'**
   String get styleOnboardingTitle;
 
+  /// No description provided for @stylePreferredStylesHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Optionnel — plusieurs choix possibles'**
+  String get stylePreferredStylesHint;
+
+  /// No description provided for @stylePreferredStylesTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Styles que tu aimes'**
+  String get stylePreferredStylesTitle;
+
   /// No description provided for @styleProfessional.
   ///
   /// In fr, this message translates to:
@@ -3470,6 +3488,30 @@ abstract class AppLocalizations {
   /// **'Simple'**
   String get styleSimple;
 
+  /// No description provided for @styleSocialFriends.
+  ///
+  /// In fr, this message translates to:
+  /// **'Oui, avec mes amis'**
+  String get styleSocialFriends;
+
+  /// No description provided for @styleSocialPrivate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Plutôt en privé'**
+  String get styleSocialPrivate;
+
+  /// No description provided for @styleSocialTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Partager tes tenues ?'**
+  String get styleSocialTitle;
+
+  /// No description provided for @styleSocialUndecided.
+  ///
+  /// In fr, this message translates to:
+  /// **'On verra plus tard'**
+  String get styleSocialUndecided;
+
   /// No description provided for @styleSporty.
   ///
   /// In fr, this message translates to:
@@ -3481,6 +3523,30 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Streetwear'**
   String get styleStreetwear;
+
+  /// No description provided for @styleUsageDaily.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les jours'**
+  String get styleUsageDaily;
+
+  /// No description provided for @styleUsageOccasional.
+  ///
+  /// In fr, this message translates to:
+  /// **'De temps en temps'**
+  String get styleUsageOccasional;
+
+  /// No description provided for @styleUsageTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'À quelle fréquence ?'**
+  String get styleUsageTitle;
+
+  /// No description provided for @styleUsageWeekly.
+  ///
+  /// In fr, this message translates to:
+  /// **'Quelques fois par semaine'**
+  String get styleUsageWeekly;
 
   /// No description provided for @stylistRationaleFallback.
   ///

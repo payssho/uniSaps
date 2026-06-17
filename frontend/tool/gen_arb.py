@@ -1300,6 +1300,20 @@ CATALOG = {
     "styleIdentityColorful": ("Coloré", "Colorful"),
     "styleIdentityEvening": ("Soirée", "Evening"),
     "styleDominantFocusPrefix": ("Ton focus", "Your focus"),
+    "styleExtraTitle": ("Tes préférences", "Your preferences"),
+    "stylePreferredStylesTitle": ("Styles que tu aimes", "Styles you like"),
+    "stylePreferredStylesHint": (
+        "Optionnel — plusieurs choix possibles",
+        "Optional — pick several",
+    ),
+    "styleUsageDaily": ("Tous les jours", "Every day"),
+    "styleUsageWeekly": ("Quelques fois par semaine", "A few times a week"),
+    "styleUsageOccasional": ("De temps en temps", "Occasionally"),
+    "styleUsageTitle": ("À quelle fréquence ?", "How often?"),
+    "styleSocialTitle": ("Partager tes tenues ?", "Share your outfits?"),
+    "styleSocialFriends": ("Oui, avec mes amis", "Yes, with friends"),
+    "styleSocialPrivate": ("Plutôt en privé", "Mostly private"),
+    "styleSocialUndecided": ("On verra plus tard", "Decide later"),
 }
 
 def slug(s: str) -> str:
