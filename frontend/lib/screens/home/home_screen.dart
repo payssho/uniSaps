@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_text_styles.dart';
+import '../../core/style_home_layout.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
@@ -36,6 +37,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   final _pageController = PageController();
   bool _tutorialStarted = false;
   int _currentTab = 0;
+  List<int>? _lastSyncedTabOrder;
 
   /// Message affiché quand l’utilisateur tente d’ouvrir un onglet verrouillé.
   String _lockMessage(AppLocalizations l10n, int index) {
@@ -92,19 +94,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       );
   }
 
-  void _goToTab(int index) {
-    if (index == _currentTab) return;
-    // Si l'onglet cible n'est pas adjacent, on saute directement pour éviter
-    // que les pages intermédiaires (ex. Inspo entre Outfits et Profil) flashent.
-    final distance = (index - _currentTab).abs();
+  void _goToTab(int logicalIndex, List<int> tabOrder) {
+    if (logicalIndex == _currentTab) return;
+    final physical = homePhysicalIndexForLogical(tabOrder, logicalIndex);
+    final currentPhysical =
+        homePhysicalIndexForLogical(tabOrder, _currentTab);
+    final distance = (physical - currentPhysical).abs();
     if (distance > 1) {
-      _pageController.jumpToPage(index);
+      _pageController.jumpToPage(physical);
     } else {
       _pageController.animateToPage(
-        index,
+        physical,
         duration: const Duration(milliseconds: 240),
         curve: Curves.easeOutCubic,
       );
+    }
+  }
+
+  void _syncPageToTabOrder(List<int> tabOrder) {
+    if (_lastSyncedTabOrder != null &&
+        listEquals(_lastSyncedTabOrder, tabOrder)) {
+      return;
+    }
+    _lastSyncedTabOrder = List<int>.from(tabOrder);
+    if (!_pageController.hasClients) return;
+    final physical = homePhysicalIndexForLogical(tabOrder, _currentTab);
+    final current = _pageController.page?.round() ?? 0;
+    if (current != physical) {
+      _pageController.jumpToPage(physical);
+    }
+  }
+
+  static Widget _pageForLogicalTab(int logical) {
+    switch (logical) {
+      case 0:
+        return const _KeepAlive(child: DressingScreen());
+      case 1:
+        return const _KeepAlive(child: OutfitsScreen());
+      case 2:
+        return const _KeepAlive(child: InspirationScreen());
+      case 3:
+      default:
+        return const _KeepAlive(
+          child: ProfileScreen(embeddedInMainNav: true),
+        );
     }
   }
 
@@ -123,6 +156,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         uid.isNotEmpty ? ref.watch(outfitsProvider(uid)) : null;
     final hasGarments = garmentsAsync?.valueOrNull?.isNotEmpty ?? false;
     final hasOutfits = outfitsAsync?.valueOrNull?.isNotEmpty ?? false;
+    final tabOrder = homeTabLogicalOrder(
+      user?.hasStyleProfile == true ? user?.styleProfile : null,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncPageToTabOrder(tabOrder);
+    });
 
     ref.listen(widgetLaunchRequestProvider, (prev, next) {
       if (next == null) return;
@@ -148,14 +187,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ? const [true, true, true, true]
           : [true, hasGarments, hasOutfits, true];
       if (unlocked[next]) {
-        _goToTab(next);
+        _goToTab(next, tabOrder);
       }
     });
 
     // Listen to tutorial changes
     ref.listen(tutorialStepProvider, (prev, next) {
       if (next != null) {
-        _goToTab(next.clamp(0, 3));
+        _goToTab(next.clamp(0, 3), tabOrder);
       }
     });
 
@@ -181,7 +220,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     void onTabTap(int index) {
       if (tabUnlocked[index]) {
-        _goToTab(index);
+        _goToTab(index, tabOrder);
       } else {
         _showLockedTabSnackBar(index);
       }
@@ -197,31 +236,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 physics: (_currentTab == 1 && isOutfitsSwipe && !hasDailyOutfit)
                     ? const NeverScrollableScrollPhysics()
                     : const PageScrollPhysics(),
-                onPageChanged: (index) {
-                  if (index < tabUnlocked.length && !tabUnlocked[index]) {
-                    // Onglet verrouillé - on rebondit vers la page courante
+                onPageChanged: (physicalIndex) {
+                  final logicalIndex =
+                      homeLogicalIndexForPhysical(tabOrder, physicalIndex);
+                  if (!tabUnlocked[logicalIndex]) {
                     Future.microtask(() {
                       if (_pageController.hasClients) {
                         _pageController.animateToPage(
-                          _currentTab,
+                          homePhysicalIndexForLogical(tabOrder, _currentTab),
                           duration: const Duration(milliseconds: 250),
                           curve: Curves.easeOut,
                         );
                       }
                     });
-                    _showLockedTabSnackBar(index);
+                    _showLockedTabSnackBar(logicalIndex);
                   } else {
-                    setState(() => _currentTab = index);
-                    ref.read(selectedTabProvider.notifier).state = index;
+                    setState(() => _currentTab = logicalIndex);
+                    ref.read(selectedTabProvider.notifier).state =
+                        logicalIndex;
                   }
                 },
-                children: const [
-                  _KeepAlive(child: DressingScreen()),
-                  _KeepAlive(child: OutfitsScreen()),
-                  _KeepAlive(child: InspirationScreen()),
-                  _KeepAlive(
-                      child: ProfileScreen(embeddedInMainNav: true)),
-                ],
+                children: tabOrder
+                    .map(_HomeScreenState._pageForLogicalTab)
+                    .toList(),
               ),
               if (user != null)
                 Positioned(
@@ -263,7 +300,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ],
           ),
           bottomNavigationBar: _BottomNavBar(
-            currentIndex: _currentTab,
+            tabOrder: tabOrder,
+            currentLogicalIndex: _currentTab,
             unlocked: tabUnlocked,
             profileBadgeCount: requestCount,
             profilePhotoUrl: user?.profilePhotoUrl ?? '',
@@ -301,7 +339,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         'is_new_user': false,
       });
     }
-    _goToTab(0);
+    _goToTab(0, homeTabLogicalOrder(user.styleProfile));
   }
 }
 
@@ -422,7 +460,8 @@ class _SearchFriendsButton extends StatelessWidget {
 // Compact bottom nav bar (4 tabs, lock support)
 // ---------------------------------------------------------------------------
 class _BottomNavBar extends StatelessWidget {
-  final int currentIndex;
+  final List<int> tabOrder;
+  final int currentLogicalIndex;
   final List<bool> unlocked;
   final int profileBadgeCount;
 
@@ -433,7 +472,8 @@ class _BottomNavBar extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   const _BottomNavBar({
-    required this.currentIndex,
+    required this.tabOrder,
+    required this.currentLogicalIndex,
     required this.unlocked,
     required this.profileBadgeCount,
     required this.profilePhotoUrl,
@@ -445,7 +485,7 @@ class _BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final tabs = [
+    final tabLabels = [
       (Icons.checkroom_outlined, Icons.checkroom, l10n.navDressing),
       (Icons.style_outlined, Icons.style, l10n.navOutfits),
       (Icons.explore_outlined, Icons.explore, l10n.navInspiration),
@@ -466,31 +506,29 @@ class _BottomNavBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Row(
             children: [
-              ...List.generate(tabs.length, (i) {
-                final (icon, activeIcon, label) = tabs[i];
-                return Expanded(
-                  child: _NavItem(
-                    icon: icon,
-                    activeIcon: activeIcon,
-                    label: label,
-                    selected: currentIndex == i,
-                    locked: !unlocked[i],
-                    requestBadgeCount: 0,
-                    onTap: () => onTap(i),
-                  ),
-                );
-              }),
-              Expanded(
-                child: NavProfileBubble(
-                  selected: currentIndex == 3,
-                  locked: !unlocked[3],
-                  badgeCount: unlocked[3] ? profileBadgeCount : 0,
-                  photoUrl: profilePhotoUrl,
-                  username: profileUsername,
-                  tutorialSpotlight: profileSpotlight,
-                  onTap: () => onTap(3),
+              for (final logical in tabOrder)
+                Expanded(
+                  child: logical == 3
+                      ? NavProfileBubble(
+                          selected: currentLogicalIndex == 3,
+                          locked: !unlocked[3],
+                          badgeCount:
+                              unlocked[3] ? profileBadgeCount : 0,
+                          photoUrl: profilePhotoUrl,
+                          username: profileUsername,
+                          tutorialSpotlight: profileSpotlight,
+                          onTap: () => onTap(3),
+                        )
+                      : _NavItem(
+                          icon: tabLabels[logical].$1,
+                          activeIcon: tabLabels[logical].$2,
+                          label: tabLabels[logical].$3,
+                          selected: currentLogicalIndex == logical,
+                          locked: !unlocked[logical],
+                          requestBadgeCount: 0,
+                          onTap: () => onTap(logical),
+                        ),
                 ),
-              ),
             ],
           ),
         ),

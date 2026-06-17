@@ -7,13 +7,18 @@ Migrated from the original Flet app and progressively enriched.
 Extended with optional image-analysis helpers powered by an external LLM
 for extracting richer attributes (couleur, style, matière...) from garment photos.
 """
+import json
 import logging
 import os
 import random
+import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 import requests
+
+from app.models.style_profile import StyleProfile
+from app.services.style_profile_service import identity_to_canonical_style
 
 logger = logging.getLogger("unisaps.ai")
 
@@ -234,6 +239,173 @@ SEASON_FROM_GPT: dict[str, set[str]] = {
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 
+class StylistUnavailableError(Exception):
+    """Raised when the stylist LLM cannot produce outfit suggestions."""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stylist LLM (suggestions avec rationale)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_STYLIST_GARMENT_SLOTS = ALL_CATS
+
+
+def _validate_garment_ids(
+    suggestions: list[dict],
+    allowed_ids: set[str],
+) -> list[dict]:
+    cleaned: list[dict] = []
+    for s in suggestions:
+        garments = {
+            k: (v if v in allowed_ids else "")
+            for k, v in (s.get("garments") or {}).items()
+        }
+        rationale = str(s.get("rationale_short", ""))[:120].strip()
+        cleaned.append({"garments": garments, "rationale_short": rationale})
+    return cleaned
+
+
+def _parse_stylist_response(text: str) -> list[dict]:
+    """Extract the suggestions list from LLM JSON text."""
+    if not text or not text.strip():
+        return []
+    content = text.strip()
+    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
+    json_str = m.group(1) if m else content
+    if not m:
+        brace = re.search(r"\{.*\}", json_str, re.DOTALL)
+        if not brace:
+            return []
+        json_str = brace.group(0)
+    try:
+        data = json.loads(json_str)
+    except json.JSONDecodeError:
+        return []
+    raw = data.get("suggestions")
+    return raw if isinstance(raw, list) else []
+
+
+def _stylist_tone_instruction(fashion_comfort: str) -> str:
+    if fashion_comfort == "beginner":
+        return (
+            "Ton pédagogique et rassurant : explique brièvement pourquoi les pièces vont ensemble."
+        )
+    if fashion_comfort == "confident":
+        return "Ton concis et direct, sans explications basiques."
+    return "Ton équilibré, une phrase claire par look."
+
+
+def _build_stylist_catalog(garments: list[dict]) -> tuple[list[dict], set[str]]:
+    catalog: list[dict] = []
+    allowed: set[str] = set()
+    for g in garments[:80]:
+        gid = str(g.get("id") or "").strip()
+        if not gid:
+            continue
+        allowed.add(gid)
+        colors = g.get("colors")
+        if not isinstance(colors, list):
+            colors = [g.get("color")] if g.get("color") else []
+        style_tags = g.get("style_tags")
+        if not isinstance(style_tags, list):
+            style_tags = []
+        catalog.append(
+            {
+                "id": gid,
+                "category": str(g.get("category") or "").strip(),
+                "colors": [str(c) for c in colors if c],
+                "style_tags": [str(t) for t in style_tags if t],
+                "formality": str(g.get("formality") or "").strip(),
+            }
+        )
+    return catalog, allowed
+
+
+def suggest_stylist_outfits(
+    garments: list[dict],
+    *,
+    count: int,
+    style_profile: StyleProfile,
+    user_prompt: str = "",
+    season_key: Optional[str] = None,
+    weather_tags: Optional[List[str]] = None,
+) -> list[dict]:
+    """
+    Premium stylist: Gemini proposes outfit combinations with a short rationale.
+    Garment ids are validated against the dressing catalog server-side.
+    """
+    garments = garments[:80]
+    catalog, allowed_ids = _build_stylist_catalog(garments)
+    if not catalog or not allowed_ids:
+        raise StylistUnavailableError("empty catalog")
+
+    api_key = os.getenv("GEMINI_API_KEY") or GEMINI_API_KEY
+    if not api_key:
+        logger.warning("[suggest_stylist_outfits] GEMINI_API_KEY is not set")
+        raise StylistUnavailableError("no_api_key")
+
+    canonical = identity_to_canonical_style(style_profile.identity_style)
+    weather = list(weather_tags or [])
+    slots = ", ".join(_STYLIST_GARMENT_SLOTS)
+    tone = _stylist_tone_instruction(style_profile.fashion_comfort)
+    catalog_json = json.dumps(catalog, ensure_ascii=False)
+    allowed_list = ", ".join(sorted(allowed_ids))
+
+    context_parts = [
+        f"Style identité (canonique): {canonical}.",
+        f"Audace (1-5): {style_profile.audacity}.",
+        f"Objectifs — garde-robe: {style_profile.goal_wardrobe}, inspiration: "
+        f"{style_profile.goal_inspiration}, affiner style: {style_profile.goal_refine_style}, "
+        f"suivi port: {style_profile.goal_track_wear}.",
+        tone,
+    ]
+    if season_key:
+        context_parts.append(f"Saison: {season_key}.")
+    if weather:
+        context_parts.append(f"Météo (tags): {', '.join(weather)}.")
+    if user_prompt.strip():
+        context_parts.append(f"Consigne utilisateur: {user_prompt.strip()}.")
+
+    prompt = (
+        "Tu es styliste mode pour uniSaps. Propose des tenues UNIQUEMENT avec les pièces du catalogue.\n"
+        f"Catalogue (JSON): {catalog_json}\n"
+        f"Ids autorisés (utilise EXCLUSIVEMENT ceux-ci): {allowed_list}\n"
+        f"Contexte: {' '.join(context_parts)}\n"
+        f"Nombre de suggestions: {max(1, min(count, 5))}.\n"
+        "Réponds STRICTEMENT au format JSON suivant, sans texte autour:\n"
+        '{"suggestions":[{"garments":{"top":"id","bottom":"id","shoes":"id",'
+        '"headwear":"","outerwear":"","accessory":""},'
+        '"rationale_short":"une phrase max 120 caractères"}]}\n'
+        f"- Chaque suggestion doit remplir au minimum top, bottom, shoes avec des ids du catalogue.\n"
+        f"- Catégories possibles dans garments: {slots}. Laisse \"\" si non utilisé.\n"
+        "- rationale_short: une seule phrase en français, max 120 caractères.\n"
+        "- N'invente aucun id."
+    )
+
+    try:
+        import google.generativeai as genai
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(temperature=0.3),
+        )
+        content = (response.text or "").strip()
+        if not content:
+            raise StylistUnavailableError("empty_llm_response")
+        parsed = _parse_stylist_response(content)
+        if not parsed:
+            raise StylistUnavailableError("invalid_json")
+        validated = _validate_garment_ids(parsed, allowed_ids)
+        return validated[: max(1, count)]
+    except StylistUnavailableError:
+        raise
+    except Exception as e:
+        logger.exception("[suggest_stylist_outfits] FAILED err=%s", e)
+        raise StylistUnavailableError(str(e)) from e
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers de normalisation
 # ─────────────────────────────────────────────────────────────────────────────
@@ -388,6 +560,33 @@ def _score(
     return base
 
 
+def _score_with_profile(
+    g: dict,
+    style: str,
+    season_key: Optional[str],
+    weather_tags: List[str],
+    profile: Optional[StyleProfile] = None,
+) -> int:
+    """Score d'une pièce avec bonus optionnels du profil stylistique."""
+    if profile:
+        base_style = identity_to_canonical_style(profile.identity_style)
+        score = _score(g, base_style, season_key, weather_tags)
+        color = ""
+        colors = g.get("colors")
+        if isinstance(colors, list) and colors:
+            color = str(colors[0])
+        if not color:
+            color = str(g.get("color") or "")
+        family = _color_family(color)
+        if profile.audacity >= 4 and family in ("warm", "pastel"):
+            score += 1
+        pattern = str(g.get("pattern") or "").lower().strip()
+        if profile.goal_wardrobe >= 4 and (not pattern or pattern == "uni"):
+            score += 1
+        return score
+    return _score(g, style, season_key, weather_tags)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
@@ -398,6 +597,7 @@ def suggest_outfit(
     existing_outfits: list[dict] | None = None,
     season_key: Optional[str] = None,
     weather_tags: Optional[List[str]] = None,
+    style_profile: Optional[StyleProfile] = None,
 ) -> dict[str, str]:
     """Propose une combinaison une-par-catégorie.
 
@@ -429,6 +629,7 @@ def suggest_outfit(
                             recently_worn.add(pid)
 
     suggestion: dict[str, str] = {c: "" for c in ALL_CATS}
+    worn_penalty = -1 if style_profile and style_profile.goal_inspiration >= 4 else -2
 
     for cat in ALL_CATS:
         available = by_cat.get(cat, [])
@@ -438,8 +639,8 @@ def suggest_outfit(
         scored = sorted(
             available,
             key=lambda g: (
-                _score(g, resolved, season_key, weather)
-                + (-2 if g.get("id") in recently_worn else 0)
+                _score_with_profile(g, resolved, season_key, weather, style_profile)
+                + (worn_penalty if g.get("id") in recently_worn else 0)
             ),
             reverse=True,
         )
@@ -456,7 +657,9 @@ def suggest_outfit(
         if "outerwear" in by_cat and by_cat["outerwear"] and not suggestion.get("outerwear"):
             scored_out = sorted(
                 by_cat["outerwear"],
-                key=lambda g: _score(g, resolved, season_key, weather),
+                key=lambda g: _score_with_profile(
+                    g, resolved, season_key, weather, style_profile
+                ),
                 reverse=True,
             )
             suggestion["outerwear"] = scored_out[0].get("id", "")
@@ -471,6 +674,7 @@ def suggest_multiple(
     existing_outfits: list[dict] | None = None,
     season_key: Optional[str] = None,
     weather_tags: Optional[List[str]] = None,
+    style_profile: Optional[StyleProfile] = None,
 ) -> list[dict[str, str]]:
     results: list[dict[str, str]] = []
     seen: set[tuple] = set()
@@ -482,6 +686,7 @@ def suggest_multiple(
             existing_outfits,
             season_key=season_key,
             weather_tags=weather_tags,
+            style_profile=style_profile,
         )
         key = tuple(sorted(s.items()))
         if key not in seen:

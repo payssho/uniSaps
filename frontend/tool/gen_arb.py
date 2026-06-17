@@ -1165,6 +1165,12 @@ CATALOG = {
     "signupCreatorCatalogPieces": ("Pièces", "Pieces"),
     "signupCreatorCatalogOutfits": ("Tenues", "Outfits"),
     "creatorPostsNoCollection": ("Sans collection", "No collection"),
+    "creatorCheckoutTitle": ("Abonnement marque", "Brand subscription"),
+    "creatorSubscriptionMonthlyPrice": ("29 $ / mois", "29 $ / month"),
+    "creatorCheckoutActivate": (
+        "Activer mon espace marque",
+        "Activate my brand space",
+    ),
     "creatorCheckoutSimulatedPayment": (
         "Paiement simulé en développement. Saisis le code d'activation pour activer ton espace.",
         "Simulated payment in development. Enter the activation code to activate your space.",
@@ -1190,6 +1196,7 @@ CATALOG = {
         "Amis de @{username}",
         "Friends of @{username}",
     ),
+    "userAtUsername": ("@{username}", "@{username}"),
     # API error codes (backend error_code → l10n)
     "apiInvalidFirebaseToken": (
         "Session expirée. Reconnecte-toi.",
@@ -1257,7 +1264,42 @@ CATALOG = {
         "ID du post invalide.",
         "Invalid post ID.",
     ),
-    "userAtUsername": ("@{username}", "@{username}"),
+    # Style onboarding & preferences
+    "styleOnboardingTitle": ("Personnalise uniSaps", "Personalize uniSaps"),
+    "styleOnboardingSkipAll": (
+        "Passer la personnalisation",
+        "Skip personalization",
+    ),
+    "styleOnboardingSkip": ("Passer", "Skip"),
+    "styleOnboardingContinue": ("Continuer", "Continue"),
+    "styleGoalWardrobe": ("Gérer ma garde-robe", "Manage my wardrobe"),
+    "styleGoalInspiration": ("Trouver l'inspiration", "Find inspiration"),
+    "styleGoalRefine": ("Affiner mon style", "Refine my style"),
+    "styleGoalTrack": ("Suivre ce que je porte", "Track what I wear"),
+    "styleIdentityTitle": ("Ton style", "Your style"),
+    "styleAudacity": ("Audace", "Boldness"),
+    "styleAudacityLow": ("Sobre", "Understated"),
+    "styleAudacityHigh": ("Audacieux", "Bold"),
+    "styleComfortTitle": ("Ton rapport à la mode", "Your fashion comfort"),
+    "styleComfortBeginner": ("Je débute", "I'm starting out"),
+    "styleComfortBalanced": ("J'ai des bases", "I know the basics"),
+    "styleComfortConfident": ("Je suis à l'aise", "I'm confident"),
+    "styleSettingsTitle": ("Style & préférences", "Style & preferences"),
+    "styleSettingsSave": ("Enregistrer", "Save"),
+    "styleSettingsReset": ("Réinitialiser", "Reset"),
+    "stylistRationaleFallback": (
+        "Look équilibré pour ta garde-robe.",
+        "A balanced look for your wardrobe.",
+    ),
+    "styleIdentityCasual": ("Casual", "Casual"),
+    "styleIdentityClassic": ("Classique", "Classic"),
+    "styleIdentityMinimal": ("Minimal", "Minimal"),
+    "styleIdentityStreetwear": ("Streetwear", "Streetwear"),
+    "styleIdentitySport": ("Sport", "Sport"),
+    "styleIdentityProfessional": ("Professionnel", "Professional"),
+    "styleIdentityColorful": ("Coloré", "Colorful"),
+    "styleIdentityEvening": ("Soirée", "Evening"),
+    "styleDominantFocusPrefix": ("Ton focus", "Your focus"),
 }
 
 def slug(s: str) -> str:

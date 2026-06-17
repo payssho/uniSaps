@@ -93,7 +93,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             displayName: _displayNameController.text.trim(),
             profilePhotoUrl: photoUrl,
           );
-      if (mounted) context.go('/home');
+      if (mounted) context.go('/onboarding/style/goals');
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {

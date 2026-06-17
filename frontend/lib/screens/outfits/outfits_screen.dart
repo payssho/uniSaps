@@ -11,10 +11,12 @@ import '../../core/constants/app_text_styles.dart';
 import '../../core/constants/categories.dart';
 import '../../l10n/l10n_context.dart';
 import '../../core/constants/weather_catalog.dart';
+import '../../models/ai_outfit_suggestion.dart';
 import '../../models/daily_weather_summary.dart';
 import '../../models/garment_model.dart';
 import '../../models/outfit_model.dart';
 import '../../models/today_outfit_context.dart';
+import '../../l10n/l10n_context.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
@@ -31,7 +33,7 @@ import '../../widgets/outfits/outfits_mode_toggle.dart';
 
 /// Suggestions biblio IA (persistées pendant la session pour l’état vide + la feuille).
 final biblioAiSuggestionsProvider =
-    StateProvider<List<Map<String, String>>>((ref) => []);
+    StateProvider<List<AiOutfitSuggestion>>((ref) => []);
 final biblioAiLoadingProvider = StateProvider<bool>((ref) => false);
 
 class OutfitsScreen extends ConsumerStatefulWidget {
@@ -311,7 +313,7 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
         garmentCache: garmentCache,
         onPickSuggestion: (suggestion) async {
           Navigator.pop(sheetCtx);
-          await _saveSuggestionAsOutfit(uid, suggestion);
+          await _saveSuggestionAsOutfit(uid, suggestion.garments);
         },
       ),
     );
@@ -867,8 +869,7 @@ class _BiblioMode extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 class _AiSuggestionsSheet extends ConsumerStatefulWidget {
   final Map<String, GarmentModel> garmentCache;
-  final Future<void> Function(Map<String, String> suggestion)
-      onPickSuggestion;
+  final Future<void> Function(AiOutfitSuggestion suggestion) onPickSuggestion;
 
   const _AiSuggestionsSheet({
     required this.garmentCache,
@@ -902,18 +903,76 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
     if (custom.isNotEmpty) style = custom;
     ref.read(biblioAiLoadingProvider.notifier).state = true;
     try {
-      // On enrichit la requête avec saison + tags météo du jour pour
-      // que le scoring backend puisse en tenir compte.
       final ctx = ref.read(todayOutfitContextProvider);
       final api = ref.read(apiServiceProvider);
-      final list = await api.suggestOutfits(
-        style: style,
-        count: 3,
-        seasonKey: ctx.seasonKey,
-        weatherTags: ctx.weatherDataAvailable
-            ? ctx.activeWeatherTags.toList()
-            : null,
-      );
+      final user = ref.read(currentUserProvider).valueOrNull;
+      final isPremium = ref.read(isPremiumProvider);
+      final seasonKey = ctx.seasonKey;
+      final weatherTags = ctx.weatherDataAvailable
+          ? ctx.activeWeatherTags.toList()
+          : null;
+
+      List<AiOutfitSuggestion> list;
+      if (isPremium) {
+        try {
+          list = await api.suggestStylist(
+            count: 3,
+            userPrompt: custom,
+            seasonKey: seasonKey,
+            weatherTags: weatherTags,
+          );
+          // Retry silencieux si toutes les rationales sont vides
+          if (list.every((s) => s.rationaleShort.isEmpty)) {
+            try {
+              final retry = await api.suggestStylist(
+                count: 3,
+                userPrompt: custom,
+                seasonKey: seasonKey,
+                weatherTags: weatherTags,
+              );
+              list = retry;
+            } catch (_) {
+              // Retry échoué silencieusement — liste originale conservée, fallback appliqué ci-dessous
+            }
+          }
+          // Fallback générique si encore vides après retry (ou si retry a échoué)
+          if (list.every((s) => s.rationaleShort.isEmpty) && mounted) {
+            final fallback = context.l10n.stylistRationaleFallback;
+            list = list
+                .map((s) => AiOutfitSuggestion(
+                      garments: s.garments,
+                      rationaleShort: fallback,
+                    ))
+                .toList();
+          }
+        } catch (_) {
+          list = await api.suggestOutfits(
+            style: style,
+            count: 3,
+            seasonKey: seasonKey,
+            weatherTags: weatherTags,
+            styleProfile: user?.styleProfile,
+          );
+          if (list.every((s) => s.rationaleShort.isEmpty) && mounted) {
+            final fallback = context.l10n.stylistRationaleFallback;
+            list = list
+                .map((s) => AiOutfitSuggestion(
+                      garments: s.garments,
+                      rationaleShort: fallback,
+                    ))
+                .toList();
+          }
+        }
+      } else {
+        list = await api.suggestOutfits(
+          style: style,
+          count: 3,
+          seasonKey: seasonKey,
+          weatherTags: weatherTags,
+          styleProfile: user?.styleProfile,
+        );
+      }
+      if (!mounted) return;
       ref.read(biblioAiSuggestionsProvider.notifier).state = list;
     } catch (_) {
       if (mounted) {
@@ -1065,7 +1124,7 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                     ...suggestions.asMap().entries.map((entry) {
                       final lookIndex = entry.key;
                       final s = entry.value;
-                      final pairs = s.entries
+                      final pairs = s.garments.entries
                           .where((e) =>
                               e.value.isNotEmpty &&
                               widget.garmentCache.containsKey(e.value))
@@ -1128,6 +1187,20 @@ class _AiSuggestionsSheetState extends ConsumerState<_AiSuggestionsSheet> {
                                 ),
                               ],
                             ),
+                            if (s.rationaleShort.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                s.rationaleShort,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  height: 1.35,
+                                  color: AppColors.textSecondary
+                                      .withValues(alpha: 0.95),
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                             const SizedBox(height: 12),
                             if (pairs.isEmpty)
                               Padding(

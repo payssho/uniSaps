@@ -1673,6 +1673,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get statWorn => 'Portés';
 
   @override
+  String get styleAudacity => 'Audace';
+
+  @override
+  String get styleAudacityHigh => 'Audacieux';
+
+  @override
+  String get styleAudacityLow => 'Sobre';
+
+  @override
   String get styleCasual => 'Décontracté';
 
   @override
@@ -1682,10 +1691,85 @@ class AppLocalizationsFr extends AppLocalizations {
   String get styleColorful => 'Coloré';
 
   @override
+  String get styleComfortBalanced => 'J\'ai des bases';
+
+  @override
+  String get styleComfortBeginner => 'Je débute';
+
+  @override
+  String get styleComfortConfident => 'Je suis à l\'aise';
+
+  @override
+  String get styleComfortTitle => 'Ton rapport à la mode';
+
+  @override
+  String get styleDominantFocusPrefix => 'Ton focus';
+
+  @override
   String get styleEvening => 'Soirée';
 
   @override
+  String get styleGoalInspiration => 'Trouver l\'inspiration';
+
+  @override
+  String get styleGoalRefine => 'Affiner mon style';
+
+  @override
+  String get styleGoalTrack => 'Suivre ce que je porte';
+
+  @override
+  String get styleGoalWardrobe => 'Gérer ma garde-robe';
+
+  @override
+  String get styleIdentityCasual => 'Casual';
+
+  @override
+  String get styleIdentityClassic => 'Classique';
+
+  @override
+  String get styleIdentityColorful => 'Coloré';
+
+  @override
+  String get styleIdentityEvening => 'Soirée';
+
+  @override
+  String get styleIdentityMinimal => 'Minimal';
+
+  @override
+  String get styleIdentityProfessional => 'Professionnel';
+
+  @override
+  String get styleIdentitySport => 'Sport';
+
+  @override
+  String get styleIdentityStreetwear => 'Streetwear';
+
+  @override
+  String get styleIdentityTitle => 'Ton style';
+
+  @override
+  String get styleOnboardingContinue => 'Continuer';
+
+  @override
+  String get styleOnboardingSkip => 'Passer';
+
+  @override
+  String get styleOnboardingSkipAll => 'Passer la personnalisation';
+
+  @override
+  String get styleOnboardingTitle => 'Personnalise uniSaps';
+
+  @override
   String get styleProfessional => 'Professionnel';
+
+  @override
+  String get styleSettingsReset => 'Réinitialiser';
+
+  @override
+  String get styleSettingsSave => 'Enregistrer';
+
+  @override
+  String get styleSettingsTitle => 'Style & préférences';
 
   @override
   String get styleSimple => 'Simple';
@@ -1695,6 +1779,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get styleStreetwear => 'Streetwear';
+
+  @override
+  String get stylistRationaleFallback => 'Look équilibré pour ta garde-robe.';
 
   @override
   String get teasePremiumAiSuggestions => 'Suggestions IA';

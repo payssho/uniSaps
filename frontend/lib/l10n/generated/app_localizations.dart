@@ -3266,6 +3266,24 @@ abstract class AppLocalizations {
   /// **'Portés'**
   String get statWorn;
 
+  /// No description provided for @styleAudacity.
+  ///
+  /// In fr, this message translates to:
+  /// **'Audace'**
+  String get styleAudacity;
+
+  /// No description provided for @styleAudacityHigh.
+  ///
+  /// In fr, this message translates to:
+  /// **'Audacieux'**
+  String get styleAudacityHigh;
+
+  /// No description provided for @styleAudacityLow.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sobre'**
+  String get styleAudacityLow;
+
   /// No description provided for @styleCasual.
   ///
   /// In fr, this message translates to:
@@ -3284,17 +3302,167 @@ abstract class AppLocalizations {
   /// **'Coloré'**
   String get styleColorful;
 
+  /// No description provided for @styleComfortBalanced.
+  ///
+  /// In fr, this message translates to:
+  /// **'J\'ai des bases'**
+  String get styleComfortBalanced;
+
+  /// No description provided for @styleComfortBeginner.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je débute'**
+  String get styleComfortBeginner;
+
+  /// No description provided for @styleComfortConfident.
+  ///
+  /// In fr, this message translates to:
+  /// **'Je suis à l\'aise'**
+  String get styleComfortConfident;
+
+  /// No description provided for @styleComfortTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton rapport à la mode'**
+  String get styleComfortTitle;
+
+  /// No description provided for @styleDominantFocusPrefix.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton focus'**
+  String get styleDominantFocusPrefix;
+
   /// No description provided for @styleEvening.
   ///
   /// In fr, this message translates to:
   /// **'Soirée'**
   String get styleEvening;
 
+  /// No description provided for @styleGoalInspiration.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trouver l\'inspiration'**
+  String get styleGoalInspiration;
+
+  /// No description provided for @styleGoalRefine.
+  ///
+  /// In fr, this message translates to:
+  /// **'Affiner mon style'**
+  String get styleGoalRefine;
+
+  /// No description provided for @styleGoalTrack.
+  ///
+  /// In fr, this message translates to:
+  /// **'Suivre ce que je porte'**
+  String get styleGoalTrack;
+
+  /// No description provided for @styleGoalWardrobe.
+  ///
+  /// In fr, this message translates to:
+  /// **'Gérer ma garde-robe'**
+  String get styleGoalWardrobe;
+
+  /// No description provided for @styleIdentityCasual.
+  ///
+  /// In fr, this message translates to:
+  /// **'Casual'**
+  String get styleIdentityCasual;
+
+  /// No description provided for @styleIdentityClassic.
+  ///
+  /// In fr, this message translates to:
+  /// **'Classique'**
+  String get styleIdentityClassic;
+
+  /// No description provided for @styleIdentityColorful.
+  ///
+  /// In fr, this message translates to:
+  /// **'Coloré'**
+  String get styleIdentityColorful;
+
+  /// No description provided for @styleIdentityEvening.
+  ///
+  /// In fr, this message translates to:
+  /// **'Soirée'**
+  String get styleIdentityEvening;
+
+  /// No description provided for @styleIdentityMinimal.
+  ///
+  /// In fr, this message translates to:
+  /// **'Minimal'**
+  String get styleIdentityMinimal;
+
+  /// No description provided for @styleIdentityProfessional.
+  ///
+  /// In fr, this message translates to:
+  /// **'Professionnel'**
+  String get styleIdentityProfessional;
+
+  /// No description provided for @styleIdentitySport.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sport'**
+  String get styleIdentitySport;
+
+  /// No description provided for @styleIdentityStreetwear.
+  ///
+  /// In fr, this message translates to:
+  /// **'Streetwear'**
+  String get styleIdentityStreetwear;
+
+  /// No description provided for @styleIdentityTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ton style'**
+  String get styleIdentityTitle;
+
+  /// No description provided for @styleOnboardingContinue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Continuer'**
+  String get styleOnboardingContinue;
+
+  /// No description provided for @styleOnboardingSkip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passer'**
+  String get styleOnboardingSkip;
+
+  /// No description provided for @styleOnboardingSkipAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Passer la personnalisation'**
+  String get styleOnboardingSkipAll;
+
+  /// No description provided for @styleOnboardingTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personnalise uniSaps'**
+  String get styleOnboardingTitle;
+
   /// No description provided for @styleProfessional.
   ///
   /// In fr, this message translates to:
   /// **'Professionnel'**
   String get styleProfessional;
+
+  /// No description provided for @styleSettingsReset.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réinitialiser'**
+  String get styleSettingsReset;
+
+  /// No description provided for @styleSettingsSave.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer'**
+  String get styleSettingsSave;
+
+  /// No description provided for @styleSettingsTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Style & préférences'**
+  String get styleSettingsTitle;
 
   /// No description provided for @styleSimple.
   ///
@@ -3313,6 +3481,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Streetwear'**
   String get styleStreetwear;
+
+  /// No description provided for @stylistRationaleFallback.
+  ///
+  /// In fr, this message translates to:
+  /// **'Look équilibré pour ta garde-robe.'**
+  String get stylistRationaleFallback;
 
   /// No description provided for @teasePremiumAiSuggestions.
   ///

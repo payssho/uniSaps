@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+import '../models/ai_outfit_suggestion.dart';
+import '../models/style_profile.dart';
 import 'auth_service.dart';
 import '../l10n/api_error_l10n.dart';
 
@@ -40,11 +42,12 @@ class ApiService {
     );
   }
 
-  Future<List<Map<String, String>>> suggestOutfits({
+  Future<List<AiOutfitSuggestion>> suggestOutfits({
     String style = 'Simple',
     int count = 3,
     String? seasonKey,
     List<String>? weatherTags,
+    StyleProfile? styleProfile,
   }) async {
     final headers = await _headers();
     final body = <String, dynamic>{
@@ -53,6 +56,7 @@ class ApiService {
       if (seasonKey != null && seasonKey.isNotEmpty) 'season_key': seasonKey,
       if (weatherTags != null && weatherTags.isNotEmpty)
         'weather_tags': weatherTags,
+      if (styleProfile != null) 'style_profile': styleProfile.toMap(),
     };
     final resp = await http.post(
       Uri.parse('$baseUrl/ai/suggest'),
@@ -64,11 +68,46 @@ class ApiService {
     }
     final data = jsonDecode(resp.body);
     final suggestions = (data['suggestions'] as List)
-        .map((s) => Map<String, String>.from(s as Map))
+        .map((s) => AiOutfitSuggestion.fromGarmentMap(
+              Map<String, String>.from(s as Map),
+            ))
         .toList();
     return suggestions;
   }
 
+  Future<List<AiOutfitSuggestion>> suggestStylist({
+    int count = 3,
+    String userPrompt = '',
+    String? seasonKey,
+    List<String>? weatherTags,
+  }) async {
+    final headers = await _headers();
+    final body = <String, dynamic>{
+      'count': count,
+      'user_prompt': userPrompt,
+      if (seasonKey != null && seasonKey.isNotEmpty) 'season_key': seasonKey,
+      if (weatherTags != null && weatherTags.isNotEmpty)
+        'weather_tags': weatherTags,
+    };
+    final resp = await http.post(
+      Uri.parse('$baseUrl/ai/suggest-stylist'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+    if (resp.statusCode != 200) {
+      throw _apiException('api_suggest_error', body: resp.body, statusCode: resp.statusCode);
+    }
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    final list = data['suggestions'] as List? ?? [];
+    return list
+        .map((s) => AiOutfitSuggestion.fromJson(
+              Map<String, dynamic>.from(s as Map),
+            ))
+        .toList();
+  }
+
+  /// Analyse une image de vêtement avec le backend IA et renvoie
+  /// des attributs structurés (couleurs, catégorie, style, etc.).
   Future<Map<String, dynamic>> analyzeGarmentImage(
       Uint8List imageBytes, String filename) async {
     Future<http.Response> postAnalyze({required bool refreshToken}) async {
