@@ -20,6 +20,7 @@ import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
 import '../../providers/post_view_tracker_provider.dart';
 import '../../providers/widget_launch_provider.dart';
+import '../../providers/personalization_provider.dart';
 import '../home/home_screen.dart';
 import 'search_users_screen.dart';
 import 'user_profile_screen.dart';
@@ -31,6 +32,7 @@ import '../../widgets/storage_aware_cached_image.dart';
 import '../../widgets/garment_category_glyph.dart';
 import '../../widgets/post_garment_refs.dart';
 import '../../widgets/post_detail_sheet.dart';
+import '../../widgets/personalization_hint_card.dart';
 import '../../l10n/l10n_context.dart';
 
 class InspirationScreen extends ConsumerStatefulWidget {
@@ -45,6 +47,26 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
   bool _showFriends = true;
   bool _showScrollHint = false;
   bool _scrollHintChecked = false;
+  bool _explorerDefaultApplied = false;
+  bool _discoverBannerDismissed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _applyExplorerDefaultIfNeeded();
+    });
+  }
+
+  void _applyExplorerDefaultIfNeeded() {
+    if (_explorerDefaultApplied || !mounted) return;
+    final config = ref.read(personalizationProvider);
+    if (!config.defaultInspirationExplorer) return;
+    _explorerDefaultApplied = true;
+    if (_showFriends) {
+      _toggleFeed(false);
+    }
+  }
 
   @override
   void dispose() {
@@ -103,12 +125,31 @@ class _InspirationScreenState extends ConsumerState<InspirationScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkScrollHint());
 
     final hasPostedToday = ref.watch(hasPostedTodayProvider);
+    final perso = ref.watch(personalizationProvider);
+    final topPad = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
+          if (perso.showInspirationDiscoverBanner && !_discoverBannerDismissed)
+            Positioned(
+              top: topPad + 8,
+              left: 0,
+              right: 0,
+              child: PersonalizationHintCard(
+                title: context.l10n.persoInspirationDiscover,
+                icon: Icons.person_search_outlined,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SearchUsersScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
           // Horizontal PageView: Amis / Explorer (swipeable)
           PageView(
             controller: _horizontalPageController,

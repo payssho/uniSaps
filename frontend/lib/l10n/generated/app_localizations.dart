@@ -2528,6 +2528,42 @@ abstract class AppLocalizations {
   /// **'Météo du jour, {temp}°'**
   String outfitsWeatherTodaySemantics(Object temp);
 
+  /// No description provided for @persoDressingAddCta.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter une pièce'**
+  String get persoDressingAddCta;
+
+  /// No description provided for @persoDressingStatsCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count} pièces dans ton dressing'**
+  String persoDressingStatsCount(Object count);
+
+  /// No description provided for @persoDressingStatsTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vue d\'ensemble'**
+  String get persoDressingStatsTitle;
+
+  /// No description provided for @persoInspirationDiscover.
+  ///
+  /// In fr, this message translates to:
+  /// **'Trouve des comptes à suivre'**
+  String get persoInspirationDiscover;
+
+  /// No description provided for @persoOutfitFromInspo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recrée une tenue vue dans l\'inspi'**
+  String get persoOutfitFromInspo;
+
+  /// No description provided for @persoStylistPromo.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ta tenue du jour par ton styliste'**
+  String get persoStylistPromo;
+
   /// No description provided for @pickerCamera.
   ///
   /// In fr, this message translates to:

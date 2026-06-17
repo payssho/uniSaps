@@ -7,6 +7,8 @@ import '../../core/constants/app_text_styles.dart';
 import '../../models/garment_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
+import '../../providers/personalization_provider.dart';
+import '../../widgets/personalization_hint_card.dart';
 import '../../services/firebase_storage_display_url.dart';
 import '../../widgets/garment_card.dart';
 import '../../widgets/dressing_category_chips_row.dart';
@@ -83,6 +85,8 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
     final uid = ref.watch(authServiceProvider).uid;
     final garmentsAsync = ref.watch(garmentsProvider(uid));
     final hasAnyGarment = garmentsAsync.valueOrNull?.isNotEmpty ?? false;
+    final perso = ref.watch(personalizationProvider);
+    final garmentCount = garmentsAsync.valueOrNull?.length ?? 0;
 
     garmentsAsync.whenData(_prefetchGarmentImages);
 
@@ -97,6 +101,16 @@ class _DressingScreenState extends ConsumerState<DressingScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(l10n.dressingMyWardrobe, style: AppTextStyles.heading2),
               ),
+              if (perso.showDressingStatsCard) ...[
+                const SizedBox(height: 12),
+                PersonalizationHintCard(
+                  title: l10n.persoDressingStatsTitle,
+                  subtitle: l10n.persoDressingStatsCount(garmentCount),
+                  icon: Icons.checkroom_outlined,
+                  actionLabel: l10n.persoDressingAddCta,
+                  onTap: _showAddGarmentSheet,
+                ),
+              ],
               const SizedBox(height: 20),
               DressingCategoryChipsRow(
                 selectedCategory: _selectedCategory,

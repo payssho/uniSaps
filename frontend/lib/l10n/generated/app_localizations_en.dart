@@ -1284,6 +1284,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get persoDressingAddCta => 'Add an item';
+
+  @override
+  String persoDressingStatsCount(Object count) {
+    return '$count items in your wardrobe';
+  }
+
+  @override
+  String get persoDressingStatsTitle => 'Overview';
+
+  @override
+  String get persoInspirationDiscover => 'Find accounts to follow';
+
+  @override
+  String get persoOutfitFromInspo => 'Recreate a look from inspiration';
+
+  @override
+  String get persoStylistPromo => 'Today\'s outfit by your stylist';
+
+  @override
   String get pickerCamera => 'Camera';
 
   @override

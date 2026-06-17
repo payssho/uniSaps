@@ -1294,6 +1294,26 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get persoDressingAddCta => 'Ajouter une pièce';
+
+  @override
+  String persoDressingStatsCount(Object count) {
+    return '$count pièces dans ton dressing';
+  }
+
+  @override
+  String get persoDressingStatsTitle => 'Vue d\'ensemble';
+
+  @override
+  String get persoInspirationDiscover => 'Trouve des comptes à suivre';
+
+  @override
+  String get persoOutfitFromInspo => 'Recrée une tenue vue dans l\'inspi';
+
+  @override
+  String get persoStylistPromo => 'Ta tenue du jour par ton styliste';
+
+  @override
   String get pickerCamera => 'Appareil photo';
 
   @override

@@ -1314,6 +1314,24 @@ CATALOG = {
     "styleSocialFriends": ("Oui, avec mes amis", "Yes, with friends"),
     "styleSocialPrivate": ("Plutôt en privé", "Mostly private"),
     "styleSocialUndecided": ("On verra plus tard", "Decide later"),
+    "persoDressingStatsTitle": ("Vue d'ensemble", "Overview"),
+    "persoDressingStatsCount": (
+        "{count} pièces dans ton dressing",
+        "{count} items in your wardrobe",
+    ),
+    "persoDressingAddCta": ("Ajouter une pièce", "Add an item"),
+    "persoInspirationDiscover": (
+        "Trouve des comptes à suivre",
+        "Find accounts to follow",
+    ),
+    "persoStylistPromo": (
+        "Ta tenue du jour par ton styliste",
+        "Today's outfit by your stylist",
+    ),
+    "persoOutfitFromInspo": (
+        "Recrée une tenue vue dans l'inspi",
+        "Recreate a look from inspiration",
+    ),
 }
 
 def slug(s: str) -> str:

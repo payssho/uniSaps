@@ -11,6 +11,7 @@ import '../../providers/outfit_provider.dart';
 import '../../providers/friendship_provider.dart';
 import '../../providers/weather_provider.dart';
 import '../../providers/widget_launch_provider.dart';
+import '../../providers/personalization_provider.dart';
 import '../../providers/inspiration_feed_dev_provider.dart';
 import '../inspiration/inspiration_screen.dart';
 import '../inspiration/search_users_screen.dart';
@@ -36,6 +37,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver {
   final _pageController = PageController();
   bool _tutorialStarted = false;
+  bool _archetypeTabApplied = false;
   int _currentTab = 0;
   List<int>? _lastSyncedTabOrder;
 
@@ -159,9 +161,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final tabOrder = homeTabLogicalOrder(
       user?.hasStyleProfile == true ? user?.styleProfile : null,
     );
+    final personalization = ref.watch(personalizationProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _syncPageToTabOrder(tabOrder);
     });
+
+    if (user != null &&
+        user.hasStyleProfile &&
+        !_archetypeTabApplied &&
+        tutorialStep == null) {
+      final initial = personalization.initialTab;
+      final unlocked = [true, hasGarments, hasOutfits, true];
+      if (unlocked[initial]) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _archetypeTabApplied) return;
+          setState(() {
+            _currentTab = initial;
+            _archetypeTabApplied = true;
+          });
+          _goToTab(initial, tabOrder);
+          ref.read(selectedTabProvider.notifier).state = initial;
+        });
+      } else {
+        _archetypeTabApplied = true;
+      }
+    }
 
     ref.listen(widgetLaunchRequestProvider, (prev, next) {
       if (next == null) return;
@@ -204,7 +228,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           user.isNewUser || !(t.dressing || t.outfits || t.inspiration);
       if (isNew) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(tutorialStepProvider.notifier).state = 0;
+          final start = ref.read(personalizationProvider).tutorialStartTab;
+          ref.read(tutorialStepProvider.notifier).state = start.clamp(0, 3);
         });
         _tutorialStarted = true;
       }

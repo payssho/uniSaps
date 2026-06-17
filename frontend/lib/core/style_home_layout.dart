@@ -3,10 +3,35 @@ import '../models/style_profile.dart';
 /// Sections de la home (priorité d’affichage selon le profil style).
 enum HomeSection { dressing, inspiration, outfits, streak }
 
-/// Ordre des sections selon l’objectif dominant (`dominantGoalKey`).
+/// Ordre des sections : archétype si profil complété, sinon objectif dominant.
 List<HomeSection> homeSectionOrder(StyleProfile? profile) {
   if (profile == null) {
     return HomeSection.values;
+  }
+  if (!profile.onboardingSkipped) {
+    switch (profile.archetype) {
+      case 'explorateur':
+        return [
+          HomeSection.inspiration,
+          HomeSection.outfits,
+          HomeSection.dressing,
+          HomeSection.streak,
+        ];
+      case 'apprenti_style':
+        return [
+          HomeSection.outfits,
+          HomeSection.dressing,
+          HomeSection.inspiration,
+          HomeSection.streak,
+        ];
+      case 'gestionnaire':
+        return [
+          HomeSection.dressing,
+          HomeSection.outfits,
+          HomeSection.inspiration,
+          HomeSection.streak,
+        ];
+    }
   }
   switch (profile.dominantGoalKey) {
     case 'goal_inspiration':

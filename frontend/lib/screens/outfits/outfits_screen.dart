@@ -20,6 +20,7 @@ import '../../l10n/l10n_context.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/garment_provider.dart';
 import '../../providers/outfit_provider.dart';
+import '../../providers/personalization_provider.dart';
 import '../../providers/weather_provider.dart';
 import '../../services/weather_service.dart';
 import '../../widgets/premium_upgrade_dialog.dart';
@@ -30,6 +31,8 @@ import '../weather/weather_detail_sheet.dart';
 import '../../widgets/async_error_state.dart';
 import '../../widgets/outfit_detail_sheet.dart';
 import '../../widgets/outfits/outfits_mode_toggle.dart';
+import '../../widgets/personalization_hint_card.dart';
+import '../home/home_screen.dart';
 
 /// Suggestions biblio IA (persistées pendant la session pour l’état vide + la feuille).
 final biblioAiSuggestionsProvider =
@@ -87,6 +90,8 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
     final garmentsAsync = ref.watch(garmentsProvider(uid));
     final user = ref.watch(currentUserProvider).valueOrNull;
     final isPremium = ref.watch(isPremiumProvider);
+    final perso = ref.watch(personalizationProvider);
+    final l10n = context.l10n;
 
     final dailyOutfitId = user?.dailyOutfitId ?? '';
     final streak = user?.currentStreak ?? 0;
@@ -140,6 +145,34 @@ class _OutfitsScreenState extends ConsumerState<OutfitsScreen> {
 
                 return Column(
                   children: [
+                    if (perso.showStylistPromoCard)
+                      PersonalizationHintCard(
+                        title: l10n.persoStylistPromo,
+                        icon: Icons.auto_awesome_rounded,
+                        actionLabel: isPremium
+                            ? l10n.teasePremiumAiSuggestions
+                            : l10n.teasePremiumDiscover,
+                        onTap: () {
+                          if (!isPremium) {
+                            showPremiumUpgradeDialog(context, ref: ref);
+                            return;
+                          }
+                          final g = garments;
+                          final cache = {for (final x in g) x.id: x};
+                          _openAiSuggestionsSheet(
+                            context,
+                            uid: uid,
+                            garmentCache: cache,
+                          );
+                        },
+                      ),
+                    if (perso.showOutfitFromInspoCta)
+                      PersonalizationHintCard(
+                        title: l10n.persoOutfitFromInspo,
+                        icon: Icons.explore_outlined,
+                        onTap: () =>
+                            ref.read(selectedTabProvider.notifier).state = 2,
+                      ),
                     _Header(
                       streak: streak,
                       onAdd: _openCreation,
