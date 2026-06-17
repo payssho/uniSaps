@@ -1,7 +1,7 @@
 # Profil style & suggestions styliste — Design
 
 **Date:** 2026-06-04  
-**Statut:** Implémenté (Composer) — intégration `feature/onboarding-unified` — plan `docs/superpowers/plans/2026-06-04-style-profile-stylist.md`  
+**Statut:** Supersédée par `docs/superpowers/specs/2026-06-12-onboarding-unified-design.md` (base Composer intégrée sur `feature/onboarding-unified`)  
 **Branche cible suggérée :** `feature/style-profile-stylist` (à part de `feature/i18n-api-errors`)
 
 ## Objectif

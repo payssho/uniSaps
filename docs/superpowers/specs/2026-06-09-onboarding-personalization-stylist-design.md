@@ -2,7 +2,7 @@
 
 - **Date** : 2026-06-09
 - **Branche** : `feature/onboarding-personalization` (basée sur `main`)
-- **Statut** : validé par l'utilisateur (brainstorming complet)
+- **Statut** : Supersédée par `docs/superpowers/specs/2026-06-12-onboarding-unified-design.md`
 
 ## Contexte et problème
 
