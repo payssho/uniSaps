@@ -3,22 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../l10n/l10n_context.dart';
 import '../../../widgets/onboarding_progress_bar.dart';
-import '../../../models/style_profile.dart';
 import '../../../providers/style_onboarding_draft_provider.dart';
-import '../../../providers/style_profile_provider.dart';
 import '../../../widgets/style_profile_form.dart';
-import 'style_onboarding_finalize.dart';
 
-class StyleGoalsScreen extends ConsumerWidget {
-  const StyleGoalsScreen({super.key});
+class StyleExtraScreen extends ConsumerWidget {
+  const StyleExtraScreen({super.key});
 
-  Future<void> _skipAll(BuildContext context, WidgetRef ref) async {
-    final profile = finalizeStyleProfile(
-      StyleProfile.defaults(skipped: true),
-      skipped: true,
+  void _skipStep(WidgetRef ref) {
+    final current = ref.read(styleOnboardingDraftProvider);
+    ref.read(styleOnboardingDraftProvider.notifier).state = current.copyWith(
+      preferredStyles: const [],
+      usageFrequency: 'weekly',
     );
-    await ref.read(styleProfileNotifierProvider).saveWithSocialIntent(profile);
-    if (context.mounted) context.go('/home');
   }
 
   @override
@@ -28,14 +24,8 @@ class StyleGoalsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.styleOnboardingTitle),
-        actions: [
-          TextButton(
-            onPressed: () => _skipAll(context, ref),
-            child: Text(l10n.styleOnboardingSkipAll),
-          ),
-        ],
-        bottom: const OnboardingProgressBar(step: 1, total: 5),
+        title: Text(l10n.styleExtraTitle),
+        bottom: const OnboardingProgressBar(step: 4, total: 5),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -45,8 +35,11 @@ class StyleGoalsScreen extends ConsumerWidget {
             children: [
               StyleProfileForm(
                 profile: draft,
+                showGoals: false,
                 showIdentity: false,
                 showComfort: false,
+                showPreferredStyles: true,
+                showUsageFrequency: true,
                 onChanged: (p) =>
                     ref.read(styleOnboardingDraftProvider.notifier).state = p,
               ),
@@ -54,12 +47,15 @@ class StyleGoalsScreen extends ConsumerWidget {
               Row(
                 children: [
                   TextButton(
-                    onPressed: () => _skipAll(context, ref),
+                    onPressed: () {
+                      _skipStep(ref);
+                      context.go('/onboarding/style/social');
+                    },
                     child: Text(l10n.styleOnboardingSkip),
                   ),
                   const Spacer(),
                   FilledButton(
-                    onPressed: () => context.go('/onboarding/style/identity'),
+                    onPressed: () => context.go('/onboarding/style/social'),
                     child: Text(l10n.styleOnboardingContinue),
                   ),
                 ],

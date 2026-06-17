@@ -3,27 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../l10n/l10n_context.dart';
 import '../../../widgets/onboarding_progress_bar.dart';
-import '../../../models/style_profile.dart';
 import '../../../providers/style_onboarding_draft_provider.dart';
 import '../../../widgets/style_profile_form.dart';
 
 class StyleIdentityScreen extends ConsumerWidget {
   const StyleIdentityScreen({super.key});
 
-  Future<void> _skipStep(BuildContext context, WidgetRef ref) async {
+  void _skipStep(WidgetRef ref) {
     final current = ref.read(styleOnboardingDraftProvider);
-    final merged = StyleProfile(
-      goalWardrobe: current.goalWardrobe,
-      goalInspiration: current.goalInspiration,
-      goalRefineStyle: current.goalRefineStyle,
-      goalTrackWear: current.goalTrackWear,
+    ref.read(styleOnboardingDraftProvider.notifier).state = current.copyWith(
       identityStyle: 'casual',
       audacity: 3,
-      fashionComfort: current.fashionComfort,
-      updatedAt: current.updatedAt,
     );
-    ref.read(styleOnboardingDraftProvider.notifier).state = merged;
-    if (context.mounted) context.go('/onboarding/style/comfort');
   }
 
   @override
@@ -34,7 +25,7 @@ class StyleIdentityScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.styleOnboardingTitle),
-        bottom: const OnboardingProgressBar(step: 2, total: 3),
+        bottom: const OnboardingProgressBar(step: 2, total: 5),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -53,7 +44,10 @@ class StyleIdentityScreen extends ConsumerWidget {
               Row(
                 children: [
                   TextButton(
-                    onPressed: () => _skipStep(context, ref),
+                    onPressed: () {
+                      _skipStep(ref);
+                      context.go('/onboarding/style/comfort');
+                    },
                     child: Text(l10n.styleOnboardingSkip),
                   ),
                   const Spacer(),

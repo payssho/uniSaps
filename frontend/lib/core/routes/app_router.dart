@@ -6,8 +6,10 @@ import '../../screens/auth/login_screen.dart';
 import '../../screens/auth/signup_screen.dart';
 import '../../screens/auth/onboarding_screen.dart';
 import '../../screens/auth/style_onboarding/style_comfort_screen.dart';
+import '../../screens/auth/style_onboarding/style_extra_screen.dart';
 import '../../screens/auth/style_onboarding/style_goals_screen.dart';
 import '../../screens/auth/style_onboarding/style_identity_screen.dart';
+import '../../screens/auth/style_onboarding/style_social_screen.dart';
 import '../../screens/home/home_screen.dart';
 import '../../screens/creator/creator_landing_screen.dart';
 import '../../screens/creator/creator_checkout_screen.dart';
@@ -149,6 +151,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/onboarding/style/comfort',
         builder: (_, __) => const StyleComfortScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/style/preferences',
+        builder: (_, __) => const StyleExtraScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/style/social',
+        builder: (_, __) => const StyleSocialScreen(),
       ),
       GoRoute(
         path: '/home',

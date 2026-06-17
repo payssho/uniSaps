@@ -11,6 +11,9 @@ class StyleProfileForm extends StatelessWidget {
   final bool showGoals;
   final bool showIdentity;
   final bool showComfort;
+  final bool showPreferredStyles;
+  final bool showUsageFrequency;
+  final bool showSocialIntent;
 
   const StyleProfileForm({
     super.key,
@@ -19,6 +22,9 @@ class StyleProfileForm extends StatelessWidget {
     this.showGoals = true,
     this.showIdentity = true,
     this.showComfort = true,
+    this.showPreferredStyles = false,
+    this.showUsageFrequency = false,
+    this.showSocialIntent = false,
   });
 
   static const identityKeys = [
@@ -65,25 +71,25 @@ class StyleProfileForm extends StatelessWidget {
             context,
             l10n.styleGoalWardrobe,
             profile.goalWardrobe,
-            (v) => onChanged(_copy(profile, goalWardrobe: v)),
+            (v) => onChanged(profile.copyWith(goalWardrobe: v)),
           ),
           _goalSlider(
             context,
             l10n.styleGoalInspiration,
             profile.goalInspiration,
-            (v) => onChanged(_copy(profile, goalInspiration: v)),
+            (v) => onChanged(profile.copyWith(goalInspiration: v)),
           ),
           _goalSlider(
             context,
             l10n.styleGoalRefine,
             profile.goalRefineStyle,
-            (v) => onChanged(_copy(profile, goalRefineStyle: v)),
+            (v) => onChanged(profile.copyWith(goalRefineStyle: v)),
           ),
           _goalSlider(
             context,
             l10n.styleGoalTrack,
             profile.goalTrackWear,
-            (v) => onChanged(_copy(profile, goalTrackWear: v)),
+            (v) => onChanged(profile.copyWith(goalTrackWear: v)),
           ),
           const SizedBox(height: 16),
         ],
@@ -99,7 +105,7 @@ class StyleProfileForm extends StatelessWidget {
                 label: Text(_identityLabel(context, key)),
                 selected: selected,
                 onSelected: (_) =>
-                    onChanged(_copy(profile, identityStyle: key)),
+                    onChanged(profile.copyWith(identityStyle: key)),
                 selectedColor: AppColors.accent,
                 labelStyle: TextStyle(
                   color: selected ? AppColors.white : AppColors.textSecondary,
@@ -121,7 +127,7 @@ class StyleProfileForm extends StatelessWidget {
                   divisions: 4,
                   label: '${profile.audacity}',
                   onChanged: (v) =>
-                      onChanged(_copy(profile, audacity: v.round())),
+                      onChanged(profile.copyWith(audacity: v.round())),
                 ),
               ),
               Text(l10n.styleAudacityHigh, style: AppTextStyles.caption),
@@ -132,28 +138,106 @@ class StyleProfileForm extends StatelessWidget {
         if (showComfort) ...[
           Text(l10n.styleComfortTitle, style: AppTextStyles.heading3),
           const SizedBox(height: 10),
-          _comfortCard(
+          _selectCard(
             context,
             l10n.styleComfortBeginner,
-            'beginner',
             profile.fashionComfort == 'beginner',
-            () => onChanged(_copy(profile, fashionComfort: 'beginner')),
+            () => onChanged(profile.copyWith(fashionComfort: 'beginner')),
           ),
           const SizedBox(height: 8),
-          _comfortCard(
+          _selectCard(
             context,
             l10n.styleComfortBalanced,
-            'balanced',
             profile.fashionComfort == 'balanced',
-            () => onChanged(_copy(profile, fashionComfort: 'balanced')),
+            () => onChanged(profile.copyWith(fashionComfort: 'balanced')),
           ),
           const SizedBox(height: 8),
-          _comfortCard(
+          _selectCard(
             context,
             l10n.styleComfortConfident,
-            'confident',
             profile.fashionComfort == 'confident',
-            () => onChanged(_copy(profile, fashionComfort: 'confident')),
+            () => onChanged(profile.copyWith(fashionComfort: 'confident')),
+          ),
+        ],
+        if (showPreferredStyles) ...[
+          const SizedBox(height: 8),
+          Text(l10n.stylePreferredStylesTitle, style: AppTextStyles.heading3),
+          const SizedBox(height: 4),
+          Text(
+            l10n.stylePreferredStylesHint,
+            style: AppTextStyles.caption,
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: identityKeys.map((key) {
+              final selected = profile.preferredStyles.contains(key);
+              return FilterChip(
+                label: Text(_identityLabel(context, key)),
+                selected: selected,
+                onSelected: (on) {
+                  final next = List<String>.from(profile.preferredStyles);
+                  if (on) {
+                    if (!next.contains(key)) next.add(key);
+                  } else {
+                    next.remove(key);
+                  }
+                  onChanged(profile.copyWith(preferredStyles: next));
+                },
+                selectedColor: AppColors.accent.withValues(alpha: 0.25),
+                checkmarkColor: AppColors.accent,
+              );
+            }).toList(),
+          ),
+        ],
+        if (showUsageFrequency) ...[
+          const SizedBox(height: 16),
+          Text(l10n.styleUsageTitle, style: AppTextStyles.heading3),
+          const SizedBox(height: 10),
+          _selectCard(
+            context,
+            l10n.styleUsageDaily,
+            profile.usageFrequency == 'daily',
+            () => onChanged(profile.copyWith(usageFrequency: 'daily')),
+          ),
+          const SizedBox(height: 8),
+          _selectCard(
+            context,
+            l10n.styleUsageWeekly,
+            profile.usageFrequency == 'weekly',
+            () => onChanged(profile.copyWith(usageFrequency: 'weekly')),
+          ),
+          const SizedBox(height: 8),
+          _selectCard(
+            context,
+            l10n.styleUsageOccasional,
+            profile.usageFrequency == 'occasional',
+            () => onChanged(profile.copyWith(usageFrequency: 'occasional')),
+          ),
+        ],
+        if (showSocialIntent) ...[
+          Text(l10n.styleSocialTitle, style: AppTextStyles.heading3),
+          const SizedBox(height: 10),
+          _selectCard(
+            context,
+            l10n.styleSocialFriends,
+            profile.socialIntent == 'friends',
+            () => onChanged(profile.copyWith(socialIntent: 'friends')),
+          ),
+          const SizedBox(height: 8),
+          _selectCard(
+            context,
+            l10n.styleSocialPrivate,
+            profile.socialIntent == 'private',
+            () => onChanged(profile.copyWith(socialIntent: 'private')),
+          ),
+          const SizedBox(height: 8),
+          _selectCard(
+            context,
+            l10n.styleSocialUndecided,
+            profile.socialIntent == 'undecided',
+            () => onChanged(profile.copyWith(socialIntent: 'undecided')),
           ),
         ],
       ],
@@ -182,16 +266,15 @@ class StyleProfileForm extends StatelessWidget {
     );
   }
 
-  Widget _comfortCard(
+  Widget _selectCard(
     BuildContext context,
     String label,
-    String value,
     bool selected,
     VoidCallback onTap,
   ) {
     return Material(
       color: selected
-          ? AppColors.accent.withOpacity(0.12)
+          ? AppColors.accent.withValues(alpha: 0.12)
           : AppColors.surfaceVariant,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
@@ -208,30 +291,6 @@ class StyleProfileForm extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  StyleProfile _copy(
-    StyleProfile p, {
-    int? goalWardrobe,
-    int? goalInspiration,
-    int? goalRefineStyle,
-    int? goalTrackWear,
-    String? identityStyle,
-    int? audacity,
-    String? fashionComfort,
-    bool? onboardingSkipped,
-  }) {
-    return StyleProfile(
-      goalWardrobe: goalWardrobe ?? p.goalWardrobe,
-      goalInspiration: goalInspiration ?? p.goalInspiration,
-      goalRefineStyle: goalRefineStyle ?? p.goalRefineStyle,
-      goalTrackWear: goalTrackWear ?? p.goalTrackWear,
-      identityStyle: identityStyle ?? p.identityStyle,
-      audacity: audacity ?? p.audacity,
-      fashionComfort: fashionComfort ?? p.fashionComfort,
-      onboardingSkipped: onboardingSkipped ?? p.onboardingSkipped,
-      updatedAt: p.updatedAt,
     );
   }
 }

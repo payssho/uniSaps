@@ -5,6 +5,7 @@ import '../../models/style_profile.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/style_profile_provider.dart';
 import '../../widgets/style_profile_form.dart';
+import '../auth/style_onboarding/style_onboarding_finalize.dart';
 
 class StylePreferencesScreen extends ConsumerStatefulWidget {
   const StylePreferencesScreen({super.key});
@@ -28,17 +29,7 @@ class _StylePreferencesScreenState extends ConsumerState<StylePreferencesScreen>
   Future<void> _save() async {
     if (_draft == null) return;
     setState(() => _saving = true);
-    final profile = StyleProfile(
-      goalWardrobe: _draft!.goalWardrobe,
-      goalInspiration: _draft!.goalInspiration,
-      goalRefineStyle: _draft!.goalRefineStyle,
-      goalTrackWear: _draft!.goalTrackWear,
-      identityStyle: _draft!.identityStyle,
-      audacity: _draft!.audacity,
-      fashionComfort: _draft!.fashionComfort,
-      onboardingSkipped: false,
-      updatedAt: DateTime.now().toIso8601String(),
-    );
+    final profile = finalizeStyleProfile(_draft!);
     await ref.read(styleProfileNotifierProvider).save(profile);
     if (mounted) {
       setState(() => _saving = false);
@@ -68,6 +59,9 @@ class _StylePreferencesScreenState extends ConsumerState<StylePreferencesScreen>
             children: [
               StyleProfileForm(
                 profile: draft,
+                showSocialIntent: false,
+                showPreferredStyles: true,
+                showUsageFrequency: true,
                 onChanged: (p) => setState(() => _draft = p),
               ),
               const SizedBox(height: 24),

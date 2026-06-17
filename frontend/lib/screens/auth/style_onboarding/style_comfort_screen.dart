@@ -3,46 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../l10n/l10n_context.dart';
 import '../../../widgets/onboarding_progress_bar.dart';
-import '../../../models/style_profile.dart';
 import '../../../providers/style_onboarding_draft_provider.dart';
-import '../../../providers/style_profile_provider.dart';
 import '../../../widgets/style_profile_form.dart';
 
 class StyleComfortScreen extends ConsumerWidget {
   const StyleComfortScreen({super.key});
 
-  Future<void> _finish(BuildContext context, WidgetRef ref) async {
-    final draft = ref.read(styleOnboardingDraftProvider);
-    final profile = StyleProfile(
-      goalWardrobe: draft.goalWardrobe,
-      goalInspiration: draft.goalInspiration,
-      goalRefineStyle: draft.goalRefineStyle,
-      goalTrackWear: draft.goalTrackWear,
-      identityStyle: draft.identityStyle,
-      audacity: draft.audacity,
-      fashionComfort: draft.fashionComfort,
-      onboardingSkipped: false,
-      updatedAt: DateTime.now().toIso8601String(),
-    );
-    await ref.read(styleProfileNotifierProvider).save(profile);
-    if (context.mounted) context.go('/home');
-  }
-
-  Future<void> _skipStep(BuildContext context, WidgetRef ref) async {
-    final draft = ref.read(styleOnboardingDraftProvider);
-    final profile = StyleProfile(
-      goalWardrobe: draft.goalWardrobe,
-      goalInspiration: draft.goalInspiration,
-      goalRefineStyle: draft.goalRefineStyle,
-      goalTrackWear: draft.goalTrackWear,
-      identityStyle: draft.identityStyle,
-      audacity: draft.audacity,
-      fashionComfort: 'balanced',
-      onboardingSkipped: false,
-      updatedAt: DateTime.now().toIso8601String(),
-    );
-    await ref.read(styleProfileNotifierProvider).save(profile);
-    if (context.mounted) context.go('/home');
+  void _skipStep(WidgetRef ref) {
+    final current = ref.read(styleOnboardingDraftProvider);
+    ref.read(styleOnboardingDraftProvider.notifier).state =
+        current.copyWith(fashionComfort: 'balanced');
   }
 
   @override
@@ -53,7 +23,7 @@ class StyleComfortScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.styleOnboardingTitle),
-        bottom: const OnboardingProgressBar(step: 3, total: 3),
+        bottom: const OnboardingProgressBar(step: 3, total: 5),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -72,12 +42,16 @@ class StyleComfortScreen extends ConsumerWidget {
               Row(
                 children: [
                   TextButton(
-                    onPressed: () => _skipStep(context, ref),
+                    onPressed: () {
+                      _skipStep(ref);
+                      context.go('/onboarding/style/preferences');
+                    },
                     child: Text(l10n.styleOnboardingSkip),
                   ),
                   const Spacer(),
                   FilledButton(
-                    onPressed: () => _finish(context, ref),
+                    onPressed: () =>
+                        context.go('/onboarding/style/preferences'),
                     child: Text(l10n.styleOnboardingContinue),
                   ),
                 ],
